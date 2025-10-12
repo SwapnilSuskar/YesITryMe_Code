@@ -40,7 +40,8 @@ const corsOptions = {
       "http://127.0.0.1:3000",
       "http://www.yesitryme.com",
       "https://www.yesitryme.com",
-      "yes-i-try-me-codebase-client.vercel.app",
+      "https://yes-i-try-me-codebase-client.vercel.app",
+      "https://yes-i-try-me-client.vercel.app",
       "https://i-try-me-codebase-server.vercel.app",
     ];
 

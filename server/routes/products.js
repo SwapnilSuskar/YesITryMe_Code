@@ -29,7 +29,8 @@ router.get('/categories', getProductCategories);
 router.get('/:id', getProductById);
 
 // Protected admin routes
-router.use(protect, admin);
+router.use(protect);
+router.use(admin);
 
 router.post('/', createProduct);
 router.get('/', getProducts);

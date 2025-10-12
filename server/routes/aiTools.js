@@ -15,7 +15,8 @@ const router = express.Router();
 router.get("/public", getPublicAiTools);
 
 // Admin protected
-router.use(protect, admin);
+router.use(protect);
+router.use(admin);
 router.post("/", createAiTool);
 router.get("/", getAiTools);
 router.get("/:id", getAiToolById);

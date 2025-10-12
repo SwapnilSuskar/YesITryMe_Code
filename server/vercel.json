@@ -10,23 +10,53 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "/index.js"
+            "dest": "/index.js",
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+                "Access-Control-Allow-Credentials": "true"
+            }
         },
         {
             "src": "/health",
-            "dest": "/index.js"
+            "dest": "/index.js",
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+                "Access-Control-Allow-Credentials": "true"
+            }
         },
         {
             "src": "/test",
-            "dest": "/index.js"
+            "dest": "/index.js",
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+                "Access-Control-Allow-Credentials": "true"
+            }
         },
         {
             "src": "/db-test",
-            "dest": "/index.js"
+            "dest": "/index.js",
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+                "Access-Control-Allow-Credentials": "true"
+            }
         },
         {
             "src": "/",
-            "dest": "/index.js"
+            "dest": "/index.js",
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+                "Access-Control-Allow-Credentials": "true"
+            }
         }
     ],
     "env": {

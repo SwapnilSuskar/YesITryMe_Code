@@ -34,7 +34,21 @@ const router = express.Router();
 
 // CORS middleware for auth routes
 const corsOptions = {
-  origin: "*",
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.yesitryme.com",
+    "https://yes-i-try-me-codebase-client.vercel.app",
+    "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client.vercel.app",
+    "https://i-try-me-codebase-server.vercel.app",
+    "https://yes-i-try-me-code.vercel.app",
+    "https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-code-git-main-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-code-73nawtz6c-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client-i3i3ect8d-yesitrymes-projects.vercel.app",
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
@@ -48,17 +62,17 @@ const corsOptions = {
 router.use(cors(corsOptions));
 
 // Handle preflight requests for auth routes
-router.options('*', (req, res) => {
+router.options("/{*splat}", cors(corsOptions), (req, res) => {
   res.status(200).end();
 });
 
 // Health check for auth routes
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'Auth routes are working',
+router.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Auth routes are working",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 
@@ -68,10 +82,13 @@ router.post("/login", async (req, res, next) => {
   try {
     await login(req, res);
   } catch (error) {
-    console.error('Login route error:', error);
-    res.status(500).json({ 
-      message: 'Login failed', 
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
+    console.error("Login route error:", error);
+    res.status(500).json({
+      message: "Login failed",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
     });
   }
 });

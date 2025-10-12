@@ -29,13 +29,21 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS configuration
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Allow all origins
-    callback(null, true);
-  },
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://www.yesitryme.com",
+    "https://yes-i-try-me-codebase-client.vercel.app",
+    "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client.vercel.app",
+    "https://i-try-me-codebase-server.vercel.app",
+    "https://yes-i-try-me-code.vercel.app",
+    "https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-code-git-main-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-code-73nawtz6c-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client-i3i3ect8d-yesitrymes-projects.vercel.app",
+  ],
   credentials: true, // Allow credentials for authentication
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
@@ -46,7 +54,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Handle preflight requests explicitly
-app.options('*', (req, res) => {
+app.options('/{*splat}', cors(corsOptions), (req, res) => {
   res.status(200).end();
 });
 

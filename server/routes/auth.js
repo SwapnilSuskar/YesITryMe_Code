@@ -27,7 +27,7 @@ import {
   updateProfilePhoto,
   debugOtpStore,
 } from "../controllers/authController.js";
-import { otpLimiter,  } from "../middleware/rateLimiter.js";
+import { otpLimiter } from "../middleware/rateLimiter.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -36,16 +36,22 @@ const router = express.Router();
 const corsOptions = {
   origin: [
     "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://www.yesitryme.com",
-      "https://www.yesitryme.com",
-      "https://yes-i-try-me-codebase-client.vercel.app",
-      "https://yes-i-try-me-client.vercel.app",
-      "https://i-try-me-codebase-server.vercel.app",
+    "http://127.0.0.1:3000",
+    "http://www.yesitryme.com",
+    "https://www.yesitryme.com",
+    "https://yes-i-try-me-codebase-client.vercel.app",
+    "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client.vercel.app",
+    "https://i-try-me-codebase-server.vercel.app",
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+  ],
 };
 
 router.use(cors(corsOptions));

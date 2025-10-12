@@ -41,8 +41,10 @@ const corsOptions = {
       "http://www.yesitryme.com",
       "https://www.yesitryme.com",
       "https://yes-i-try-me-codebase-client.vercel.app",
+      "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
       "https://yes-i-try-me-client.vercel.app",
       "https://i-try-me-codebase-server.vercel.app",
+      "https://yes-i-try-me-code.vercel.app",
     ];
 
     // Add custom frontend URL from environment if provided

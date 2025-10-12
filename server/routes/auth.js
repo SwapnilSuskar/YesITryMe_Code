@@ -47,9 +47,34 @@ const corsOptions = {
 
 router.use(cors(corsOptions));
 
+// Handle preflight requests for auth routes
+router.options('*', (req, res) => {
+  res.status(200).end();
+});
+
+// Health check for auth routes
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Auth routes are working',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
 // @route   POST /api/auth/signup
 router.post("/signup", signup);
-router.post("/login", login);
+router.post("/login", async (req, res, next) => {
+  try {
+    await login(req, res);
+  } catch (error) {
+    console.error('Login route error:', error);
+    res.status(500).json({ 
+      message: 'Login failed', 
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
+    });
+  }
+});
 // @route   POST /api/auth/send-otp
 router.post("/send-otp", otpLimiter, sendSignupOtp);
 // @route   POST /api/auth/verify-otp

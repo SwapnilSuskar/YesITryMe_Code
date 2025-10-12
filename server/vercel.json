@@ -1,0 +1,39 @@
+{
+    "version": 2,
+    "name": "itryme-server",
+    "builds": [
+        {
+            "src": "index.js",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "/index.js"
+        },
+        {
+            "src": "/health",
+            "dest": "/index.js"
+        },
+        {
+            "src": "/test",
+            "dest": "/index.js"
+        },
+        {
+            "src": "/db-test",
+            "dest": "/index.js"
+        },
+        {
+            "src": "/",
+            "dest": "/index.js"
+        }
+    ],
+    "env": {
+        "NODE_ENV": "production"
+    },
+    "regions": [
+        "bom1"
+    ],
+    "public": false
+}

@@ -34,21 +34,7 @@ const router = express.Router();
 
 // CORS middleware for auth routes
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://www.yesitryme.com",
-    "https://www.yesitryme.com",
-    "https://yes-i-try-me-codebase-client.vercel.app",
-    "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
-    "https://yes-i-try-me-client.vercel.app",
-    "https://i-try-me-codebase-server.vercel.app",
-    "https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app",
-    "https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
-    "https://yes-i-try-me-code-git-main-yesitrymes-projects.vercel.app",
-    "https://yes-i-try-me-code-73nawtz6c-yesitrymes-projects.vercel.app",
-    "https://yes-i-try-me-client-i3i3ect8d-yesitrymes-projects.vercel.app",
-  ],
+  origin: "*",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [

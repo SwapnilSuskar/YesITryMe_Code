@@ -30,45 +30,11 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log("CORS request from origin:", origin);
-    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://www.yesitryme.com",
-      "https://www.yesitryme.com",
-      "https://yes-i-try-me-codebase-client.vercel.app",
-      "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
-      "https://yes-i-try-me-client.vercel.app",
-      "https://i-try-me-codebase-server.vercel.app",
-      "https://yes-i-try-me-code.vercel.app",
-      "https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app",
-      "https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
-      "https://yes-i-try-me-code-git-main-yesitrymes-projects.vercel.app",
-      "https://yes-i-try-me-code-73nawtz6c-yesitrymes-projects.vercel.app",
-      "https://yes-i-try-me-client-i3i3ect8d-yesitrymes-projects.vercel.app",
-    ];
-
-    // Add custom frontend URL from environment if provided
-    if (process.env.FRONTEND_URL) {
-      allowedOrigins.push(process.env.FRONTEND_URL);
-    }
-
-    // For development, allow all origins
-    if (process.env.NODE_ENV === "development") {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log("CORS allowed origin:", origin);
-      callback(null, true);
-    } else {
-      console.log("CORS blocked origin:", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
+    // Allow all origins
+    callback(null, true);
   },
   credentials: true, // Allow credentials for authentication
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

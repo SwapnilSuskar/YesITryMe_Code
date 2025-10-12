@@ -43,6 +43,8 @@ const corsOptions = {
     "https://yes-i-try-me-client-yesitrymes-projects.vercel.app",
     "https://yes-i-try-me-client.vercel.app",
     "https://i-try-me-codebase-server.vercel.app",
+    "https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app",
+    "https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

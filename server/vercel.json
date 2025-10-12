@@ -12,7 +12,7 @@
             "src": "/api/(.*)",
             "dest": "/index.js",
             "headers": {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://www.yesitryme.com, https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app, https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
                 "Access-Control-Allow-Credentials": "true"
@@ -22,7 +22,7 @@
             "src": "/health",
             "dest": "/index.js",
             "headers": {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://www.yesitryme.com, https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app, https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
                 "Access-Control-Allow-Credentials": "true"
@@ -32,7 +32,7 @@
             "src": "/test",
             "dest": "/index.js",
             "headers": {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://www.yesitryme.com, https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app, https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
                 "Access-Control-Allow-Credentials": "true"
@@ -42,7 +42,7 @@
             "src": "/db-test",
             "dest": "/index.js",
             "headers": {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://www.yesitryme.com, https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app, https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
                 "Access-Control-Allow-Credentials": "true"
@@ -52,7 +52,7 @@
             "src": "/",
             "dest": "/index.js",
             "headers": {
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": "https://www.yesitryme.com, https://yes-i-try-me-client-git-main-yesitrymes-projects.vercel.app, https://yes-i-try-me-client-h1kdqb7le-yesitrymes-projects.vercel.app",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
                 "Access-Control-Allow-Credentials": "true"

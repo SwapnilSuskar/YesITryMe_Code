@@ -651,7 +651,6 @@ const Signup = () => {
                 </p>
               </div>
             </div>
-
             <div className="text-center">
               <Link
                 to="/login"

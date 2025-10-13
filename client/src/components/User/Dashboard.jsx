@@ -1147,11 +1147,11 @@ const Dashboard = () => {
           funds={userFunds}
           className="mt-10 max-w-6xl mx-auto"
         />
-         {/* Referral Link: Only show if user has purchased a package */}
-      <ReferralLink
-        referralLink={user.referralLink}
-        className="mt-8"
-      />
+        {/* Referral Link: Only show if user has purchased a package */}
+        <ReferralLink
+          referralLink={user.referralLink}
+          className="mt-8"
+        />
       </div>
 
       {/* 7 Days Leads Graph */}

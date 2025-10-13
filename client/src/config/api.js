@@ -79,6 +79,8 @@ export const API_ENDPOINTS = {
     activeGalleryImages: `${API_URL}/api/auth/gallery-images/active`,
     adminSendOtp: `${API_URL}/api/auth/admin/send-otp`,
     adminLogin: `${API_URL}/api/auth/admin/login`,
+    lookupSponsorById: `${API_URL}/api/auth/lookup-sponsor-by-id`,
+    lookupSponsorByMobile: `${API_URL}/api/auth/lookup-sponsor-by-mobile`,
   },
   contact: {
     send: `${API_URL}/api/contact/send`,

@@ -9,6 +9,8 @@ import {
   checkMobileExists,
   adminSendOtp,
   adminLoginWithOtp,
+  lookupSponsorById,
+  lookupSponsorByMobile,
 } from "../controllers/authController.js";
 import { getActiveGalleryImages } from "../controllers/adminController.js";
 import { sendSignupOtp, verifySignupOtp } from "../services/otpService.js";
@@ -134,4 +136,11 @@ router.get("/top-downline-performers", protect, getTopDownlinePerformers);
 router.get("/total-package-buyers", protect, getTotalPackageBuyersCount);
 // Profile photo upload
 router.post("/profile-photo", protect, uploadProfilePhoto, updateProfilePhoto);
+
+// Sponsor lookup endpoints
+// @route   POST /api/auth/lookup-sponsor-by-id
+router.post("/lookup-sponsor-by-id", lookupSponsorById);
+// @route   POST /api/auth/lookup-sponsor-by-mobile
+router.post("/lookup-sponsor-by-mobile", lookupSponsorByMobile);
+
 export default router;

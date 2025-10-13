@@ -94,12 +94,12 @@ const Dashboard = () => {
 
   const totalIncome = useMemo(() => {
     // Per requirement: Total Income = Active (level 1 regular) + Passive (level 2-120 regular) + Super Package Commissions
-    return parseFloat(activeIncome || 0) + parseFloat(teamIncome || 0) + parseFloat(superPackageCommissions.totalEarned || 0)+ parseFloat(specialIncome.royaltyIncome || 0)+ parseFloat(specialIncome.rewardIncome || 0)+ parseFloat(specialIncome.leaderShipFund || 0) + parseFloat(totalWithdrawn || 0);
+    return parseFloat(activeIncome || 0) + parseFloat(teamIncome || 0) + parseFloat(superPackageCommissions.totalEarned || 0) + parseFloat(specialIncome.royaltyIncome || 0) + parseFloat(specialIncome.rewardIncome || 0) + parseFloat(specialIncome.leaderShipFund || 0) + parseFloat(totalWithdrawn || 0);
   }, [activeIncome, teamIncome, superPackageCommissions.totalEarned, specialIncome.royaltyIncome, specialIncome.rewardIncome, specialIncome.leaderShipFund, totalWithdrawn]);
 
 
   // Per requirement: Wallet = Active + Passive + Super Package Commissions
-  const WalletIncome = (activeIncome || 0) + (teamIncome || 0) + (superPackageCommissions.totalEarned || 0)+ parseFloat(specialIncome.royaltyIncome || 0)+ parseFloat(specialIncome.rewardIncome || 0)+ parseFloat(specialIncome.leaderShipFund || 0);
+  const WalletIncome = (activeIncome || 0) + (teamIncome || 0) + (superPackageCommissions.totalEarned || 0) + parseFloat(specialIncome.royaltyIncome || 0) + parseFloat(specialIncome.rewardIncome || 0) + parseFloat(specialIncome.leaderShipFund || 0);
 
   useEffect(() => {
     if (user && token) {
@@ -1147,6 +1147,11 @@ const Dashboard = () => {
           funds={userFunds}
           className="mt-10 max-w-6xl mx-auto"
         />
+         {/* Referral Link: Only show if user has purchased a package */}
+      <ReferralLink
+        referralLink={user.referralLink}
+        className="mt-8"
+      />
       </div>
 
       {/* 7 Days Leads Graph */}
@@ -1512,11 +1517,6 @@ const Dashboard = () => {
           </div>
         </LazyLoad>
       )}
-      {/* Referral Link: Only show if user has purchased a package */}
-      <ReferralLink
-        referralLink={user.referralLink}
-        className="mt-8"
-      />
       {/* Social Links: Always show */}
       <div className="max-w-6xl mx-auto mt-8">
         <SocialLinks />

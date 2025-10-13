@@ -265,7 +265,9 @@ export const signup = async (req, res) => {
 
         // Award referral bonus (20 coins) to sponsor's coin wallet
         try {
-          const sponsorWallet = await CoinWallet.getOrCreateWallet(finalSponsorId);
+          const sponsorWallet = await CoinWallet.getOrCreateWallet(
+            finalSponsorId
+          );
           await sponsorWallet.addCoins(
             "referral_bonus",
             20,
@@ -278,7 +280,10 @@ export const signup = async (req, res) => {
           );
         } catch (walletErr) {
           // Non-blocking: log and continue signup
-          console.error("Failed to credit referral bonus:", walletErr?.message || walletErr);
+          console.error(
+            "Failed to credit referral bonus:",
+            walletErr?.message || walletErr
+          );
         }
         break;
       } catch (createError) {
@@ -382,51 +387,51 @@ export const login = async (req, res) => {
 export const adminSendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Email is required for admin login." 
+        message: "Email is required for admin login.",
       });
     }
 
     // Check if user exists and is admin
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Admin account not found with this email." 
+        message: "Admin account not found with this email.",
       });
     }
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ 
+    if (user.role !== "admin") {
+      return res.status(403).json({
         success: false,
-        message: "Access denied. Admin privileges required." 
+        message: "Access denied. Admin privileges required.",
       });
     }
 
     // Send OTP to admin email
     const success = await generateAndSendAdminOtp(email);
-    
+
     if (success) {
       res.status(200).json({
         success: true,
         message: "Admin OTP sent successfully!",
-        expiresIn: "10 minutes"
+        expiresIn: "10 minutes",
       });
     } else {
       res.status(500).json({
         success: false,
-        message: "Failed to send admin OTP."
+        message: "Failed to send admin OTP.",
       });
     }
   } catch (error) {
     console.error("Admin OTP send error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Server error", 
-      error: error.message 
+      message: "Server error",
+      error: error.message,
     });
   }
 };
@@ -435,46 +440,46 @@ export const adminSendOtp = async (req, res) => {
 export const adminLoginWithOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    
+
     if (!email || !otp) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Email and OTP are required." 
+        message: "Email and OTP are required.",
       });
     }
 
     // Check if user exists and is admin
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Admin account not found." 
+        message: "Admin account not found.",
       });
     }
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ 
+    if (user.role !== "admin") {
+      return res.status(403).json({
         success: false,
-        message: "Access denied. Admin privileges required." 
+        message: "Access denied. Admin privileges required.",
       });
     }
 
     // Verify OTP
     const isOtpValid = verifyAdminOtp(email, otp);
     if (!isOtpValid) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: "Invalid or expired OTP." 
+        message: "Invalid or expired OTP.",
       });
     }
 
     // Generate JWT token with 8-hour expiration for admin
     const token = jwt.sign(
-      { 
-        userId: user.userId, 
-        email: user.email, 
+      {
+        userId: user.userId,
+        email: user.email,
         role: user.role,
-        isAdmin: true 
+        isAdmin: true,
       },
       process.env.JWT_SECRET,
       { expiresIn: "8h" } // 8 hours for admin
@@ -491,10 +496,10 @@ export const adminLoginWithOtp = async (req, res) => {
     });
   } catch (error) {
     console.error("Admin OTP login error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Server error", 
-      error: error.message 
+      message: "Server error",
+      error: error.message,
     });
   }
 };
@@ -506,10 +511,10 @@ export const getActiveMotivationQuote = async (req, res) => {
       .populate("uploadedBy", "firstName lastName")
       .sort({ uploadDate: -1 })
       .limit(4); // Limit to 4 quotes as requested
-    
+
     // For backward compatibility, also return the first quote as 'quote'
     const quote = quotes.length > 0 ? quotes[0] : null;
-    
+
     res.json({ quote, quotes });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -582,67 +587,66 @@ export const getUserByReferralCode = async (req, res) => {
 // Send OTP for password reset
 export const sendForgotPasswordOtp = async (req, res) => {
   const { email } = req.body;
-  
+
   if (!email) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      message: "Email address is required." 
+      message: "Email address is required.",
     });
   }
 
   const user = await User.findOne({ email });
   if (!user) {
-    return res
-      .status(404)
-      .json({ 
-        success: false,
-        message: "User not found with this email address." 
-      });
+    return res.status(404).json({
+      success: false,
+      message: "User not found with this email address.",
+    });
   }
 
   // Generate and send OTP via email
   const otpSent = await generateAndSendEmailOtp(email);
-  
+
   if (!otpSent) {
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: "Failed to send OTP. Please try again." 
+      message: "Failed to send OTP. Please try again.",
     });
   }
-  
-  res.json({ 
+
+  res.json({
     success: true,
-    message: "OTP sent to your email address. Please check your inbox and spam folder.",
-    email: email // Return email for confirmation
+    message:
+      "OTP sent to your email address. Please check your inbox and spam folder.",
+    email: email, // Return email for confirmation
   });
 };
 
 // Verify OTP and reset password
 export const resetPasswordWithOtp = async (req, res) => {
   const { email, otp, newPassword } = req.body;
-  
+
   if (!email || !otp || !newPassword) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      message: "Email, OTP, and new password are required." 
+      message: "Email, OTP, and new password are required.",
     });
   }
 
   // Verify OTP using email service
   const isOtpValid = verifyEmailOtp(email, otp);
-  
+
   if (!isOtpValid) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      message: "Invalid or expired OTP." 
+      message: "Invalid or expired OTP.",
     });
   }
 
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(404).json({ 
+    return res.status(404).json({
       success: false,
-      message: "User not found." 
+      message: "User not found.",
     });
   }
 
@@ -655,8 +659,9 @@ export const resetPasswordWithOtp = async (req, res) => {
 
   res.json({
     success: true,
-    message: "Password reset successful. You can now log in with your new password.",
-    userId: user.userId
+    message:
+      "Password reset successful. You can now log in with your new password.",
+    userId: user.userId,
   });
 };
 
@@ -666,13 +671,13 @@ export const debugOtpStore = async (req, res) => {
     const storeStatus = getOtpStoreStatus();
     res.json({
       success: true,
-      data: storeStatus
+      data: storeStatus,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Failed to get OTP store status",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -779,7 +784,10 @@ export const getTopPerformers = async (req, res) => {
     const [users, specialIncomes, payouts] = await Promise.all([
       User.find({ userId: { $in: userIds } }),
       SpecialIncome.find({ userId: { $in: userIds } }),
-      Payout.find({ userId: { $in: userIds }, status: { $in: ["approved", "completed"] } }),
+      Payout.find({
+        userId: { $in: userIds },
+        status: { $in: ["approved", "completed"] },
+      }),
     ]);
 
     // Index for quick lookup
@@ -789,7 +797,7 @@ export const getTopPerformers = async (req, res) => {
     payouts.forEach((p) => {
       withdrawnMap.set(
         p.userId,
-        (withdrawnMap.get(p.userId) || 0) + (parseFloat(p.amount || 0))
+        (withdrawnMap.get(p.userId) || 0) + parseFloat(p.amount || 0)
       );
     });
 
@@ -807,7 +815,10 @@ export const getTopPerformers = async (req, res) => {
             t.packageName.toLowerCase().includes("gold") ||
             t.packageName.toLowerCase().includes("diamond"))
       );
-      const superTotal = superTx.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      const superTotal = superTx.reduce(
+        (sum, t) => sum + (parseFloat(t.amount) || 0),
+        0
+      );
 
       const s = specialMap.get(w.userId);
       const leader = s?.leaderShipFund || 0;
@@ -857,11 +868,11 @@ export const getTopPerformers = async (req, res) => {
 export const getTopDownlinePerformers = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
+
     // Use MongoDB aggregation for better performance
     const pipeline = [
       {
-        $match: { sponsorId: userId }
+        $match: { sponsorId: userId },
       },
       {
         $graphLookup: {
@@ -871,29 +882,29 @@ export const getTopDownlinePerformers = async (req, res) => {
           connectToField: "sponsorId",
           as: "descendants",
           maxDepth: 120,
-          depthField: "level"
-        }
+          depthField: "level",
+        },
       },
       {
         $project: {
           _id: 0,
           userId: 1,
-          descendants: "$descendants.userId"
-        }
-      }
+          descendants: "$descendants.userId",
+        },
+      },
     ];
 
     const results = await User.aggregate(pipeline);
-    
+
     // Extract all unique userIds
     const allUserIds = new Set();
-    results.forEach(result => {
+    results.forEach((result) => {
       allUserIds.add(result.userId);
-      result.descendants.forEach(descId => allUserIds.add(descId));
+      result.descendants.forEach((descId) => allUserIds.add(descId));
     });
 
     const downlineUserIds = Array.from(allUserIds);
-    
+
     if (downlineUserIds.length === 0) {
       return res.json({ success: true, data: [] });
     }
@@ -901,21 +912,21 @@ export const getTopDownlinePerformers = async (req, res) => {
     // Use aggregation to get top performers in one query
     const topPerformersPipeline = [
       {
-        $match: { userId: { $in: downlineUserIds } }
+        $match: { userId: { $in: downlineUserIds } },
       },
       {
         $lookup: {
           from: "wallets",
           localField: "userId",
           foreignField: "userId",
-          as: "wallet"
-        }
+          as: "wallet",
+        },
       },
       {
         $unwind: {
           path: "$wallet",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $project: {
@@ -924,32 +935,32 @@ export const getTopDownlinePerformers = async (req, res) => {
           lastName: 1,
           imageUrl: 1,
           status: 1,
-          totalEarned: { $ifNull: ["$wallet.totalEarned", 0] }
-        }
+          totalEarned: { $ifNull: ["$wallet.totalEarned", 0] },
+        },
       },
       {
-        $sort: { totalEarned: -1 }
+        $sort: { totalEarned: -1 },
       },
       {
-        $limit: 3
-      }
+        $limit: 3,
+      },
     ];
 
     const topPerformers = await User.aggregate(topPerformersPipeline);
 
-    res.json({ 
-      success: true, 
-      data: topPerformers.map(p => ({
+    res.json({
+      success: true,
+      data: topPerformers.map((p) => ({
         userId: p.userId,
         firstName: p.firstName,
         lastName: p.lastName,
         imageUrl: p.imageUrl,
         status: p.status,
-        totalEarned: p.totalEarned
-      }))
+        totalEarned: p.totalEarned,
+      })),
     });
   } catch (error) {
-    console.error('Error in getTopDownlinePerformers:', error);
+    console.error("Error in getTopDownlinePerformers:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch top downline performers",
@@ -975,6 +986,110 @@ export const getTotalPackageBuyersCount = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to get total package buyers count",
+    });
+  }
+};
+
+// Lookup sponsor by ID
+export const lookupSponsorById = async (req, res) => {
+  try {
+    const { sponsorId } = req.body;
+
+    if (!sponsorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Sponsor ID is required",
+      });
+    }
+
+    // Find user by userId
+    const sponsor = await User.findOne({ userId: sponsorId });
+
+    if (!sponsor) {
+      return res.status(404).json({
+        success: false,
+        message: "Sponsor not found with the provided ID",
+      });
+    }
+
+    // Return sponsor information (excluding sensitive data)
+    res.status(200).json({
+      success: true,
+      sponsor: {
+        userId: sponsor.userId,
+        firstName: sponsor.firstName,
+        lastName: sponsor.lastName,
+        mobile: sponsor.mobile,
+        email: sponsor.email,
+        status: sponsor.status,
+        imageUrl: sponsor.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Error in lookupSponsorById:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to lookup sponsor by ID",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
+    });
+  }
+};
+
+// Lookup sponsor by mobile number
+export const lookupSponsorByMobile = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is required",
+      });
+    }
+
+    // Validate mobile number format
+    if (!/^\d{10}$/.test(mobile)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid 10-digit mobile number",
+      });
+    }
+
+    // Find user by mobile number
+    const sponsor = await User.findOne({ mobile });
+
+    if (!sponsor) {
+      return res.status(404).json({
+        success: false,
+        message: "Sponsor not found with the provided mobile number",
+      });
+    }
+
+    // Return sponsor information (excluding sensitive data)
+    res.status(200).json({
+      success: true,
+      sponsor: {
+        userId: sponsor.userId,
+        firstName: sponsor.firstName,
+        lastName: sponsor.lastName,
+        mobile: sponsor.mobile,
+        email: sponsor.email,
+        status: sponsor.status,
+        imageUrl: sponsor.imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Error in lookupSponsorByMobile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to lookup sponsor by mobile",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : "Internal server error",
     });
   }
 };

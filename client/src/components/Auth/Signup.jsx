@@ -37,15 +37,16 @@ const Signup = () => {
   const [sponsorLookupSuccess, setSponsorLookupSuccess] = useState('');
   const [sponsorValidated, setSponsorValidated] = useState(false);
   const [sponsorLookupType, setSponsorLookupType] = useState('id'); // 'id' or 'mobile'
+  const [sponsorMobile, setSponsorMobile] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const signupSuccess = location.state?.signupSuccess;
 
   // Zustand state/actions
-  const { loading, error, success, signup } = useAuthStore();
+  const { loading, error, signup } = useAuthStore();
 
   // Referral context
-  const { referralCode, sponsorInfo, isLoading: referralLoading, error: referralError } = useReferral();
+  const { sponsorInfo, isLoading: referralLoading, error: referralError } = useReferral();
 
   // Track if sponsor info is missing
   const sponsorMissing = !formData.sponsorId || !formData.sponsorName;
@@ -202,7 +203,7 @@ const Signup = () => {
     setSponsorLookupSuccess('');
     setSponsorValidated(false);
 
-    // Validate input based on lookup type
+    // Validate input based on lookup type (only one input required)
     if (sponsorLookupType === 'id') {
       if (!formData.sponsorId.trim()) {
         setSponsorLookupError('Please enter a Sponsor ID');
@@ -238,31 +239,13 @@ const Signup = () => {
       
       if (res.ok && data.success) {
         const sponsorData = data.sponsor;
-        
-        // Validate that the mobile number corresponds to the sponsor ID
-        if (sponsorLookupType === 'id') {
-          // If looking up by ID, we need to verify the mobile matches
-          if (sponsorData.mobile !== formData.sponsorName) {
-            setSponsorLookupError('The mobile number does not match the Sponsor ID. Please verify both fields.');
-            setSponsorValidated(false);
-            return;
-          }
-        } else {
-          // If looking up by mobile, we need to verify the ID matches
-          if (sponsorData.userId !== formData.sponsorId) {
-            setSponsorLookupError('The Sponsor ID does not match the mobile number. Please verify both fields.');
-            setSponsorValidated(false);
-            return;
-          }
-        }
-
-        // If we reach here, both ID and mobile match
+        // Single-source verification: fill both fields from the found sponsor
         setFormData(prev => ({
           ...prev,
           sponsorId: sponsorData.userId,
-          sponsorName: sponsorData.firstName + ' ' + sponsorData.lastName
+          sponsorName: `${sponsorData.firstName} ${sponsorData.lastName}`
         }));
-        
+        setSponsorMobile(sponsorData.mobile || '');
         setSponsorValidated(true);
         setSponsorLookupSuccess(`Sponsor validated: ${sponsorData.firstName} ${sponsorData.lastName} (${sponsorData.userId})`);
         setSponsorLookupError('');
@@ -377,89 +360,100 @@ const Signup = () => {
             {/* Sponsor Lookup Section */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-blue-800 mb-3">Sponsor Information</h3>
-              
-              {/* Lookup Type Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Lookup Method</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="lookupType"
-                      value="id"
-                      checked={sponsorLookupType === 'id'}
-                      onChange={(e) => setSponsorLookupType(e.target.value)}
-                      className="h-4 w-4 text-[#FF4E00] focus:ring-[#FF4E00] border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">By Sponsor ID</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="lookupType"
-                      value="mobile"
-                      checked={sponsorLookupType === 'mobile'}
-                      onChange={(e) => setSponsorLookupType(e.target.value)}
-                      className="h-4 w-4 text-[#FF4E00] focus:ring-[#FF4E00] border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">By Mobile Number</span>
-                  </label>
+
+              {/* Lookup Type Selection - hidden after validation */}
+              {!sponsorValidated && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Lookup Method</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="lookupType"
+                        value="id"
+                        checked={sponsorLookupType === 'id'}
+                        onChange={(e) => setSponsorLookupType(e.target.value)}
+                        className="h-4 w-4 text-[#FF4E00] focus:ring-[#FF4E00] border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">By Sponsor ID</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="lookupType"
+                        value="mobile"
+                        checked={sponsorLookupType === 'mobile'}
+                        onChange={(e) => setSponsorLookupType(e.target.value)}
+                        className="h-4 w-4 text-[#FF4E00] focus:ring-[#FF4E00] border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">By Mobile Number</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Sponsor ID Field */}
-              <div className="mb-4">
-                <label htmlFor="sponsorId" className="block text-sm font-medium text-gray-700">
-                  {sponsorLookupType === 'id' ? 'Sponsor ID' : 'Sponsor ID (to verify)'}
-                </label>
-                <input
-                  id="sponsorId"
-                  name="sponsorId"
-                  type="text"
-                  required
-                  disabled={sponsorValidated}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#FF4E00] focus:border-[#FF4E00] sm:text-sm ${sponsorValidated ? 'cursor-not-allowed border-green-300 bg-green-50' : 'border-gray-300'} ${errors.sponsorId ? 'border-red-500' : ''}`}
-                  placeholder={sponsorLookupType === 'id' ? 'Enter Sponsor ID' : 'Enter Sponsor ID to verify'}
-                  value={formData.sponsorId}
-                  onChange={handleChange}
-                />
-                {errors.sponsorId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.sponsorId}</p>
-                )}
-              </div>
+              {/* Inputs - show only one depending on lookup type; hide after validation */}
+              {!sponsorValidated && sponsorLookupType === 'id' && (
+                <div className="mb-4">
+                  <label htmlFor="sponsorId" className="block text-sm font-medium text-gray-700">Sponsor ID</label>
+                  <input
+                    id="sponsorId"
+                    name="sponsorId"
+                    type="text"
+                    required
+                    disabled={sponsorValidated}
+                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#FF4E00] focus:border-[#FF4E00] sm:text-sm ${sponsorValidated ? 'cursor-not-allowed border-green-300 bg-green-50' : 'border-gray-300'} ${errors.sponsorId ? 'border-red-500' : ''}`}
+                    placeholder={'Enter Sponsor ID'}
+                    value={formData.sponsorId}
+                    onChange={handleChange}
+                  />
+                  {errors.sponsorId && (
+                    <p className="mt-1 text-sm text-red-600">{errors.sponsorId}</p>
+                  )}
+                </div>
+              )}
 
-              {/* Mobile/Name Field */}
-              <div className="mb-4">
-                <label htmlFor="sponsorName" className="block text-sm font-medium text-gray-700">
-                  {sponsorLookupType === 'id' ? 'Mobile Number (to verify)' : 'Mobile Number'}
-                </label>
-                <input
-                  id="sponsorName"
-                  name="sponsorName"
-                  type="text"
-                  required
-                  disabled={sponsorValidated}
-                  className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#FF4E00] focus:border-[#FF4E00] sm:text-sm ${sponsorValidated ? 'cursor-not-allowed border-green-300 bg-green-50' : 'border-gray-300'} ${errors.sponsorName ? 'border-red-500' : ''}`}
-                  placeholder={sponsorLookupType === 'id' ? 'Enter mobile number to verify' : 'Enter 10-digit mobile number'}
-                  value={formData.sponsorName}
-                  onChange={handleChange}
-                />
-                {errors.sponsorName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.sponsorName}</p>
-                )}
-              </div>
+              {!sponsorValidated && sponsorLookupType === 'mobile' && (
+                <div className="mb-4">
+                  <label htmlFor="sponsorName" className="block text-sm font-medium text-gray-700">Mobile Number</label>
+                  <input
+                    id="sponsorName"
+                    name="sponsorName"
+                    type="text"
+                    required
+                    disabled={sponsorValidated}
+                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#FF4E00] focus:border-[#FF4E00] sm:text-sm ${sponsorValidated ? 'cursor-not-allowed border-green-300 bg-green-50' : 'border-gray-300'} ${errors.sponsorName ? 'border-red-500' : ''}`}
+                    placeholder={'Enter 10-digit mobile number'}
+                    value={formData.sponsorName}
+                    onChange={handleChange}
+                  />
+                  {errors.sponsorName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.sponsorName}</p>
+                  )}
+                </div>
+              )}
 
-              {/* Lookup Button */}
-              <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={handleSponsorLookup}
-                  disabled={sponsorLookupLoading || sponsorValidated}
-                  className="w-full px-4 py-2 bg-[#FF4E00] text-white rounded-md hover:bg-[#E64500] focus:outline-none focus:ring-2 focus:ring-[#FF4E00] text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {sponsorLookupLoading ? 'Validating...' : sponsorValidated ? '✓ Validated' : 'Validate Sponsor'}
-                </button>
-              </div>
+              {/* Lookup Button or Validated Summary */}
+              {!sponsorValidated ? (
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={handleSponsorLookup}
+                    disabled={sponsorLookupLoading}
+                    className="w-full px-4 py-2 bg-[#FF4E00] text-white rounded-md hover:bg-[#E64500] focus:outline-none focus:ring-2 focus:ring-[#FF4E00] text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {sponsorLookupLoading ? 'Validating...' : 'Validate Sponsor'}
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-700 font-semibold">Validated Sponsor</p>
+                  <p className="text-sm text-green-800">{formData.sponsorName} ({formData.sponsorId})</p>
+                  {sponsorMobile && (
+                    <p className="text-sm text-green-800">Mobile: {sponsorMobile}</p>
+                  )}
+                </div>
+              )}
 
               {/* Status Messages */}
               {sponsorLookupError && (

@@ -85,7 +85,13 @@ const promptConfig = {
     message: 'Please log in to see your social earning.',
     buttonText: "Login to Social Earning",
     icon: <Shield className="w-8 h-8" />,
-  }
+  },
+  directReferrals: {
+    title: 'View Your Direct Referrals',
+    message: 'Please log in to view your direct referrals.',
+    buttonText: 'Login to Direct Referrals',
+    icon: <Users className="w-8 h-8" />,
+  },
 };
 
 const LoginPrompt = ({ type = 'default' }) => {

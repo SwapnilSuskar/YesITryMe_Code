@@ -38,6 +38,7 @@ import KycDetailForm from '../components/User/KycDetailForm';
 import Payout from '../components/User/Payout';
 import WalletTransactions from '../components/User/WalletTransactions';
 import MyTeam from '../components/User/MyTeam';
+import DirectReferrals from '../components/User/DirectReferrals';
 import Gallery from '../components/Pages/Gallery';
 import CourseDetail from '../components/Pages/CourseDetail';
 import Products from '../components/Pages/Products';
@@ -150,6 +151,7 @@ const AppRouter = () => {
         <Route path="/ai-tools" element={<AiTools />} />
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/direct-referrals" element={<DirectReferrals />} />
         <Route path="/socialearning" element={<SocialEarning />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-team" element={<MyTeam />} />

@@ -1,4 +1,5 @@
-import { BadgeCheck, CalendarDays, CheckCircle, Crown, Download, Gift, Image as ImageIcon, IndianRupee, Mail, Package, Quote, RefreshCw, Smartphone, User, UserCheck, User as UserIcon, Users, Wallet, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, CalendarDays, CheckCircle, Crown, Download, Gift, Image as ImageIcon, IndianRupee, Mail, Package, Quote, RefreshCw, Smartphone, User, UserCheck, User as UserIcon, Users, Wallet, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -17,6 +18,7 @@ import TopDownlinePerformers from './TopDownlinePerformers';
 
 const Dashboard = () => {
   const { user, token, syncUserStatus } = useAuthStore();
+  const navigate = useNavigate();
   const [commissionSummary, setCommissionSummary] = useState({
     balance: 0,
     totalEarned: 0,
@@ -1064,6 +1066,8 @@ const Dashboard = () => {
             value={referralTree?.directReferrals?.length || 0}
             borderColor="border-purple-100"
             textColor="text-purple-700"
+            // onClick={() => navigate('/direct-referrals')}
+            // arrowIcon={ArrowRight}
           />
           <StatsCard
             icon={Package}

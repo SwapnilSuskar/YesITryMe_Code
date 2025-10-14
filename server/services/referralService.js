@@ -227,7 +227,7 @@ class ReferralService {
       // Get ALL direct referrals (Level 1) - no limits
       let directReferrals = await User.find(
         { sponsorId: userId },
-        "userId firstName lastName mobile status imageUrl email referralCode"
+        "userId firstName lastName mobile status imageUrl email referralCode activationDate createdAt"
       ); // No limit - show all referrals
 
       // Filter out self-referral if present
@@ -244,6 +244,8 @@ class ReferralService {
           imageUrl: directReferral.imageUrl,
           email: directReferral.email,
           referralCode: directReferral.referralCode,
+          activationDate: directReferral.activationDate,
+          createdAt: directReferral.createdAt,
           level: 1,
           isDirect: true,
           subReferrals: [],

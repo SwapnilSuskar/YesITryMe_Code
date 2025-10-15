@@ -97,41 +97,33 @@ const Profile = () => {
 
   const downloadIdCard = async () => {
     try {
-      // For now, we'll create a simple text-based ID card
-      const idCardContent = `
-ITryMe - Multi-Level Marketing Platform
-=====================================
-
-Name: ${user.firstName} ${user.lastName}
-ID: ${user.userId}
-Role: ${role}
-Mobile: ${user.mobile}
-Email: ${user.email}
-Location: ${user.city}, ${user.state}
-Member since: ${registrationDate}
-Status: ${kycVerified ? 'Verified' : 'Pending'}
-
-Our Services:
-- Multi-Level Marketing
-- Direct Selling
-- Network Marketing
-- Referral Programs
-- Commission Based Income
-- Team Building
-
-Generated on: ${new Date().toLocaleDateString()}
-      `;
-
-      const blob = new Blob([idCardContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
+      if (!idCardRef.current) {
+        alert('ID Card is not ready yet. Please open the card and try again.');
+        return;
+      }
+      // Dynamically import html2canvas to keep bundle lean
+      const mod = await import('html2canvas').catch(() => null);
+      if (!mod || !mod.default) {
+        alert('To download as image, please install html2canvas: npm i html2canvas');
+        return;
+      }
+      const html2canvas = mod.default;
+      const canvas = await html2canvas(idCardRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        letterRendering: 1,
+        windowWidth: document.documentElement.clientWidth,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `ID_Card_${user.userId}.txt`;
+      link.href = dataUrl;
+      link.download = `ID_Card_${user.userId}.png`;
       link.click();
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading ID card:', error);
-      alert('Failed to download ID card. Please try again.');
+      alert('Failed to download image. Please try again.');
     }
   };
 
@@ -159,12 +151,14 @@ Generated on: ${new Date().toLocaleDateString()}
   };
 
   const services = [
-    "Multi-Level Marketing",
-    "Direct Selling",
-    "Network Marketing",
-    "Referral Programs",
-    "Commission Based Income",
-    "Team Building"
+    "YouTube earning",
+    "Courses",
+    "Ebook",
+    "AI tools",
+    "Subscription base product",
+    "Physical product",
+    "Utility product",
+    "Shopping portal"
   ];
 
   const categories = [
@@ -198,6 +192,14 @@ Generated on: ${new Date().toLocaleDateString()}
         {/* Abstract SVG background */}
         <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-tr from-blue-200/60 via-orange-100/60 to-pink-200/60 blur-2xl opacity-70 z-0" style={{ clipPath: 'ellipse(80% 100% at 50% 0%)' }} />
         <div className="relative z-10 p-10 pt-20">
+          {/* Brand Love Badge */}
+          <div className="mb-6">
+            <div className="mx-auto max-w-md text-center bg-white/80 backdrop-blur rounded-2xl border border-pink-100 shadow-sm p-4">
+              <div className="text-sm font-semibold text-gray-700">We love <span className="align-middle">❤</span></div>
+              <div className="text-2xl font-extrabold bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 bg-clip-text text-transparent tracking-wide mt-1">YesITryMe</div>
+              <div className="text-xs text-gray-600 mt-1">YesITryMe Try krega india</div>
+            </div>
+          </div>
           <div className="flex flex-col items-center mb-8">
             <div className="relative group cursor-pointer transition-all duration-300 mb-3">
               <span className={`inline-block rounded-full p-0.5 ${user.status === 'free' ? 'border-4 border-red-500' :
@@ -363,68 +365,60 @@ Generated on: ${new Date().toLocaleDateString()}
             <div className="p-6">
               <div
                 ref={idCardRef}
-                className="bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-2xl p-6 text-white shadow-2xl"
+                className="rounded-2xl p-6 shadow-2xl bg-white border-2 border-orange-200 text-gray-800"
                 style={{ minHeight: '400px' }}
               >
-                {/* Company Logo and Name */}
-                <div className="text-center mb-6">
-                  <div className="text-4xl font-bold mb-2">🚀 YesITryMe</div>
-                  <div className="text-sm opacity-90">YesITryMe Digital Earning Opportunity</div>
+                {/* Brand Header */}
+                <div className="text-center mb-5">
+                  <div className="text-xs font-semibold text-gray-600">We love <span className="align-middle">❤</span></div>
+                  <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 bg-clip-text text-transparent">YesITryMe</div>
+                  <div className="text-xs text-gray-600 mt-1">YesITryMe Try krega india</div>
                 </div>
 
                 {/* User Photo and Info */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-4 mb-5">
                   <img
                     src={user.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=ff6b35&color=fff&size=100`}
                     alt="User"
-                    className="w-20 h-20 rounded-full border-4 border-white/30 object-cover"
+                    className="w-20 h-20 rounded-full border-4 border-orange-100 object-cover shadow-sm"
                     onError={(e) => {
                       e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=ff6b35&color=fff&size=100`;
                     }}
                   />
                   <div>
-                    <div className="text-xl font-bold">{user.firstName} {user.lastName}</div>
-                    <div className="text-sm opacity-90">{role}</div>
-                    <div className="text-sm opacity-90">ID: {user.userId}</div>
-                  </div>
-                </div>
-                {/* Contact Info */}
-                <div className="bg-white/20 rounded-xl p-4 mb-6">
-                  <div className="text-sm mb-2">📱 {user.mobile}</div>
-                  <div className="text-sm">📧 {user.email}</div>
-                  <div className="text-sm">📍 {user.city}, {user.state}</div>
-                </div>
-                {/* Services */}
-                <div className="mb-4">
-                  <div className="text-sm font-semibold mb-2">Our Services:</div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    {services.map((service, index) => (
-                      <div key={index} className="flex items-center gap-1">
-                        <span className="w-1 h-1 bg-white rounded-full"></span>
-                        {service}
-                      </div>
-                    ))}
+                    <div className="text-xl font-extrabold text-gray-900">{user.firstName} {user.lastName}</div>
+                    <div className="text-xs font-semibold inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 mt-1">{role}</div>
+                    <div className="text-sm text-gray-600 mt-1">ID: <span className="font-semibold text-gray-900">{user.userId}</span></div>
                   </div>
                 </div>
 
-                {/* Categories */}
-                <div>
-                  <div className="text-sm font-semibold mb-2">Categories:</div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    {categories.map((category, index) => (
-                      <div key={index} className="flex items-center gap-1">
-                        <span className="w-1 h-1 bg-white rounded-full"></span>
-                        {category}
-                      </div>
+                {/* Contact Info */}
+                <div className="rounded-xl p-4 mb-5 bg-orange-50 border border-orange-100">
+                  <div className="text-sm text-gray-700 mb-1">📱 {user.mobile}</div>
+                  <div className="text-sm text-gray-700 mb-1">📧 {user.email}</div>
+                  <div className="text-sm text-gray-700">📍 {user.city}, {user.state}</div>
+                </div>
+
+                {/* Services */}
+                <div className="mb-2">
+                  <div className="text-sm font-semibold text-gray-800 mb-2">Services</div>
+                  <div className="flex flex-wrap gap-2">
+                    {services.map((service, index) => (
+                      <span key={index} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-orange-200 text-orange-700 shadow-sm">
+                        {service}
+                      </span>
                     ))}
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="text-center mt-6 text-xs opacity-80">
-                  <div>Member since: {registrationDate}</div>
-                  <div>Status: {user.status}</div>
+                <div className="flex items-center justify-between mt-5 text-[11px] text-gray-600">
+                  <div>Member since: <span className="font-semibold text-gray-800">{registrationDate}</span></div>
+                  <div>Status: <span className="font-semibold text-gray-800">{user.status}</span></div>
                 </div>
+
+                {/* Watermark */}
+                <div className="mt-4 text-center text-[10px] text-gray-400">© YesITryMe</div>
               </div>
 
               {/* Action Buttons */}

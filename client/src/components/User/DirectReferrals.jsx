@@ -70,6 +70,7 @@ const DirectReferrals = () => {
         userId: r?.userId || '',
         name: fullName,
         imageUrl: r?.imageUrl || '',
+        mobile: r?.mobile || " ",
         registrationDate: formatDate(r?.createdAt),
         activationDate: formatDate(r?.activationDate),
         // raw timestamps for sorting (fallback to 0 so undefined sorts last on desc)
@@ -284,5 +285,3 @@ const DirectReferrals = () => {
 };
 
 export default DirectReferrals;
-
-

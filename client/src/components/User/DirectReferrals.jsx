@@ -256,7 +256,7 @@ const DirectReferrals = () => {
                             <UserAvatar imageUrl={r.imageUrl} firstName={first} lastName={last} status={r.status} size={36} />
                             <div>
                               <div className="text-sm font-semibold text-gray-900">{r.name || '-'}</div>
-                              <div className="text-[11px] text-gray-500">UserID: {r.userId || '-'}</div>
+                              <div className="text-[11px] text-gray-500">Mobile No: {r.mobile || '-'}</div>
                             </div>
                           </div>
                         </td>

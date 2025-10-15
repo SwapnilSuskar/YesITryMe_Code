@@ -1066,8 +1066,8 @@ const Dashboard = () => {
             value={referralTree?.directReferrals?.length || 0}
             borderColor="border-purple-100"
             textColor="text-purple-700"
-            // onClick={() => navigate('/direct-referrals')}
-            // arrowIcon={ArrowRight}
+            onClick={() => navigate('/direct-referrals')}
+            arrowIcon={ArrowRight}
           />
           <StatsCard
             icon={Package}

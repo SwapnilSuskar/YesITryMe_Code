@@ -1,6 +1,6 @@
-import { BadgeCheck, CalendarDays, CheckCircle2, Copy, CreditCard, Download, Edit3, Mail, MapPin, Phone, Share2, Smartphone, UserCheck, User as UserIcon, X } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle2, Copy, CreditCard, Download, Edit3, Heart, Mail, MapPin, Phone, Share2, Smartphone, UserCheck, User as UserIcon, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// removed unused useNavigate
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
@@ -15,7 +15,7 @@ const funFacts = [
 ];
 
 const Profile = () => {
-  const navigate = useNavigate();
+  // removed unused navigate
   const { user, setUser, refreshUserStatus } = useAuthStore();
   const [copiedId, setCopiedId] = useState(false);
   const [copiedMobile, setCopiedMobile] = useState(false);
@@ -23,9 +23,41 @@ const Profile = () => {
   const [uploadError, setUploadError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
+  const [showWeLove, setShowWeLove] = useState(false);
   const fileInputRef = useRef();
   const idCardRef = useRef();
   const randomFact = funFacts[Math.floor(Math.random() * funFacts.length)];
+
+  const shareWeLove = async () => {
+    try {
+      const homepageUrl = `${window.location.origin}`;
+      const profileUrl = `${window.location.origin}/profile/${user.userId}`;
+      const message = `We Love ❤ YesITryMe\n\n${user.firstName} ${user.lastName} (ID: ${user.userId}) is growing with YesITryMe!\n\n✓ YouTube earning opportunities\n✓ Premium courses and ebooks\n✓ AI tools for faster growth\n✓ Subscription and physical products\n\nJoin the movement — YesITryMe Try Karega India 🇮🇳\n\nProfile: ${profileUrl}\nWebsite: ${homepageUrl}`;
+      if (navigator.share) {
+        await navigator.share({ title: 'We Love YesITryMe', text: message, url: homepageUrl });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(message);
+        alert('Promotion message copied to clipboard!');
+      } else {
+        alert(message);
+      }
+    } catch (e) {
+      console.error('Error sharing promotion:', e);
+      alert('Failed to share. Please try again.');
+    }
+  };
+
+  const copyWeLove = async () => {
+    const homepageUrl = `${window.location.origin}`;
+    const profileUrl = `${window.location.origin}/profile/${user.userId}`;
+    const message = `We Love ❤ YesITryMe\n\n${user.firstName} ${user.lastName} (ID: ${user.userId}) is growing with YesITryMe!\n\n✓ YouTube earning opportunities\n✓ Premium courses and ebooks\n✓ AI tools for faster growth\n✓ Subscription and physical products\n\nJoin the movement — YesITryMe Try Karega India 🇮🇳\n\nProfile: ${profileUrl}\nWebsite: ${homepageUrl}`;
+    try {
+      await navigator.clipboard.writeText(message);
+      alert('Promotion message copied!');
+    } catch (_) {
+      alert('Copy failed. Long-press to select and copy.');
+    }
+  };
 
   // Sync user status when component loads
   useEffect(() => {
@@ -66,8 +98,7 @@ const Profile = () => {
       return;
     }
 
-    // Show file size info
-    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    // removed unused fileSizeMB
 
     setUploading(true);
     setUploadError('');
@@ -161,16 +192,7 @@ const Profile = () => {
     "Shopping portal"
   ];
 
-  const categories = [
-    "Courses",
-    "Ebook",
-    "Subscription Base Product",
-    "AI Base Tools",
-    "Online Product",
-    "Daily Use Product",
-    "Ecommerce Product",
-    "Electronic Product"
-  ];
+  // removed unused categories
 
   return (
     <>
@@ -304,6 +326,15 @@ const Profile = () => {
               <CreditCard size={20} />
               View ID Card
             </button>
+            {/* We Love Button */}
+            <button
+              onClick={() => setShowWeLove(true)}
+              className="mt-3 bg-white text-red-600 border border-red-300 px-6 py-3 rounded-xl flex items-center gap-2 hover:shadow-md transition-all font-semibold"
+              type="button"
+            >
+              <Heart size={20} className="text-red-500" />
+              We Love
+            </button>
           </div>
           <div className="space-y-5 z-10 relative">
             <InfoItem icon={<UserIcon size={20} />} label="Full Name" value={`${user.firstName} ${user.lastName}`} />
@@ -402,17 +433,17 @@ const Profile = () => {
                   <div className="text-sm text-gray-700 mb-1">📧 {user.email}</div>
                   <div className="text-sm text-gray-700">📍 {user.city}, {user.state}</div>
                 </div>
-                 {/* Services */}
-                 <div className="mb-4">
-                   <div className="text-sm font-semibold text-gray-800 mb-3 text-center">🎯 Our Services</div>
-                   <div className="flex flex-wrap gap-2 justify-center items-center">
-                     {services.map((service, index) => (
-                       <span key={index} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-orange-200 text-orange-700 shadow-sm inline-block">
-                         {service}
-                       </span>
-                     ))}
-                   </div>
-                 </div>
+                {/* Services */}
+                <div className="mb-4">
+                  <div className="text-sm font-semibold text-gray-800 mb-3 text-center">🎯 Our Services</div>
+                  <div className="flex flex-wrap gap-2 justify-center items-center">
+                    {services.map((service, index) => (
+                      <span key={index} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-orange-200 text-orange-700 shadow-sm inline-block">
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-5 text-[11px] text-gray-600">
                   <div>Member since: <span className="font-semibold text-gray-800">{registrationDate}</span></div>
@@ -440,6 +471,86 @@ const Profile = () => {
                   Share
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* We Love Modal */}
+      {showWeLove && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full">
+            {/* Header */}
+
+            {/* Content */}
+            <div className="px-6 pb-6 pt-10 text-center">
+              {/* Title above heart */}
+              <div className="text-3xl font-bold text-gray-800 mb-2">We Love ❤️</div>
+              {/* Bigger Heart + centered User photo */}
+              <div className="relative flex items-center justify-center mb-6">
+                <div className="text-[150px] leading-none select-none">❤</div>
+                <span className="absolute inset-0 flex items-center justify-center">
+                  {user.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt="User"
+                      className="w-20 h-20 rounded-full border-4 border-white object-cover shadow"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-20 h-20 rounded-full border-4 border-white bg-orange-500 text-white font-bold text-xl items-center justify-center shadow ${user.imageUrl ? 'hidden' : 'flex'}`}>
+                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                  </div>
+                </span>
+              </div>
+
+              {/* Brand title and tagline (no background) */}
+              <div className="text-4xl font-black text-orange-600 tracking-tight mb-1">YesITryMe</div>
+              <div className="text-sm font-semibold text-gray-700 mb-4">YesITryMe Try Karega India</div>
+
+              {/* Promo bullets */}
+              <div className="grid grid-cols-2 gap-2 text-left max-w-sm mx-auto mb-4">
+                <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-800 text-xs font-semibold rounded-lg px-3 py-2">🎬 YouTube earning</div>
+                <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 text-pink-800 text-xs font-semibold rounded-lg px-3 py-2">📚 Courses & Ebooks</div>
+                <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-800 text-xs font-semibold rounded-lg px-3 py-2">🤖 AI Tools</div>
+                <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 text-rose-800 text-xs font-semibold rounded-lg px-3 py-2">🛍️ Products & Subscriptions</div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <button
+                  onClick={shareWeLove}
+                  className="bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+                  type="button"
+                >
+                  Share
+                </button>
+                <button
+                  onClick={copyWeLove}
+                  className="bg-white text-red-600 border border-red-200 py-3 rounded-xl font-semibold hover:shadow-md transition-all"
+                  type="button"
+                >
+                  Copy
+                </button>
+                <button
+                  onClick={() => window.open(window.location.origin, '_blank')}
+                  className="bg-orange-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+                  type="button"
+                >
+                  Visit
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowWeLove(false)}
+                className="mt-4 w-full text-gray-600 hover:text-gray-800 text-sm font-semibold"
+                type="button"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

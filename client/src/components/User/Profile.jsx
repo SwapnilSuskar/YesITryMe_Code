@@ -48,7 +48,7 @@ const Profile = () => {
 
   const sponsorMobile = user.sponsorMobile || '-';
   const activationDate = user.activationDate ? new Date(user.activationDate).toLocaleDateString() : '-';
-  const role = user.role || 'User';
+
 
   const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
@@ -194,9 +194,9 @@ const Profile = () => {
         <div className="relative z-10 p-10 pt-20">
           {/* Brand Love Badge */}
           <div className="mb-6">
-            <div className="mx-auto max-w-md text-center bg-white/80 backdrop-blur rounded-2xl border border-pink-100 shadow-sm p-4">
+            <div className="mx-auto max-w-md text-center backdrop-blur rounded-2xl border border-pink-100 shadow-sm p-4">
               <div className="text-sm font-semibold text-gray-700">We love <span className="align-middle">❤</span></div>
-              <div className="text-2xl font-extrabold bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 bg-clip-text text-transparent tracking-wide mt-1">YesITryMe</div>
+              <div className="text-2xl font-extrabold text-orange-500">YesITryMe</div>
               <div className="text-xs text-gray-600 mt-1">YesITryMe Try krega india</div>
             </div>
           </div>
@@ -258,7 +258,6 @@ const Profile = () => {
             </div>
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-3xl font-extrabold text-gray-800 drop-shadow">{user.firstName} {user.lastName}</h2>
-              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300 shadow">{role}</span>
             </div>
             <div className="flex items-center gap-2 mb-2">
               <p className="text-orange-500 text-base font-bold tracking-wide">{user.userId}</p>
@@ -370,47 +369,50 @@ const Profile = () => {
               >
                 {/* Brand Header */}
                 <div className="text-center mb-5">
-                  <div className="text-xs font-semibold text-gray-600">We love <span className="align-middle">❤</span></div>
-                  <div className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 bg-clip-text text-transparent">YesITryMe</div>
-                  <div className="text-xs text-gray-600 mt-1">YesITryMe Try krega india</div>
+                  <div className="text-sm font-bold text-gray-800 mb-1">We love ❤</div>
+                  <div className="text-3xl font-black text-orange-600 mb-1">YesITryMe</div>
+                  <div className="text-sm text-gray-700">YesITryMe Try krega india</div>
                 </div>
-
                 {/* User Photo and Info */}
                 <div className="flex items-center gap-4 mb-5">
-                  <img
-                    src={user.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=ff6b35&color=fff&size=100`}
-                    alt="User"
-                    className="w-20 h-20 rounded-full border-4 border-orange-100 object-cover shadow-sm"
-                    onError={(e) => {
-                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=ff6b35&color=fff&size=100`;
-                    }}
-                  />
-                  <div>
-                    <div className="text-xl font-extrabold text-gray-900">{user.firstName} {user.lastName}</div>
-                    <div className="text-xs font-semibold inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 mt-1">{role}</div>
-                    <div className="text-sm text-gray-600 mt-1">ID: <span className="font-semibold text-gray-900">{user.userId}</span></div>
+                  {user.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt="User"
+                      className="w-20 h-20 rounded-full border-4 border-orange-100 object-cover shadow-sm"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className={`w-20 h-20 rounded-full border-4 border-orange-100 bg-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-sm ${user.imageUrl ? 'hidden' : 'flex'}`}
+                  >
+                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xl font-extrabold text-gray-900 mb-2">{user.firstName} {user.lastName}</div>
+                    <div className="text-sm text-gray-600">ID: <span className="font-semibold text-gray-900">{user.userId}</span></div>
                   </div>
                 </div>
-
                 {/* Contact Info */}
                 <div className="rounded-xl p-4 mb-5 bg-orange-50 border border-orange-100">
                   <div className="text-sm text-gray-700 mb-1">📱 {user.mobile}</div>
                   <div className="text-sm text-gray-700 mb-1">📧 {user.email}</div>
                   <div className="text-sm text-gray-700">📍 {user.city}, {user.state}</div>
                 </div>
-
-                {/* Services */}
-                <div className="mb-2">
-                  <div className="text-sm font-semibold text-gray-800 mb-2">Services</div>
-                  <div className="flex flex-wrap gap-2">
-                    {services.map((service, index) => (
-                      <span key={index} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-orange-200 text-orange-700 shadow-sm">
-                        {service}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
+                 {/* Services */}
+                 <div className="mb-4">
+                   <div className="text-sm font-semibold text-gray-800 mb-3 text-center">🎯 Our Services</div>
+                   <div className="flex flex-wrap gap-2 justify-center items-center">
+                     {services.map((service, index) => (
+                       <span key={index} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-orange-200 text-orange-700 shadow-sm inline-block">
+                         {service}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-5 text-[11px] text-gray-600">
                   <div>Member since: <span className="font-semibold text-gray-800">{registrationDate}</span></div>
@@ -446,4 +448,4 @@ const Profile = () => {
   );
 };
 
-export default Profile; 
+export default Profile;

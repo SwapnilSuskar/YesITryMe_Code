@@ -400,7 +400,7 @@ const Profile = () => {
               >
                 {/* Brand Header */}
                 <div className="text-center mb-5">
-                  <div className="text-sm font-bold text-gray-800 mb-1">We love ❤</div>
+                  <div className="text-sm font-bold text-gray-800 mb-1">We love ❤️</div>
                   <div className="text-3xl font-black text-orange-600 mb-1">YesITryMe</div>
                   <div className="text-sm text-gray-700">YesITryMe Try krega india</div>
                 </div>
@@ -488,7 +488,7 @@ const Profile = () => {
               <div className="text-3xl font-bold text-gray-800 mb-2">We Love ❤️</div>
               {/* Bigger Heart + centered User photo */}
               <div className="relative flex items-center justify-center mb-6">
-                <div className="text-[150px] leading-none select-none">❤</div>
+                <div className="text-[150px] leading-none select-none">❤️</div>
                 <span className="absolute inset-0 flex items-center justify-center">
                   {user.imageUrl ? (
                     <img

@@ -26,6 +26,8 @@ const Profile = () => {
   const [showWeLove, setShowWeLove] = useState(false);
   const fileInputRef = useRef();
   const idCardRef = useRef();
+  const weLoveRef = useRef();
+  const [isCapturingWeLove, setIsCapturingWeLove] = useState(false);
   const randomFact = funFacts[Math.floor(Math.random() * funFacts.length)];
 
   const shareWeLove = async () => {
@@ -47,17 +49,7 @@ const Profile = () => {
     }
   };
 
-  const copyWeLove = async () => {
-    const homepageUrl = `${window.location.origin}`;
-    const profileUrl = `${window.location.origin}/profile/${user.userId}`;
-    const message = `We Love ❤ YesITryMe\n\n${user.firstName} ${user.lastName} (ID: ${user.userId}) is growing with YesITryMe!\n\n✓ YouTube earning opportunities\n✓ Premium courses and ebooks\n✓ AI tools for faster growth\n✓ Subscription and physical products\n\nJoin the movement — YesITryMe Try Karega India 🇮🇳\n\nProfile: ${profileUrl}\nWebsite: ${homepageUrl}`;
-    try {
-      await navigator.clipboard.writeText(message);
-      alert('Promotion message copied!');
-    } catch (_) {
-      alert('Copy failed. Long-press to select and copy.');
-    }
-  };
+  // removed copyWeLove feature per request
 
   // Sync user status when component loads
   useEffect(() => {
@@ -178,6 +170,66 @@ const Profile = () => {
     } catch (error) {
       console.error('Error sharing ID card:', error);
       alert('Failed to share ID card. Please try again.');
+    }
+  };
+
+  const downloadWeLove = async () => {
+    try {
+      if (!weLoveRef.current) {
+        alert('We Love card is not ready yet. Please open the card and try again.');
+        return;
+      }
+      setIsCapturingWeLove(true);
+      const el = weLoveRef.current;
+      // Prefer html-to-image for layout fidelity
+      const hti = await import('html-to-image').catch(() => null);
+      if (hti && (hti.toPng || (hti.default && hti.default.toPng))) {
+        const toPng = hti.toPng || hti.default.toPng;
+        const dataUrl = await toPng(el, {
+          backgroundColor: '#ffffff',
+          pixelRatio: 2,
+          width: el.offsetWidth,
+          height: el.offsetHeight,
+          style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left',
+            boxSizing: 'border-box',
+          },
+          cacheBust: true,
+        });
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `WeLove_YesITryMe_${user.userId}.png`;
+        link.click();
+        setIsCapturingWeLove(false);
+        return;
+      }
+      // Fallback to html2canvas with minimal overrides to avoid stretching
+      const mod = await import('html2canvas').catch(() => null);
+      if (!mod || !mod.default) {
+        setIsCapturingWeLove(false);
+        alert('To download as image, please install html-to-image or html2canvas');
+        return;
+      }
+      const html2canvas = mod.default;
+      const canvas = await html2canvas(el, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        letterRendering: 1,
+        scrollY: 0,
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `WeLove_YesITryMe_${user.userId}.png`;
+      link.click();
+      setIsCapturingWeLove(false);
+    } catch (error) {
+      console.error('Error downloading We Love card:', error);
+      alert('Failed to download image. Please try again.');
+      setIsCapturingWeLove(false);
     }
   };
 
@@ -483,44 +535,47 @@ const Profile = () => {
             {/* Header */}
 
             {/* Content */}
-            <div className="px-6 pb-6 pt-10 text-center">
-              {/* Title above heart */}
-              <div className="text-3xl font-bold text-gray-800 mb-2">We Love ❤️</div>
-              {/* Bigger Heart + centered User photo */}
-              <div className="relative flex items-center justify-center mb-6">
-                <div className="text-[150px] leading-none select-none">❤️</div>
-                <span className="absolute inset-0 flex items-center justify-center">
-                  {user.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt="User"
-                      className="w-20 h-20 rounded-full border-4 border-white object-cover shadow"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className={`w-20 h-20 rounded-full border-4 border-white bg-orange-500 text-white font-bold text-xl items-center justify-center shadow ${user.imageUrl ? 'hidden' : 'flex'}`}>
-                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-                  </div>
-                </span>
+            <div className={`px-6 pb-6 pt-10 text-center ${isCapturingWeLove ? 'we-love-capture' : ''}`} style={{ width: 360, margin: '0 auto', display: 'block' }}>
+              {/* Capture area: only this will be converted to image */}
+              <div ref={weLoveRef} className="bg-white rounded-xl we-love-card" style={{ paddingBottom: 12 }}>
+                {/* Title above heart */}
+                <div className="text-3xl font-bold text-gray-800 mb-2">We Love ❤️</div>
+                {/* Bigger Heart + centered User photo */}
+                <div className="relative flex items-center justify-center mb-6">
+                  <div className="text-[150px] leading-none select-none">❤️</div>
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    {user.imageUrl ? (
+                      <img
+                        src={user.imageUrl}
+                        alt="User"
+                        className="w-20 h-20 rounded-full border-4 border-white object-cover shadow"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-20 h-20 rounded-full border-4 border-white bg-orange-500 text-white font-bold text-xl items-center justify-center shadow ${user.imageUrl ? 'hidden' : 'flex'}`}>
+                      {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                    </div>
+                  </span>
+                </div>
+
+                {/* Brand title and tagline (no background) */}
+                <div className="text-4xl font-black text-orange-600 tracking-tight mb-1">YesITryMe</div>
+                <div className="text-sm font-semibold text-gray-700 mb-4">YesITryMe Try Karega India</div>
+
+                {/* Promo bullets */}
+                <div className="grid grid-cols-2 gap-2 text-left max-w-sm mx-auto">
+                  <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-800 text-xs font-semibold rounded-lg px-3 py-2">🎬 YouTube earning</div>
+                  <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 text-pink-800 text-xs font-semibold rounded-lg px-3 py-2">📚 Courses & Ebooks</div>
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-800 text-xs font-semibold rounded-lg px-3 py-2">🤖 AI Tools</div>
+                  <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 text-rose-800 text-xs font-semibold rounded-lg px-3 py-2">🛍️ Products & Subscriptions</div>
+                </div>
               </div>
 
-              {/* Brand title and tagline (no background) */}
-              <div className="text-4xl font-black text-orange-600 tracking-tight mb-1">YesITryMe</div>
-              <div className="text-sm font-semibold text-gray-700 mb-4">YesITryMe Try Karega India</div>
-
-              {/* Promo bullets */}
-              <div className="grid grid-cols-2 gap-2 text-left max-w-sm mx-auto mb-4">
-                <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-800 text-xs font-semibold rounded-lg px-3 py-2">🎬 YouTube earning</div>
-                <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 text-pink-800 text-xs font-semibold rounded-lg px-3 py-2">📚 Courses & Ebooks</div>
-                <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-800 text-xs font-semibold rounded-lg px-3 py-2">🤖 AI Tools</div>
-                <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 text-rose-800 text-xs font-semibold rounded-lg px-3 py-2">🛍️ Products & Subscriptions</div>
-              </div>
-
-              {/* Actions */}
-              <div className="mt-4 grid grid-cols-3 gap-3">
+              {/* Separate actions (not captured) */}
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   onClick={shareWeLove}
                   className="bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
@@ -529,18 +584,12 @@ const Profile = () => {
                   Share
                 </button>
                 <button
-                  onClick={copyWeLove}
-                  className="bg-white text-red-600 border border-red-200 py-3 rounded-xl font-semibold hover:shadow-md transition-all"
+                  onClick={downloadWeLove}
+                  className="bg-orange-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   type="button"
                 >
-                  Copy
-                </button>
-                <button
-                  onClick={() => window.open(window.location.origin, '_blank')}
-                  className="bg-orange-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
-                  type="button"
-                >
-                  Visit
+                  <Download size={18} />
+                  Download
                 </button>
               </div>
 
@@ -555,6 +604,14 @@ const Profile = () => {
           </div>
         </div>
       )}
+      {/* Capture styles to keep dimensions stable and disable animations during snapshot */}
+      <style>{`
+        .we-love-capture, .we-love-capture * { 
+          animation: none !important; 
+          transition: none !important; 
+        }
+        .we-love-card { width: 360px; margin: 0 auto; }
+      `}</style>
     </>
   );
 };

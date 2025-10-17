@@ -89,7 +89,6 @@ const AdminLayout = () => {
       <Navbar />
       <Outlet />
       <Footer />
-      <DeveloperAttribution />
     </>
   );
 };

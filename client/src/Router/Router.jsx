@@ -7,7 +7,6 @@ import Signup from '../components/Auth/Signup';
 import AdminLogin from '../components/Auth/AdminLogin';
 import TermsAndConditions from '../components/Pages/TermsAndConditions';
 import Footer from '../components/UI/Footer';
-import DeveloperAttribution from '../components/UI/DeveloperAttribution';
 import { Outlet } from 'react-router-dom';
 import WelcomeBanner from '../components/UI/WelcomeBanner';
 import MoreAboutDirector from '../components/UI/MoreAboutDirector';
@@ -70,7 +69,6 @@ const LayoutWithNavbar = () => {
       <Navbar />
       <Outlet />
       <Footer />
-      <DeveloperAttribution />
     </>
   );
 };

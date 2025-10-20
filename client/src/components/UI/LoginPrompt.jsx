@@ -92,6 +92,12 @@ const promptConfig = {
     buttonText: 'Login to Direct Referrals',
     icon: <Users className="w-8 h-8" />,
   },
+  nominee: {
+    title: 'Add Your Nominee',
+    message: 'Please log in to add your nominee.',
+    buttonText: 'Login to Add Nominee',
+    icon: <User className="w-8 h-8" />,
+  },
 };
 
 const LoginPrompt = ({ type = 'default' }) => {

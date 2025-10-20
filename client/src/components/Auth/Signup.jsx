@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '../../assets/Logo.png';
-import { API_ENDPOINTS } from '../../config/api';
+import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useReferral } from './ReferralHandler';
+import { User, Phone, MapPin, UserCheck, Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -27,8 +28,6 @@ const Signup = () => {
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [otpSuccess, setOtpSuccess] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState(''); // Store the generated OTP
-  const [showCredentials, setShowCredentials] = useState(false); // Show credentials after signup
   const [userCredentials, setUserCredentials] = useState(null); // Store user credentials
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,12 +37,26 @@ const Signup = () => {
   const [sponsorValidated, setSponsorValidated] = useState(false);
   const [sponsorLookupType, setSponsorLookupType] = useState('id'); // 'id' or 'mobile'
   const [sponsorMobile, setSponsorMobile] = useState('');
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [showNomineeForm, setShowNomineeForm] = useState(false);
+  const [nomineeSkipped, setNomineeSkipped] = useState(false);
+  const [nomineeData, setNomineeData] = useState({
+    name: '',
+    bloodRelation: '',
+    mobile: '',
+    address: ''
+  });
+  const [nomineeError, setNomineeError] = useState('');
+  const [nomineeSuccess, setNomineeSuccess] = useState('');
+  const [nomineeErrors, setNomineeErrors] = useState({});
+  const [nomineeLoading, setNomineeLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const signupSuccess = location.state?.signupSuccess;
 
   // Zustand state/actions
-  const { loading, error, signup } = useAuthStore();
+  const { loading, error, signup, login } = useAuthStore();
 
   // Referral context
   const { sponsorInfo, isLoading: referralLoading, error: referralError } = useReferral();
@@ -77,7 +90,7 @@ const Signup = () => {
       });
     }
     if (e.target.name === 'otp') setOtpError('');
-    
+
     // Reset sponsor validation when sponsor fields change
     if (e.target.name === 'sponsorId' || e.target.name === 'sponsorName') {
       setSponsorValidated(false);
@@ -85,6 +98,158 @@ const Signup = () => {
       setSponsorLookupSuccess('');
     }
   };
+
+  const handleNomineeChange = (e) => {
+    setNomineeData({ ...nomineeData, [e.target.name]: e.target.value });
+    // Clear errors when user starts typing
+    if (nomineeError) setNomineeError('');
+    if (nomineeErrors[e.target.name]) {
+      setNomineeErrors({ ...nomineeErrors, [e.target.name]: '' });
+    }
+  };
+
+  const bloodRelations = [
+    'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Sister',
+    'Husband', 'Wife', 'Grandfather', 'Grandmother', 'Uncle', 'Aunt', 'Cousin'
+  ];
+
+  const validateNomineeForm = () => {
+    const newErrors = {};
+
+    if (!nomineeData.name.trim()) {
+      newErrors.name = 'Nominee name is required';
+    } else if (nomineeData.name.trim().length < 2) {
+      newErrors.name = 'Nominee name must be at least 2 characters';
+    } else if (nomineeData.name.trim().length > 100) {
+      newErrors.name = 'Nominee name cannot exceed 100 characters';
+    }
+
+    if (!nomineeData.bloodRelation.trim()) {
+      newErrors.bloodRelation = 'Blood relation is required';
+    }
+
+    if (!nomineeData.mobile.trim()) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!/^\d{10}$/.test(nomineeData.mobile)) {
+      newErrors.mobile = 'Mobile number must be exactly 10 digits';
+    }
+
+    if (!nomineeData.address.trim()) {
+      newErrors.address = 'Address is required';
+    } else if (nomineeData.address.trim().length < 10) {
+      newErrors.address = 'Address must be at least 10 characters';
+    } else if (nomineeData.address.trim().length > 500) {
+      newErrors.address = 'Address cannot exceed 500 characters';
+    }
+
+    return newErrors;
+  };
+
+  const handleNomineeSubmit = async () => {
+    try {
+      setNomineeError('');
+      setNomineeSuccess('');
+      setNomineeErrors({});
+      setNomineeLoading(true);
+
+      // Validate nominee form
+      const validationErrors = validateNomineeForm();
+      if (Object.keys(validationErrors).length > 0) {
+        setNomineeErrors(validationErrors);
+        setNomineeError('Please fill all required fields correctly');
+        setNomineeLoading(false);
+        return;
+      }
+
+      // Check if user is logged in (should have credentials from signup)
+      if (!userCredentials || !userCredentials.userId) {
+        setNomineeError('User credentials not found. Please try again.');
+        setNomineeLoading(false);
+        return;
+      }
+
+      // Submit nominee data with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const axiosResponse = await api.post(
+        API_ENDPOINTS.nominee.createOrUpdate.replace(':userId', userCredentials.userId),
+        {
+          name: nomineeData.name.trim(),
+          bloodRelation: nomineeData.bloodRelation,
+          mobile: nomineeData.mobile.trim(),
+          address: nomineeData.address.trim()
+        },
+        { signal: controller.signal }
+      );
+
+      clearTimeout(timeoutId);
+
+      const data = axiosResponse.data;
+
+      if (axiosResponse.status === 200 && data.success) {
+        setNomineeSuccess('Nominee information saved successfully!');
+        setNomineeError('');
+        // Reset form
+        setNomineeData({
+          name: '',
+          bloodRelation: '',
+          mobile: '',
+          address: ''
+        });
+        setShowNomineeForm(false);
+
+        // Navigate to login after a short delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        const errorMessage = data.message || 'Failed to save nominee information. Please try again.';
+        setNomineeError(errorMessage);
+        setNomineeSuccess('');
+
+        // If it's a server error and we haven't retried yet, offer retry
+        if (axiosResponse.status >= 500 && retryCount < 2) {
+          setRetryCount(prev => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving nominee:', error);
+
+      if (error.name === 'AbortError') {
+        setNomineeError('Request timeout. Please check your connection and try again.');
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setNomineeError('Network error. Please check your internet connection and try again.');
+      } else if (error.name === 'SyntaxError') {
+        setNomineeError('Server error. Please try again later.');
+      } else {
+        setNomineeError('An unexpected error occurred. Please try again.');
+      }
+
+      setNomineeSuccess('');
+    } finally {
+      setNomineeLoading(false);
+    }
+  };
+
+  const handleNomineeSkip = () => {
+    setNomineeError('');
+    setNomineeSuccess('');
+    setNomineeErrors({});
+    setRetryCount(0);
+    setShowNomineeForm(false);
+    setNomineeSkipped(true);
+    navigate('/login');
+  };
+
+  // Cleanup function to clear any pending timeouts
+  useEffect(() => {
+    return () => {
+      // Clear any pending timeouts when component unmounts
+      const timeouts = document.querySelectorAll('[data-timeout]');
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -150,7 +315,6 @@ const Signup = () => {
       const data = await res.json();
       if (res.ok) {
         setOtpSent(true);
-        setGeneratedOtp(data.otp); // Store the generated OTP
         setOtpSuccess(`OTP generated successfully! Your OTP is: ${data.otp}. Please enter it below.`);
         setOtpError('');
       } else {
@@ -225,21 +389,21 @@ const Signup = () => {
 
     setSponsorLookupLoading(true);
     try {
-      const endpoint = sponsorLookupType === 'id' 
-        ? `${API_ENDPOINTS.auth.lookupSponsorById}` 
+      const endpoint = sponsorLookupType === 'id'
+        ? `${API_ENDPOINTS.auth.lookupSponsorById}`
         : `${API_ENDPOINTS.auth.lookupSponsorByMobile}`;
-      
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          [sponsorLookupType === 'id' ? 'sponsorId' : 'mobile']: 
+          [sponsorLookupType === 'id' ? 'sponsorId' : 'mobile']:
             sponsorLookupType === 'id' ? formData.sponsorId : formData.sponsorName
         })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.success) {
         const sponsorData = data.sponsor;
         // Single-source verification: fill both fields from the found sponsor
@@ -283,11 +447,19 @@ const Signup = () => {
     if (result && result.success) {
       setUserCredentials(result.credentials);
       setShowCredentials(true);
+
+      // Silently login so protected routes (nominee) have a valid token
+      // Prefer mobile if available; otherwise use userId and the generated password
+      const identifier = formData.mobile?.trim() && /^\d{10}$/.test(formData.mobile)
+        ? { mobile: formData.mobile.trim(), password: formData.password }
+        : { userId: result.credentials.userId, password: result.credentials.password };
+      // Perform login without navigation, so token is stored and axios interceptor adds it
+      await login(identifier, null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8 mt-10">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8 mt-10 overflow-x-hidden">
       <div className="max-w-md w-full space-y-8">
         <div className='flex flex-col items-center justify-center'>
           <span className="text-white font-bold text-lg">
@@ -466,7 +638,7 @@ const Signup = () => {
                   <p className="text-sm text-red-600">{sponsorLookupError}</p>
                 </div>
               )}
-              
+
               {sponsorLookupSuccess && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-sm text-green-600">{sponsorLookupSuccess}</p>
@@ -610,14 +782,9 @@ const Signup = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
+                    <EyeOff className="h-5 w-5 text-gray-400" />
                   ) : (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
+                    <Eye className="h-5 w-5 text-gray-400" />
                   )}
                 </button>
               </div>
@@ -648,14 +815,9 @@ const Signup = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
+                    <EyeOff className="h-5 w-5 text-gray-400" />
                   ) : (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
+                    <Eye className="h-5 w-5 text-gray-400" />
                   )}
                 </button>
               </div>
@@ -747,6 +909,7 @@ const Signup = () => {
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
+
           </div>
 
           <div className="flex items-center">
@@ -786,9 +949,7 @@ const Signup = () => {
           <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-6 shadow-lg">
             <div className="text-center mb-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-green-800 mb-2">Registration Successful!</h3>
               <p className="text-green-700">Your account has been created successfully.</p>
@@ -807,20 +968,185 @@ const Signup = () => {
                 </div>
               </div>
               <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800 font-medium">
-                  ⚠️ <strong>Important:</strong> Please save these credentials immediately. You will need them to login to your account.
-                </p>
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <p className="text-sm text-yellow-800 font-medium">
+                    <strong>Important:</strong> Please save these credentials immediately. You will need them to login to your account.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="text-center">
+            {/* Nominee Section - Show after credentials */}
+            {!nomineeSkipped && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="text-center mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <UserCheck className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">Add Nominee Information</h3>
+                  <p className="text-xs text-gray-600">
+                    Secure your account by adding nominee details (optional)
+                  </p>
+                </div>
+
+                {!showNomineeForm ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowNomineeForm(true)}
+                      className="flex-1 bg-[#FF4E00] hover:bg-[#E64500] text-white py-2 px-4 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Add Nominee
+                    </button>
+                    <button
+                      onClick={handleNomineeSkip}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Skip for Now
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {nomineeError && (
+                      <div className="text-red-600 text-xs text-center">
+                        {nomineeError}
+                        {retryCount > 0 && retryCount < 2 && (
+                          <div className="mt-1">
+                            <button
+                              onClick={handleNomineeSubmit}
+                              disabled={nomineeLoading}
+                              className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                            >
+                              Retry ({retryCount}/2)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {nomineeSuccess && (
+                      <div className="text-green-600 text-xs text-center">{nomineeSuccess}</div>
+                    )}
+
+                    <div className="space-y-4">
+                      {/* Name */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <User className="w-3 h-3 inline mr-1 text-[#FF4E00]" />
+                          Nominee Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={nomineeData.name}
+                          onChange={handleNomineeChange}
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#FF4E00] focus:border-[#FF4E00] text-sm ${nomineeErrors.name ? 'border-red-500' : 'border-gray-300'}`}
+                          placeholder="Enter nominee's full name"
+                          required
+                        />
+                        {nomineeErrors.name && (
+                          <p className="mt-1 text-xs text-red-600">{nomineeErrors.name}</p>
+                        )}
+                      </div>
+
+                      {/* Blood Relation */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <UserCheck className="w-3 h-3 inline mr-1 text-[#FF4E00]" />
+                          Blood Relation *
+                        </label>
+                        <select
+                          name="bloodRelation"
+                          value={nomineeData.bloodRelation}
+                          onChange={handleNomineeChange}
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#FF4E00] focus:border-[#FF4E00] text-sm ${nomineeErrors.bloodRelation ? 'border-red-500' : 'border-gray-300'}`}
+                          required
+                        >
+                          <option value="">Select relationship</option>
+                          {bloodRelations.map(relation => (
+                            <option key={relation} value={relation}>{relation}</option>
+                          ))}
+                        </select>
+                        {nomineeErrors.bloodRelation && (
+                          <p className="mt-1 text-xs text-red-600">{nomineeErrors.bloodRelation}</p>
+                        )}
+                      </div>
+
+                      {/* Mobile */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <Phone className="w-3 h-3 inline mr-1 text-[#FF4E00]" />
+                          Mobile Number *
+                        </label>
+                        <input
+                          type="tel"
+                          name="mobile"
+                          value={nomineeData.mobile}
+                          onChange={handleNomineeChange}
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#FF4E00] focus:border-[#FF4E00] text-sm ${nomineeErrors.mobile ? 'border-red-500' : 'border-gray-300'}`}
+                          placeholder="Enter 10-digit mobile number"
+                          maxLength="10"
+                          required
+                        />
+                        {nomineeErrors.mobile && (
+                          <p className="mt-1 text-xs text-red-600">{nomineeErrors.mobile}</p>
+                        )}
+                      </div>
+
+                      {/* Address */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <MapPin className="w-3 h-3 inline mr-1 text-[#FF4E00]" />
+                          Address *
+                        </label>
+                        <textarea
+                          name="address"
+                          value={nomineeData.address}
+                          onChange={handleNomineeChange}
+                          rows="3"
+                          className={`w-full px-3 py-2 border rounded-md focus:ring-[#FF4E00] focus:border-[#FF4E00] text-sm resize-none ${nomineeErrors.address ? 'border-red-500' : 'border-gray-300'}`}
+                          placeholder="Enter complete address"
+                          required
+                        />
+                        {nomineeErrors.address && (
+                          <p className="mt-1 text-xs text-red-600">{nomineeErrors.address}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={() => setShowNomineeForm(false)}
+                        disabled={nomineeLoading}
+                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleNomineeSubmit}
+                        disabled={nomineeLoading}
+                        className="flex-1 bg-[#FF4E00] hover:bg-[#E64500] text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {nomineeLoading ? 'Saving...' : 'Save Nominee'}
+                      </button>
+                      <button
+                        onClick={handleNomineeSkip}
+                        disabled={nomineeLoading}
+                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        Skip for Now
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="text-center mt-3">
               <Link
                 to="/login"
                 className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-200"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
-                </svg>
+                <ArrowRight className="w-5 h-5 mr-2" />
                 Go to Login
               </Link>
             </div>

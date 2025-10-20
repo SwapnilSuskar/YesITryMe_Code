@@ -1133,7 +1133,6 @@ async function verifyYouTubeAction(accessToken, task, action) {
                   channelResponse.data.items.length > 0
                 ) {
                   channelId = channelResponse.data.items[0].id;
-                 
                 } else {
                   // If username resolution fails, try searching by channel name
 
@@ -1150,7 +1149,6 @@ async function verifyYouTubeAction(accessToken, task, action) {
                   ) {
                     channelId = searchResponse.data.items[0].id.channelId;
                   } else {
-                   
                     return false;
                   }
                 }
@@ -1168,7 +1166,6 @@ async function verifyYouTubeAction(accessToken, task, action) {
               `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&forChannelId=${channelId}`,
               { headers }
             );
-            console.log("Subscription check response:", response.data);
 
             // Only return true if we actually find a subscription
             return response.data.items && response.data.items.length > 0;

@@ -19,6 +19,7 @@ import notificationRoutes from "./routes/notifications.js";
 import aiToolRoutes from "./routes/aiTools.js";
 import socialRoutes from "./routes/social.js";
 import coinsRoutes from "./routes/coins.js";
+import nomineeRoutes from "./routes/nominee.js";
 
 const app = express();
 
@@ -217,6 +218,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai-tools", aiToolRoutes);
 app.use("/api/social", socialRoutes);
 app.use("/api/coins", coinsRoutes);
+app.use("/api/nominee", nomineeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

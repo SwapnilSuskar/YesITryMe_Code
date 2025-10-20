@@ -58,11 +58,9 @@ export const verifyOtp = (mobile, otp) => {
 
 export const sendSignupOtp = async (req, res) => {
   try {
-    console.log("📞 sendSignupOtp called for mobile:", req.body.mobile);
-    
     const { mobile } = req.body;
     if (!mobile || !/^\d{10}$/.test(mobile)) {
-      console.log('❌ Invalid mobile number:', mobile);
+      console.log("❌ Invalid mobile number:", mobile);
       return res
         .status(400)
         .json({ message: "Valid 10-digit mobile number is required." });
@@ -70,35 +68,30 @@ export const sendSignupOtp = async (req, res) => {
 
     // Generate OTP but don't send via SMS
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP in memory (expires in 5 min)
     otpStore[mobile] = { otp, expires: Date.now() + 5 * 60 * 1000 };
 
-    console.log("🔐 Generated OTP:", otp, "for mobile:", mobile);
-    console.log("💡 OTP will be displayed on frontend instead of sending SMS");
-
     // Return OTP in response instead of sending SMS
-    res.status(200).json({ 
+    res.status(200).json({
       message: "OTP generated successfully!",
       otp: otp, // Include OTP in response for frontend display
-      expiresIn: "5 minutes"
+      expiresIn: "5 minutes",
     });
   } catch (error) {
-    console.error('sendSignupOtp error:', error);
-    console.error('Error details:', {
+    console.error("sendSignupOtp error:", error);
+    console.error("Error details:", {
       message: error.message,
       code: error.code,
       status: error.status,
-      moreInfo: error.moreInfo
+      moreInfo: error.moreInfo,
     });
-    
-    res
-      .status(500)
-      .json({ 
-        message: "Failed to generate OTP.", 
-        error: error.message,
-        code: error.code || 'UNKNOWN'
-      });
+
+    res.status(500).json({
+      message: "Failed to generate OTP.",
+      error: error.message,
+      code: error.code || "UNKNOWN",
+    });
   }
 };
 
@@ -106,31 +99,31 @@ export const sendSignupOtp = async (req, res) => {
 export const verifySignupOtp = async (req, res) => {
   try {
     const { mobile, otp } = req.body;
-    
+
     if (!mobile || !otp) {
-      return res.status(400).json({ 
-        message: "Mobile number and OTP are required." 
+      return res.status(400).json({
+        message: "Mobile number and OTP are required.",
       });
     }
 
     const isValid = verifyOtp(mobile, otp);
-    
+
     if (isValid) {
-      res.status(200).json({ 
+      res.status(200).json({
         message: "OTP verified successfully!",
-        success: true 
+        success: true,
       });
     } else {
-      res.status(400).json({ 
+      res.status(400).json({
         message: "Invalid or expired OTP.",
-        success: false 
+        success: false,
       });
     }
   } catch (error) {
-    console.error('verifySignupOtp error:', error);
-    res.status(500).json({ 
-      message: "Failed to verify OTP.", 
-      error: error.message 
+    console.error("verifySignupOtp error:", error);
+    res.status(500).json({
+      message: "Failed to verify OTP.",
+      error: error.message,
     });
   }
 };
@@ -141,7 +134,7 @@ export const sendUserIdAndPassword = async (mobile, userId, password) => {
     console.log("📱 Sending User ID and password to:", mobile);
     console.log("👤 User ID:", userId);
     console.log("🔑 Password:", password);
-    
+
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -164,7 +157,12 @@ export const sendUserIdAndPassword = async (mobile, userId, password) => {
       to: toNumber,
     });
 
-    console.log("✅ User ID and password sent successfully to", mobile, "SID:", result.sid);
+    console.log(
+      "✅ User ID and password sent successfully to",
+      mobile,
+      "SID:",
+      result.sid
+    );
     return true;
   } catch (error) {
     console.error("❌ Failed to send User ID and password:", error.message);

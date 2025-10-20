@@ -1,4 +1,4 @@
-import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap } from 'lucide-react';
+import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from "../assets/Logo.png";
@@ -14,20 +14,31 @@ const Navbar = () => {
   const location = useLocation();
 
   const { isAuthenticated, logout, user } = useAuthStore();
-  const mobileNavItems = [
+
+  // Navigation items for public pages
+  const publicNavItems = [
     { name: 'HOME', path: '/' },
     { name: 'COURSES', path: '/courses' },
     { name: 'GALLERY', path: '/gallery' },
     { name: 'ABOUT US', path: '/about' },
     { name: 'CONTACT US', path: '/contact' },
   ];
-  const navItems = [
-    { name: 'HOME', path: '/' },
-    { name: 'COURSES', path: '/courses' },
-    { name: 'GALLERY', path: '/gallery' },
-    { name: 'ABOUT US', path: '/about' },
-    { name: 'CONTACT US', path: '/contact' },
 
+  // Navigation items for authenticated users
+  const authenticatedNavItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
+    { name: 'Profile', path: '/profile', icon: User },
+    { name: 'Nominees', path: '/nominee', icon: UserCheck },
+    { name: 'My Team', path: '/my-team', icon: Users },
+    { name: 'AI Tools', path: '/ai-tools', icon: Brain },
+    { name: 'Packages', path: '/packages', icon: BookOpen },
+    { name: 'Super Packages', path: '/super-packages', icon: Zap },
+    { name: 'My Products', path: '/products', icon: Package },
+    { name: 'My Ebooks', path: '/ebooks', icon: BookOpen },
+    { name: 'KYC', path: '/kyc', icon: LinkIcon },
+    { name: 'Payout', path: '/payout', icon: Wallet },
+    { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
   ];
 
 
@@ -43,6 +54,36 @@ const Navbar = () => {
   const handleLogout = () => {
     setIsMenuOpen(false);
     setTimeout(() => logout(), 0);
+  };
+
+  // Helper function to render navigation items
+  const renderNavItem = (item, isMobile = false) => {
+    const IconComponent = item.icon;
+    const baseClasses = "flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition";
+
+    if (isMobile) {
+      return (
+        <button
+          key={item.path}
+          onClick={() => { setIsMobileDropdownOpen(false); navigate(item.path); }}
+          className={baseClasses}
+        >
+          {IconComponent && <IconComponent className="w-4 h-4 text-[#FF4E00]" />}
+          {item.name}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={baseClasses}
+      >
+        {IconComponent && <IconComponent className="w-4 h-4 text-[#FF4E00]" />}
+        {item.name}
+      </Link>
+    );
   };
 
   return (
@@ -64,7 +105,7 @@ const Navbar = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:block">
               <div className="ml-6 flex items-baseline space-x-2">
-                {navItems.map((item) => {
+                {publicNavItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <button
@@ -114,89 +155,9 @@ const Navbar = () => {
                           Admin Dashboard
                         </Link>
                       )}
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
-                        Dashboard
-                      </Link>
-                      <Link
-                        to="/socialearning"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <YoutubeIcon className="w-4 h-4 text-[#FF4E00]" />
-                        Social Earning
-                      </Link>
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <User className="w-4 h-4 text-[#FF4E00]" />
-                        Profile
-                      </Link>
-                      <Link
-                        to="/my-team"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Users className="w-4 h-4 text-[#FF4E00]" />
-                        My Team
-                      </Link>
-                      <Link
-                        to="/ai-tools"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Brain className="w-4 h-4 text-[#FF4E00]" />
-                        AI Tools
-                      </Link>
-                      <Link
-                        to="/packages"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <BookOpen className="w-4 h-4 text-[#FF4E00]" />
-                        Packages
-                      </Link>
-                      <Link
-                        to="/super-packages"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Zap className="w-4 h-4 text-[#FF4E00]" />
-                        Super Packages
-                      </Link>
-                      <Link to="products"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Package className="w-4 h-4 text-[#FF4E00]" />
-                        My Products
-                      </Link>
-                      <Link
-                        to="/ebooks"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <BookOpen className="w-4 h-4 text-[#FF4E00]" />
-                        My Ebooks
-                      </Link>
-                      <Link
-                        to="/kyc"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LinkIcon className="w-4 h-4 text-[#FF4E00]" />
-                        KYC
-                      </Link>
-                      <Link
-                        to="/payout"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Wallet className="w-4 h-4 text-[#FF4E00]" />
-                        Payout
-                      </Link>
-                      <Link
-                        to="/wallet-transactions"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <ReceiptIndianRupee className="w-4 h-4 text-[#FF4E00]" />
-                        Wallet Transactions
-                      </Link>
+
+                      {/* Mapped Navigation Items */}
+                      {authenticatedNavItems.map((item) => renderNavItem(item))}
 
                       <button
                         onClick={handleLogout}
@@ -270,91 +231,10 @@ const Navbar = () => {
                           Admin Dashboard
                         </button>
                       )}
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/dashboard'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
-                        Dashboard
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/socialearning'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <YoutubeIcon className="w-4 h-4 text-[#FF4E00]" />
-                        Social Earning
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/profile'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <User className="w-4 h-4 text-[#FF4E00]" />
-                        Profile
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/my-team'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Users className="w-4 h-4 text-[#FF4E00]" />
-                        My Team
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/ai-tools'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Brain className="w-4 h-4 text-[#FF4E00]" />
-                        AI Tools
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/packages'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <BookOpen className="w-4 h-4 text-[#FF4E00]" />
-                        Packages
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/super-packages'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Zap className="w-4 h-4 text-[#FF4E00]" />
-                        Super Packages
-                      </button>
 
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/products'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Package className="w-4 h-4 text-[#FF4E00]" />
-                        My Products
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/ebooks'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <BookOpen className="w-4 h-4 text-[#FF4E00]" />
-                        My Ebooks
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/kyc'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LinkIcon className="w-4 h-4 text-[#FF4E00]" />
-                        KYC
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/payout'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <Wallet className="w-4 h-4 text-[#FF4E00]" />
-                        Payout
-                      </button>
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); navigate('/wallet-transactions'); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <ReceiptIndianRupee className="w-4 h-4 text-[#FF4E00]" />
-                        Wallet Transactions
-                      </button>
+                      {/* Mapped Navigation Items */}
+                      {authenticatedNavItems.map((item) => renderNavItem(item, true))}
+
                       <button
                         onClick={() => { setIsMobileDropdownOpen(false); handleLogout(); }}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
@@ -407,7 +287,7 @@ const Navbar = () => {
         <div className="fixed inset-x-0 top-14 z-50">
           <div className="mx-3 rounded-2xl border border-orange-100 bg-white/95 shadow-2xl overflow-hidden">
             <div className="px-3 py-2">
-              {mobileNavItems.map((item) => {
+              {publicNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link

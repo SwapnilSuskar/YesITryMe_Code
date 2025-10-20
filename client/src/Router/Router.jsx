@@ -17,7 +17,6 @@ import ContactUs from '../components/Pages/ContactUs';
 import FAQ from '../components/Pages/FAQ';
 import AdminDashboard from '../components/Admin/AdminDashboard';
 import AdminAnalytics from '../components/Admin/AdminAnalytics';
-// import AdminReferralManager from '../components/Admin/AdminReferralManager';
 import AdminPurchaseManager from '../components/Admin/AdminPurchaseManager';
 import AdminFundsManager from '../components/Admin/AdminFundsManager';
 import KycManager from '../components/Admin/KycManager';
@@ -54,6 +53,7 @@ import AiToolManager from '../components/Admin/AiToolManager';
 import SocialEarning from '../components/User/SocialEarning';
 import SocialTasks from '../components/Admin/SocialTasks';
 import PublicTask from '../components/Pages/PublicTask';
+import Nominee from '../components/User/Nominee';
 import NotFound from '../components/Pages/NotFound';
 
 const LayoutWithNavbar = () => {
@@ -160,6 +160,7 @@ const AppRouter = () => {
         <Route path="/team" element={<Team />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/nominee" element={<Nominee />} />
       </Route>
 
       {/* Admin routes with their own layout */}

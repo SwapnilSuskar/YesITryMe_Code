@@ -211,4 +211,10 @@ export const API_ENDPOINTS = {
     adminWithdrawals: `${API_URL}/api/coins/admin/withdrawals`,
     adminProcessWithdrawal: `${API_URL}/api/coins/admin/withdrawals/process`,
   },
+  nominee: {
+    get: `${API_URL}/api/nominee/:userId`,
+    createOrUpdate: `${API_URL}/api/nominee/:userId`,
+    delete: `${API_URL}/api/nominee/:userId`,
+    adminAll: `${API_URL}/api/nominee/`,
+  },
 };

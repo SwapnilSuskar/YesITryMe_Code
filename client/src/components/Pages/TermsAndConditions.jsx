@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Shield, CheckCircle2, XCircle, CreditCard, Mail, Phone as PhoneIcon, MapPin } from 'lucide-react';
 
 const TermsAndConditions = () => {
   return (
@@ -7,21 +8,31 @@ const TermsAndConditions = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Content Header */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-[#FF4E00] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">IT</span>
+          <div className="bg-gradient-to-r from-orange-50 via-white to-red-50 px-8 py-8 border-b border-orange-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-[#FF4E00] to-[#E64500] rounded-xl flex items-center justify-center shadow">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">YesITryMe Legal Agreement</h2>
+                  <p className="text-sm text-gray-600">Please read these terms carefully before using the platform</p>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-gray-800">YesITryMe Legal Agreement</h2>
+              <div className="hidden md:block">
+                <Link to="/signup" className="px-4 py-2 rounded-lg bg-[#FF4E00] hover:bg-[#E64500] text-white text-sm font-semibold shadow">
+                  Create Account
+                </Link>
+              </div>
             </div>
           </div>
 
           <div className="p-8 space-y-8">
             {/* Introduction */}
-            <section className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border-l-4 border-[#FF4E00]">
+            <section className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-[#FF4E00] rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">1</span>
+                <div className="w-9 h-9 bg-[#FF4E00] text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  1
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Introduction</h2>
               </div>
@@ -34,10 +45,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Definitions */}
-            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-[#FF4E00] rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">2</span>
+                <div className="w-9 h-9 bg-[#FF4E00] text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  2
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Definitions</h2>
               </div>
@@ -62,10 +73,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Account Registration */}
-            <section className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl border-l-4 border-green-500">
+            <section className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">3</span>
+                <div className="w-9 h-9 bg-green-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  3
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Account Registration</h2>
               </div>
@@ -75,21 +86,21 @@ const TermsAndConditions = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
+                    <CheckCircle2 className="text-green-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Provide accurate, current, and complete information during registration</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
+                    <CheckCircle2 className="text-green-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Maintain and promptly update your account information</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
+                    <CheckCircle2 className="text-green-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Keep your password secure and confidential</span>
                   </li>
                 </ul>
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✓</span>
+                    <CheckCircle2 className="text-green-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Accept responsibility for all activities under your account</span>
                   </li>
                   <li className="flex items-start">
@@ -101,10 +112,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Use of Service */}
-            <section className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl border-l-4 border-red-500">
+            <section className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-2xl border border-red-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">4</span>
+                <div className="w-9 h-9 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  4
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Use of Service</h2>
               </div>
@@ -114,25 +125,25 @@ const TermsAndConditions = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">✗</span>
+                    <XCircle className="text-red-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Use the Service for any illegal or unauthorized purpose</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">✗</span>
+                    <XCircle className="text-red-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Share your account credentials with others</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">✗</span>
+                    <XCircle className="text-red-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Attempt to gain unauthorized access to our systems</span>
                   </li>
                 </ul>
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">✗</span>
+                    <XCircle className="text-red-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Interfere with or disrupt the Service</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">✗</span>
+                    <XCircle className="text-red-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Copy, modify, or distribute our content without permission</span>
                   </li>
                   <li className="flex items-start">
@@ -144,10 +155,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Payment Terms */}
-            <section className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-xl border-l-4 border-purple-500">
+            <section className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-2xl border border-purple-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">5</span>
+                <div className="w-9 h-9 bg-purple-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  5
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Payment and Subscription</h2>
               </div>
@@ -157,21 +168,21 @@ const TermsAndConditions = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-purple-500 mr-2 mt-1">💳</span>
+                    <CreditCard className="text-purple-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">You agree to pay all fees associated with your purchase</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-purple-500 mr-2 mt-1">💳</span>
+                    <CreditCard className="text-purple-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">All payments are non-refundable unless otherwise stated</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="text-purple-500 mr-2 mt-1">💳</span>
+                    <CreditCard className="text-purple-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Prices may change with 30 days notice</span>
                   </li>
                 </ul>
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <span className="text-purple-500 mr-2 mt-1">💳</span>
+                    <CreditCard className="text-purple-600 mr-2 mt-0.5 w-4 h-4" />
                     <span className="text-gray-700">Subscriptions automatically renew unless cancelled</span>
                   </li>
                   <li className="flex items-start">
@@ -182,11 +193,38 @@ const TermsAndConditions = () => {
               </div>
             </section>
 
-            {/* Intellectual Property */}
-            <section className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 rounded-xl border-l-4 border-yellow-500">
+            {/* Nominee Agreement and Commission Policy */}
+            <section className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-2xl border border-orange-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">6</span>
+                <div className="w-9 h-9 bg-[#FF4E00] text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  6
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Nominee Agreement and Commission Policy</h2>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-orange-200 space-y-3">
+                <p className="text-gray-700 leading-relaxed">
+                  I, the user, may designate my business nominee from my blood relation and I agree to all
+                  rules, regulations, and the Terms & Conditions of <span className="font-semibold text-[#FF4E00]">YesITryMe</span>.
+                </p>
+                <p className="text-gray-700 leading-relaxed">
+                  YesITryMe is an online digital earning platform operating on a refer-and-earn model. Commissions are
+                  provided based on the business generated by users and active partners. These commissions are not a salary
+                  and there is no fixed income. Earnings depend on overall business performance; turnover depends on the
+                  user account and the applicable business plan structure.
+                </p>
+                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                  <li>Designation of a nominee is optional but recommended for account security.</li>
+                  <li>Commissions are variable and directly linked to business activity and plan rules.</li>
+                  <li>YesITryMe does not guarantee any fixed or minimum income.</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Intellectual Property */}
+            <section className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-200 shadow-sm">
+              <div className="flex items-center mb-4">
+                <div className="w-9 h-9 bg-yellow-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  7
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Intellectual Property</h2>
               </div>
@@ -201,10 +239,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Privacy */}
-            <section className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl border-l-4 border-blue-500">
+            <section className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-2xl border border-blue-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">7</span>
+                <div className="w-9 h-9 bg-blue-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  8
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Privacy Policy</h2>
               </div>
@@ -214,10 +252,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* YouTube API and Data Usage */}
-            <section className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-xl border-l-4 border-red-500">
+            <section className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-2xl border border-red-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">8</span>
+                <div className="w-9 h-9 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  9
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">YouTube API and Data Usage</h2>
               </div>
@@ -279,10 +317,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Disclaimers */}
-            <section className="bg-gradient-to-r from-gray-50 to-slate-50 p-6 rounded-xl border-l-4 border-gray-500">
+            <section className="bg-gradient-to-r from-gray-50 to-slate-50 p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">9</span>
+                <div className="w-9 h-9 bg-gray-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  10
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Disclaimers</h2>
               </div>
@@ -297,10 +335,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Limitation of Liability */}
-            <section className="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-xl border-l-4 border-red-500">
+            <section className="bg-gradient-to-r from-red-50 to-rose-50 p-6 rounded-2xl border border-red-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">10</span>
+                <div className="w-9 h-9 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  11
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Limitation of Liability</h2>
               </div>
@@ -312,10 +350,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Termination */}
-            <section className="bg-gradient-to-r from-orange-50 to-amber-50 p-6 rounded-xl border-l-4 border-orange-500">
+            <section className="bg-gradient-to-r from-orange-50 to-amber-50 p-6 rounded-2xl border border-orange-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">11</span>
+                <div className="w-9 h-9 bg-orange-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  12
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Termination</h2>
               </div>
@@ -330,10 +368,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Changes to Terms */}
-            <section className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-xl border-l-4 border-teal-500">
+            <section className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-2xl border border-teal-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">12</span>
+                <div className="w-9 h-9 bg-teal-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  13
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Changes to Terms</h2>
               </div>
@@ -343,10 +381,10 @@ const TermsAndConditions = () => {
             </section>
 
             {/* Contact Information */}
-            <section className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl border-l-4 border-indigo-500">
+            <section className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-200 shadow-sm">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-white font-bold">13</span>
+                <div className="w-9 h-9 bg-indigo-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                  14
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">Contact Information</h2>
               </div>
@@ -356,22 +394,22 @@ const TermsAndConditions = () => {
               <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-200">
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-white text-xl">📧</span>
+                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2 shadow">
+                      <Mail className="w-6 h-6 text-white" />
                     </div>
                     <p className="font-semibold text-gray-800">Email</p>
                     <p className="text-[#FF4E00]">YesITryMeofficial@gmail.com</p>
                   </div>
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-white text-xl">📞</span>
+                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2 shadow">
+                      <PhoneIcon className="w-6 h-6 text-white" />
                     </div>
                     <p className="font-semibold text-gray-800">Phone</p>
                     <p className="text-[#FF4E00]">+91 77569 16324</p>
                   </div>
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2">
-                      <span className="text-white text-xl">📍</span>
+                    <div className="w-12 h-12 bg-[#FF4E00] rounded-full flex items-center justify-center mx-auto mb-2 shadow">
+                      <MapPin className="w-6 h-6 text-white" />
                     </div>
                     <p className="font-semibold text-gray-800">Address</p>
                     <p className="text-[#FF4E00] text-sm">395,MAHADEV NAGAR, BEHIND DEVAKATE HOSPITAL ARVI,AT PO ARVI TAL SHIRUR KASAR DIST BEED PINCODE-413249, INDIA</p>

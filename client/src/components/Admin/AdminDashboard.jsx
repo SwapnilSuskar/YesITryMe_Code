@@ -504,6 +504,23 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </Link>
+            <Link
+            to="/admin/wallet-manager"
+            className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/wallet-manager"
+              ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+              : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+              }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/wallet-manager" ? "bg-white/20" : "bg-blue-100 group-hover:bg-blue-200"}`}>
+                  <Wallet className={`w-8 h-8 ${location.pathname === "/admin/wallet-manager" ? "text-white" : "text-blue-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Wallet Manager</h3>
+                  <p className="text-xs opacity-75 mt-1">Manage wallets</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
 

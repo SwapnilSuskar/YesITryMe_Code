@@ -140,6 +140,13 @@ export const API_ENDPOINTS = {
     adminAll: `${API_URL}/api/payout/admin/all`,
     adminUpdateStatus: `${API_URL}/api/payout/admin/:payoutId/status`,
   },
+  wallet: {
+    userWallet: `${API_URL}/api/admin/users/:userId/wallet`,
+    userWalletByMobile: `${API_URL}/api/admin/users/mobile/:mobile/wallet`,
+    addMoney: `${API_URL}/api/admin/users/:userId/wallet/add`,
+    deductMoney: `${API_URL}/api/admin/users/:userId/wallet/deduct`,
+    transactions: `${API_URL}/api/admin/users/:userId/transactions`,
+  },
   mlm: {
     level: `${API_URL}/api/mlm/level`,
     updateLevel: `${API_URL}/api/mlm/update-level`,

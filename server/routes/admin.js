@@ -25,6 +25,11 @@ import {
   uploadGalleryImageFile,
   uploadMotivationQuoteImage,
   getUserDashboardData,
+  getUserWallet,
+  getUserWalletByMobile,
+  addMoneyToWallet,
+  deductMoneyFromWallet,
+  getUserTransactionHistory,
 } from "../controllers/adminController.js";
 import {
   getWithdrawalRequests,
@@ -93,5 +98,12 @@ router.patch(
   "/withdrawal-requests/:requestId/complete",
   completeWithdrawalRequest
 );
+
+// Wallet management routes (admin only)
+router.get("/users/:userId/wallet", getUserWallet);
+router.get("/users/mobile/:mobile/wallet", getUserWalletByMobile);
+router.post("/users/:userId/wallet/add", addMoneyToWallet);
+router.post("/users/:userId/wallet/deduct", deductMoneyFromWallet);
+router.get("/users/:userId/transactions", getUserTransactionHistory);
 
 export default router;

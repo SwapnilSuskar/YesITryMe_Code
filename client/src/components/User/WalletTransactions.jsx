@@ -62,7 +62,7 @@ const WalletTransactions = () => {
             if (response.data.success) {
                 const allTransactions = response.data.data.transactions || [];
                 const creditedTransactions = allTransactions.filter(t =>
-                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received'
+                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal'
                 );
 
                 // Client-side pagination
@@ -97,17 +97,17 @@ const WalletTransactions = () => {
                 const allCoinTransactions = allTransactions.filter(t =>
                     t.type === 'view' || t.type === 'like' || t.type === 'comment' || t.type === 'subscribe' || t.type === 'activation_bonus' || t.type === 'referral_bonus' || t.type === 'withdrawal'
                 );
-                
+
                 // Sort by date (newest first)
                 allCoinTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                
+
                 // Client-side pagination
                 const itemsPerPage = 10;
                 const totalPages = Math.ceil(allCoinTransactions.length / itemsPerPage);
                 const startIndex = (page - 1) * itemsPerPage;
                 const endIndex = startIndex + itemsPerPage;
                 const paginatedTransactions = allCoinTransactions.slice(startIndex, endIndex);
-                
+
                 setCoinTransactions(paginatedTransactions);
                 setCoinTotalPages(totalPages);
                 setCoinPage(page);
@@ -197,6 +197,7 @@ const WalletTransactions = () => {
             });
         }
     };
+
 
     if (!user) {
         return <LoginPrompt type="walletTransactions" />
@@ -334,6 +335,7 @@ const WalletTransactions = () => {
             case 'payout_received': return <CheckCircle className="text-green-600" size={16} />;
             case 'fund_credit': return <Wallet className="text-blue-600" size={16} />;
             case 'special_income_credit': return <Star className="text-purple-600" size={16} />;
+            case 'admin_adjust': return <Wallet className="text-green-600" size={16} />;
             // Coin transaction types
             case 'view': return <ArrowUpCircle className="text-blue-600" size={16} />;
             case 'like': return <ArrowUpCircle className="text-pink-600" size={16} />;
@@ -354,6 +356,7 @@ const WalletTransactions = () => {
             case 'payout_received': return 'text-green-700';
             case 'fund_credit': return 'text-blue-700';
             case 'special_income_credit': return 'text-purple-700';
+            case 'admin_adjust': return 'text-green-700';
             // Coin transaction types
             case 'view': return 'text-blue-700';
             case 'like': return 'text-pink-700';
@@ -374,6 +377,7 @@ const WalletTransactions = () => {
             case 'payout_received': return 'bg-green-50 border-green-200';
             case 'fund_credit': return 'bg-blue-50 border-blue-200';
             case 'special_income_credit': return 'bg-purple-50 border-purple-200';
+            case 'admin_adjust': return 'bg-green-50 border-green-200';
             // Coin transaction types
             case 'view': return 'bg-blue-50 border-blue-200';
             case 'like': return 'bg-pink-50 border-pink-200';
@@ -385,7 +389,7 @@ const WalletTransactions = () => {
         }
     };
 
-    // Use the already filtered and paginated transactions
+    // Use the regular transactions (now includes admin transactions)
     const creditedTransactions = walletTransactions;
     const allCoinTransactions = coinTransactions; // This now includes both earnings and withdrawals
 
@@ -679,11 +683,24 @@ const WalletTransactions = () => {
                                                                     ✅ Payout Received from YesITryMe
                                                                 </div>
                                                             )}
+                                                            {transaction.type === 'fund_credit' && transaction.description?.includes('Admin added') && (
+                                                                <div className="text-xs text-green-600 font-semibold">
+                                                                    💰 Admin Added Money
+                                                                </div>
+                                                            )}
+                                                            {transaction.incomeType && (
+                                                                <div className={`inline-block text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${transaction.incomeType === 'active'
+                                                                        ? 'bg-green-100 text-green-800'
+                                                                        : 'bg-blue-100 text-blue-800'
+                                                                    }`}>
+                                                                    {transaction.incomeType === 'active' ? 'Active Income' : 'Passive Income'}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
-                                                        <div className={`text-xs font-semibold mt-1 px-2 py-1 rounded-full ${getStatusColor(transaction.status)}`}>
+                                                        <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
                                                             {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                                                         </div>
                                                     </div>
@@ -751,7 +768,7 @@ const WalletTransactions = () => {
                                                         {getTransactionTypeIcon(transaction.type)}
                                                         <div>
                                                             <div className={`font-semibold text-lg ${getTransactionTypeColor(transaction.type)}`}>
-                                                                {transaction.type === 'withdrawal' 
+                                                                {transaction.type === 'withdrawal'
                                                                     ? `${Math.abs(transaction.amount).toLocaleString()} coins`
                                                                     : `${transaction.amount.toLocaleString()} coins`
                                                                 }
@@ -817,7 +834,7 @@ const WalletTransactions = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
-                                                        <div className={`text-xs font-semibold mt-2 px-2 py-1 rounded-full ${getStatusColor(transaction.status)}`}>
+                                                        <div className={`inline-block text-xs font-semibold mt-2 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
                                                             {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                                                         </div>
                                                     </div>
@@ -1027,14 +1044,14 @@ const WalletTransactions = () => {
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
-                                                            <div className={`text-xs font-semibold mt-1 px-2 py-1 rounded-full ${getStatusColor(transaction.status)}`}>
+                                                            <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
                                                                 {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
-                                </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -1090,21 +1107,20 @@ const WalletTransactions = () => {
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-3">
                                                         {getTransactionTypeIcon('withdrawal')}
-                                                            <div>
+                                                        <div>
                                                             <div className={`font-semibold text-lg ${getTransactionTypeColor('withdrawal')}`}>
                                                                 ₹{payout.amount.toLocaleString()}
                                                             </div>
                                                             <div className="text-sm text-gray-600">Withdrawal Request</div>
                                                             {/* Status-specific helper line */}
-                                                            <div className={`text-xs font-semibold mt-1 ${
-                                                                payout.status === 'rejected'
+                                                            <div className={`text-xs font-semibold mt-1 ${payout.status === 'rejected'
                                                                     ? 'text-red-600'
                                                                     : payout.status === 'pending'
-                                                                    ? 'text-yellow-600'
-                                                                    : payout.status === 'approved'
-                                                                    ? 'text-blue-600'
-                                                                    : 'text-green-600'
-                                                            }`}>
+                                                                        ? 'text-yellow-600'
+                                                                        : payout.status === 'approved'
+                                                                            ? 'text-blue-600'
+                                                                            : 'text-green-600'
+                                                                }`}>
                                                                 {payout.status === 'rejected' && '❌ Rejected by Admin'}
                                                                 {payout.status === 'pending' && '⏳ Pending Review'}
                                                                 {payout.status === 'approved' && '✅ Approved - Processing'}
@@ -1127,8 +1143,8 @@ const WalletTransactions = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(payout.requestDate)}</div>
-                                                        <div className={`text-xs font-semibold mt-1 px-2 py-1 rounded-full ${getStatusColor(payout.status)}`}>
-                                                                {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
+                                                        <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(payout.status)}`}>
+                                                            {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
                                                         </div>
                                                     </div>
                                                 </div>

@@ -26,6 +26,7 @@ import PaymentManager from '../components/Admin/PaymentManager';
 import PayoutManager from '../components/Admin/PayoutManager';
 import UserStatusManager from '../components/Admin/UserStatusManager';
 import UserDashboardViewer from '../components/Admin/UserDashboardViewer';
+import WalletManager from '../components/Admin/WalletManager';
 import ProtectedAdminRoute from '../components/Admin/ProtectedAdminRoute';
 import Profile from '../components/User/Profile';
 import AffiliateLink from '../components/User/AffiliateLink';
@@ -186,6 +187,7 @@ const AppRouter = () => {
         <Route path="super-package-payments" element={<SuperPackagePaymentManager />} />
         <Route path="admin-social-tasks" element={<SocialTasks />} />
         <Route path="coin-withdrawal-requests" element={<WithdrawalRequests />} />
+        <Route path="wallet-manager" element={<WalletManager />} />
       </Route>
 
       {/* Catch-all route for 404 */}

@@ -1290,3 +1290,336 @@ export const deleteUser = async (req, res) => {
     });
   }
 };
+
+// Get user wallet information
+export const getUserWallet = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId }).select("userId firstName lastName email mobile");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Get wallet information
+    const wallet = await Wallet.findOne({ userId });
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          mobile: user.mobile,
+        },
+        wallet: wallet ? {
+          balance: wallet.balance,
+          activeIncome: wallet.activeIncome,
+          passiveIncome: wallet.passiveIncome,
+          totalEarned: wallet.totalEarned,
+          totalWithdrawn: wallet.totalWithdrawn,
+          isActive: wallet.isActive,
+          createdAt: wallet.createdAt,
+          updatedAt: wallet.updatedAt,
+        } : null,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting user wallet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get user wallet",
+      error: error.message,
+    });
+  }
+};
+
+// Get user wallet information by mobile number
+export const getUserWalletByMobile = async (req, res) => {
+  try {
+    const { mobile } = req.params;
+
+    if (!mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is required",
+      });
+    }
+
+    // Find user by mobile number
+    const user = await User.findOne({ mobile }).select("userId firstName lastName email mobile");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Get wallet information using the found userId
+    const wallet = await Wallet.findOne({ userId: user.userId });
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          mobile: user.mobile,
+        },
+        wallet: wallet ? {
+          balance: wallet.balance,
+          activeIncome: wallet.activeIncome,
+          passiveIncome: wallet.passiveIncome,
+          totalEarned: wallet.totalEarned,
+          totalWithdrawn: wallet.totalWithdrawn,
+          isActive: wallet.isActive,
+          createdAt: wallet.createdAt,
+          updatedAt: wallet.updatedAt,
+        } : null,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting user wallet by mobile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get user wallet",
+      error: error.message,
+    });
+  }
+};
+
+// Add money to user wallet
+export const addMoneyToWallet = async (req, res) => {
+  try {
+    const { userId, amount, walletType = "wallet", incomeType = "active", description, adminNotes } = req.body;
+    const adminId = req.user.userId;
+
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and positive amount are required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    let result;
+
+    // Add to regular wallet only
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet) {
+      const newWallet = new Wallet({ userId });
+      await newWallet.save();
+      result = newWallet;
+    } else {
+      result = wallet;
+    }
+
+    // Add transaction
+    result.balance += numericAmount;
+    result.totalEarned += numericAmount;
+    
+    // Update income type specific balance
+    if (incomeType === "active") {
+      result.activeIncome += numericAmount;
+    } else if (incomeType === "passive") {
+      result.passiveIncome += numericAmount;
+    }
+    
+    result.transactions.push({
+      type: "fund_credit",
+      amount: numericAmount,
+      incomeType: incomeType,
+      description: description || `Admin added ₹${numericAmount} to Regular Wallet (${incomeType === 'active' ? 'Active Income' : 'Passive Income'})`,
+      adminNotes: adminNotes || `Admin adjustment by ${adminId}`,
+      status: "completed",
+      reference: `ADMIN_ADD_${adminId}_${Date.now()}`,
+      createdAt: new Date(),
+    });
+    await result.save();
+
+    res.json({
+      success: true,
+      message: `Successfully added ₹${numericAmount} to user's Regular Wallet`,
+      data: {
+        userId,
+        walletType: "wallet",
+        amount: numericAmount,
+        newBalance: result.balance,
+        transactionId: `ADMIN_ADD_${adminId}_${Date.now()}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error adding money to wallet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to add money to wallet",
+      error: error.message,
+    });
+  }
+};
+
+// Deduct money from user wallet
+export const deductMoneyFromWallet = async (req, res) => {
+  try {
+    const { userId, amount, walletType = "wallet", incomeType = "active", description, adminNotes } = req.body;
+    const adminId = req.user.userId;
+
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and positive amount are required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    let result;
+
+    // Deduct from regular wallet only
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet || wallet.balance < numericAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+        currentBalance: wallet?.balance || 0,
+        requestedAmount: numericAmount,
+      });
+    }
+
+    // Add transaction
+    wallet.balance -= numericAmount;
+    wallet.totalWithdrawn += numericAmount;
+    
+    // Update income type specific balance
+    if (incomeType === "active") {
+      wallet.activeIncome = Math.max(0, wallet.activeIncome - numericAmount);
+    } else if (incomeType === "passive") {
+      wallet.passiveIncome = Math.max(0, wallet.passiveIncome - numericAmount);
+    }
+    
+    wallet.transactions.push({
+      type: "withdrawal",
+      amount: -numericAmount,
+      incomeType: incomeType,
+      description: description || `Admin deducted ₹${numericAmount} from Regular Wallet (${incomeType === 'active' ? 'Active Income' : 'Passive Income'})`,
+      adminNotes: adminNotes || `Admin adjustment by ${adminId}`,
+      status: "completed",
+      reference: `ADMIN_DEDUCT_${adminId}_${Date.now()}`,
+      createdAt: new Date(),
+    });
+    await wallet.save();
+    result = wallet;
+
+    res.json({
+      success: true,
+      message: `Successfully deducted ₹${numericAmount} from user's Regular Wallet`,
+      data: {
+        userId,
+        walletType: "wallet",
+        amount: numericAmount,
+        newBalance: result.balance,
+        transactionId: `ADMIN_DEDUCT_${adminId}_${Date.now()}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error deducting money from wallet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to deduct money from wallet",
+      error: error.message,
+    });
+  }
+};
+
+// Get user transaction history
+export const getUserTransactionHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { walletType = "wallet", page = 1, limit = 20 } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId }).select("userId firstName lastName");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const skip = (page - 1) * limit;
+    let transactions = [];
+    let totalTransactions = 0;
+
+    // Get regular wallet transactions only
+    const wallet = await Wallet.findOne({ userId });
+    if (wallet) {
+      transactions = wallet.transactions
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(skip, skip + parseInt(limit));
+      totalTransactions = wallet.transactions.length;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+        transactions,
+        pagination: {
+          current: parseInt(page),
+          total: Math.ceil(totalTransactions / limit),
+          totalTransactions,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error getting transaction history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get transaction history",
+      error: error.message,
+    });
+  }
+};

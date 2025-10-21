@@ -1,5 +1,6 @@
-import { CheckCircle, Crown, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Crown, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { api, API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -99,7 +100,9 @@ const groupCommissionStructure = (commissionStructure) => {
 };
 
 const SuperPackages = () => {
-  const { user } = useAuthStore()
+  const { user } = useAuthStore();
+  const location = useLocation();
+  const productInfo = location.state?.productInfo;
   const [superPackages, setSuperPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
@@ -163,12 +166,52 @@ const SuperPackages = () => {
   return (
     <section className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-20">
       <div className="max-w-7xl mx-auto px-4">
+        {/* Product Info Banner - Show only when coming from product detail */}
+        {productInfo && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-orange-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link
+                  to={`/products/${productInfo._id}`}
+                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Back to Product
+                </Link>
+                <div className="h-8 w-px bg-gray-300"></div>
+                <div className="flex items-center gap-3">
+                  {productInfo.images && productInfo.images.length > 0 && (
+                    <img
+                      src={productInfo.images.find(img => img.isPrimary)?.url || productInfo.images[0].url}
+                      alt={productInfo.title}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-gray-800">{productInfo.title}</h3>
+                    <p className="text-sm text-gray-600">{productInfo.category}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-600">Selected Package:</div>
+                <div className="font-semibold text-orange-600">
+                  {productInfo.selectedPricing?.packageName || 'Choose a super package'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-gray-800 mb-4">
-            Choose Your <span className="text-orange-600">Super Package</span>
+            {productInfo ? 'Choose Super Package to Access' : 'Choose Your'} <span className="text-orange-600">Super Package</span>
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Select the perfect super package for your digital journey. Each purchase supports our multi-level referral system.
+            {productInfo
+              ? `Select a super package to access "${productInfo.title}" and start earning commissions through our multi-level referral system.`
+              : 'Select the perfect super package for your digital journey. Each purchase supports our multi-level referral system.'
+            }
           </p>
         </div>
         <div className="grid lg:grid-cols-3 gap-8 mb-16">

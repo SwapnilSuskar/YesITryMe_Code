@@ -93,8 +93,8 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
-    // Navigate to packages route with product info
-    navigate('/packages', {
+    // Navigate to super-packages route with product info
+    navigate('/super-packages', {
       state: {
         productInfo: {
           _id: product._id,

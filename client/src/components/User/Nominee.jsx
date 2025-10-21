@@ -311,13 +311,19 @@ const Nominee = () => {
                         I have read and agree to the above nominee terms and authorize use of this information for account security.
                       </span>
                     </label>
-                    <div className="mt-2 flex items-center text-[11px] text-gray-600">
-                      <Lock className="w-3.5 h-3.5 mr-1 text-orange-600" />
-                      Data is encrypted at rest and in transit.
-                    </div>
-                  </div>
-                </div>
-              </div>
+                     <div className="mt-3 flex items-center text-[11px] text-gray-600">
+                       <Lock className="w-3.5 h-3.5 mr-1 text-orange-600" />
+                       Data is encrypted at rest and in transit.
+                     </div>
+                     <div className="mt-3 text-right">
+                       <p className="text-[10px] text-gray-500 italic">
+                         - Mr. Swapnil Suskar<br />
+                         <span className="text-[9px]">(Founder of YesITryMe)</span>
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-4 pt-4">

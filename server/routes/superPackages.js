@@ -26,7 +26,8 @@ const router = express.Router();
 // File upload middleware
 router.use(
   fileUpload({
-    useTempFiles: false,
+    useTempFiles: true,
+    tempFileDir: './uploads/temp',
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     abortOnLimit: true,
   })

@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import SuperPackage from '../models/SuperPackage.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Helper function to generate commission structure for ₹500 distribution
 const generateCommissionStructure = () => {
@@ -36,8 +39,7 @@ const generateCommissionStructure = () => {
 async function fixGoldPackageDistribution() {
   try {
     // Connect to MongoDB
-    await mongoose.connect("mongodb+srv://yesitrymeofficial:ye4N4M4WAK1jSS7Q@yesitryme.pj5wr7t.mongodb.net/YesITryMe?retryWrites=true&w=majority&appName=YesITryMe");
-    console.log('✅ Connected to MongoDB');
+    await mongoose.connect(process.env.MONGODB_URI);
 
     // Find the Gold package
     const goldPackage = await SuperPackage.findOne({ name: 'Gold' });

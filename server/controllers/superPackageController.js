@@ -492,8 +492,25 @@ const purchaseSuperPackage = asyncHandler(async (req, res) => {
   let paymentProofUrl = "";
   if (req.files && req.files.paymentProof) {
     try {
+      // Ensure temp directory exists
+      const tempDir = './uploads/temp';
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      // Check if tempFilePath exists, otherwise use buffer
+      let uploadSource;
+      if (req.files.paymentProof.tempFilePath && fs.existsSync(req.files.paymentProof.tempFilePath)) {
+        uploadSource = req.files.paymentProof.tempFilePath;
+      } else if (req.files.paymentProof.data) {
+        // Use buffer if temp file doesn't exist
+        uploadSource = req.files.paymentProof.data;
+      } else {
+        throw new Error("No valid file source found");
+      }
+
       const result = await cloudinary.uploader.upload(
-        req.files.paymentProof.tempFilePath,
+        uploadSource,
         {
           folder: "super-package-payments",
           use_filename: true,
@@ -504,7 +521,7 @@ const purchaseSuperPackage = asyncHandler(async (req, res) => {
       );
       paymentProofUrl = result.secure_url;
 
-      // Clean up temporary file
+      // Clean up temporary file if it exists
       if (
         req.files.paymentProof.tempFilePath &&
         fs.existsSync(req.files.paymentProof.tempFilePath)
@@ -512,14 +529,16 @@ const purchaseSuperPackage = asyncHandler(async (req, res) => {
         fs.unlinkSync(req.files.paymentProof.tempFilePath);
       }
     } catch (error) {
-      // Clean up temporary file if upload fails
+      console.error("Payment proof upload error:", error);
+      
+      // Clean up temporary file if it exists
       if (
         req.files.paymentProof.tempFilePath &&
         fs.existsSync(req.files.paymentProof.tempFilePath)
       ) {
         fs.unlinkSync(req.files.paymentProof.tempFilePath);
       }
-      throw new ApiError(500, "Failed to upload payment proof");
+      throw new ApiError(500, `Failed to upload payment proof: ${error.message}`);
     }
   } else {
     throw new ApiError(400, "Payment proof is required");

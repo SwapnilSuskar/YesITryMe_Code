@@ -83,11 +83,22 @@ export const useAuthStore = create((set, get) => ({
     }
 
     if (isTokenExpired(token)) {
+      console.log('Token expired, logging out...');
       get().logout();
       return false;
     }
 
     set({ isAuthenticated: true });
+    return true;
+  },
+
+  // Check authentication before making API calls
+  checkAuthBeforeRequest: () => {
+    const { token } = get();
+    if (!token || isTokenExpired(token)) {
+      get().logout();
+      return false;
+    }
     return true;
   },
 
@@ -276,6 +287,31 @@ export const useAuthStore = create((set, get) => ({
       return false;
     }
     return true;
+  },
+
+  // Check if session is about to expire (within 5 minutes)
+  checkSessionExpiry: () => {
+    const { token } = get();
+    if (!token) return false;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      const timeUntilExpiry = payload.exp - currentTime;
+      
+      // If expires within 5 minutes (300 seconds)
+      if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
+        return {
+          willExpireSoon: true,
+          minutesLeft: Math.ceil(timeUntilExpiry / 60)
+        };
+      }
+      
+      return { willExpireSoon: false };
+    } catch (error) {
+      console.error('Error checking session expiry:', error);
+      return { willExpireSoon: false };
+    }
   },
 
   // Logout action

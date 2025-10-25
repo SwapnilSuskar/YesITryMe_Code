@@ -12,10 +12,36 @@ export const api = axios.create({
   },
 });
 
+// Helper to check if token is expired
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Date.now() / 1000;
+    return payload.exp < currentTime;
+  } catch (error) {
+    console.error('Error parsing token:', error);
+    return true;
+  }
+};
+
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
+    
+    // Check if token is expired before making the request
+    if (token && isTokenExpired(token)) {
+      console.log('Token expired, clearing auth data...');
+      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('adminSessionTimeout');
+      
+      // Reject the request to prevent unnecessary API calls
+      return Promise.reject(new Error('Token expired'));
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,8 +63,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Don't redirect immediately, let the components handle it
       console.log('🔒 401 Unauthorized - Token may be expired');
+      
+      // Clear stored auth data and redirect to login
+      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('adminSessionTimeout');
+      
+      // Only redirect if we're not already on login page
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
+        // Show a user-friendly message
+        if (window.confirm('Your session has expired. Please log in again.')) {
+          window.location.href = '/login';
+        }
+      }
     }
     return Promise.reject(error);
   }

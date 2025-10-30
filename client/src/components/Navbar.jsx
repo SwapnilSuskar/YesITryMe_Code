@@ -1,4 +1,4 @@
-import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck } from 'lucide-react';
+import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from "../assets/Logo.png";
@@ -37,6 +37,7 @@ const Navbar = () => {
     { name: 'My Products', path: '/products', icon: Package },
     { name: 'My Ebooks', path: '/ebooks', icon: BookOpen },
     { name: 'KYC', path: '/kyc', icon: LinkIcon },
+    // { name: 'Recharge', path: '/recharge', icon: BatteryCharging },
     { name: 'Payout', path: '/payout', icon: Wallet },
     { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
   ];
@@ -158,7 +159,6 @@ const Navbar = () => {
 
                       {/* Mapped Navigation Items */}
                       {authenticatedNavItems.map((item) => renderNavItem(item))}
-
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"

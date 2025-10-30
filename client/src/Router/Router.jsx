@@ -55,6 +55,8 @@ import SocialEarning from '../components/User/SocialEarning';
 import SocialTasks from '../components/Admin/SocialTasks';
 import PublicTask from '../components/Pages/PublicTask';
 import Nominee from '../components/User/Nominee';
+import Recharge from '../components/User/Recharge';
+import MobileRecharge from '../components/User/MobileRecharge';
 import NotFound from '../components/Pages/NotFound';
 
 const LayoutWithNavbar = () => {
@@ -162,6 +164,8 @@ const AppRouter = () => {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/nominee" element={<Nominee />} />
+        <Route path="/recharge" element={<Recharge />} />
+        <Route path="/recharge/mobile" element={<MobileRecharge />} />
       </Route>
 
       {/* Admin routes with their own layout */}

@@ -62,24 +62,26 @@ export const OPERATOR_CODES = {
 /**
  * Calculate admin and user commission based on operator and amount
  * Commission rates:
- * - Jio: user 0%, admin 0.55%
- * - Airtel: user 0.5%, admin 1.80%
- * - Vi (Vodafone): user 1%, admin 2.80%
+ * - Jio: user 0%, admin 0.65%
+ * - Airtel: user 0.5%, admin 2%
+ * - Vodafone: user 1%, admin 3%
+ * - Idea: user 1%, admin 3%
+ * - BSNL: user 1%, admin 4%
  */
 export const calculateCommissions = (operator, amount) => {
   // Admin commission rates
   const adminRates = {
-    "RELIANCE JIO": 0.55,
-    "JIO PostPaid": 0.55,
-    "Airtel": 1.80,
-    "Airtel Postpaid": 1.80,
-    "Vodafone": 2.80,
-    "Vodafone Postpaid": 2.80,
-    "Idea": 2.80, // Assuming same as Vodafone
-    "Idea Postpaid": 2.80,
-    "BSNL TOPUP": 0.55, // Default rate
-    "BSNL STV": 0.55,
-    "BSNL Postpaid": 0.55,
+    "RELIANCE JIO": 0.65,
+    "JIO PostPaid": 0.65,
+    "Airtel": 2.0,
+    "Airtel Postpaid": 2.0,
+    "Vodafone": 3.0,
+    "Vodafone Postpaid": 3.0,
+    "Idea": 3.0,
+    "Idea Postpaid": 3.0,
+    "BSNL TOPUP": 4.0,
+    "BSNL STV": 4.0,
+    "BSNL Postpaid": 4.0,
   };
 
   // User commission rates
@@ -92,12 +94,12 @@ export const calculateCommissions = (operator, amount) => {
     "Vodafone Postpaid": 1.0,
     "Idea": 1.0,
     "Idea Postpaid": 1.0,
-    "BSNL TOPUP": 0,
-    "BSNL STV": 0,
-    "BSNL Postpaid": 0,
+    "BSNL TOPUP": 1.0,
+    "BSNL STV": 1.0,
+    "BSNL Postpaid": 1.0,
   };
 
-  const adminRate = adminRates[operator] || 0.55;
+  const adminRate = adminRates[operator] || 0.65;
   const userRate = userRates[operator] || 0;
 
   const adminCommission = (amount * adminRate) / 100;

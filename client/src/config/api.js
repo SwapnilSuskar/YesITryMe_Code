@@ -262,4 +262,12 @@ export const API_ENDPOINTS = {
     delete: `${API_URL}/api/nominee/:userId`,
     adminAll: `${API_URL}/api/nominee/`,
   },
+  recharge: {
+    plans: `${API_URL}/api/recharge/plans`,
+    initiate: `${API_URL}/api/recharge/initiate`,
+    status: `${API_URL}/api/recharge/status`,
+    history: `${API_URL}/api/recharge/history`,
+    adminAll: `${API_URL}/api/recharge/admin/all`,
+    adminStats: `${API_URL}/api/recharge/admin/stats`,
+  },
 };

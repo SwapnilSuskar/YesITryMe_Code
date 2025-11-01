@@ -66,7 +66,7 @@ export const OPERATOR_CODES = {
  * - Airtel: user 0.5%, admin 1.80%
  * - Vi (Vodafone): user 1%, admin 2.80%
  */
-const calculateCommissions = (operator, amount) => {
+export const calculateCommissions = (operator, amount) => {
   // Admin commission rates
   const adminRates = {
     "RELIANCE JIO": 0.55,
@@ -138,6 +138,7 @@ const distributeCommissions = async (recharge) => {
         description: `Recharge commission from ${recharge.mobileNumber} (${recharge.operator}) - ₹${recharge.amount}`,
         status: "completed",
         reference: `RECHARGE_ADMIN_COMM_${recharge._id}`,
+        incomeType: "recharge_commission",
         createdAt: new Date(),
       });
 
@@ -166,6 +167,7 @@ const distributeCommissions = async (recharge) => {
         description: `Recharge commission from your recharge - ₹${recharge.amount} (${recharge.operator})`,
         status: "completed",
         reference: `RECHARGE_USER_COMM_${recharge._id}`,
+        incomeType: "recharge_commission",
         createdAt: new Date(),
       });
 
@@ -791,6 +793,104 @@ export const getRechargeStats = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch recharge statistics",
+    });
+  }
+};
+
+/**
+ * Admin: Update recharge record
+ */
+export const updateRecharge = async (req, res) => {
+  try {
+    const { rechargeId } = req.params;
+    const updateData = req.body;
+
+    const recharge = await Recharge.findById(rechargeId);
+    if (!recharge) {
+      return res.status(404).json({
+        success: false,
+        message: "Recharge record not found",
+      });
+    }
+
+    // Recalculate commissions if amount or operator changed
+    if (updateData.amount || updateData.operator) {
+      const operator = updateData.operator || recharge.operator;
+      const amount = parseFloat(updateData.amount || recharge.amount);
+      const commissionData = calculateCommissions(operator, amount);
+
+      updateData.adminCommission = commissionData.adminCommission;
+      updateData.adminCommissionPercentage = commissionData.adminPercentage;
+      updateData.userCommission = commissionData.userCommission;
+      updateData.userCommissionPercentage = commissionData.userPercentage;
+
+      // If operator changed, update operatorCode
+      if (updateData.operator) {
+        const operatorInfo = OPERATOR_CODES[updateData.operator];
+        if (operatorInfo) {
+          updateData.operatorCode = operatorInfo.code;
+          updateData.rechargeType = operatorInfo.type || recharge.rechargeType;
+        }
+      }
+    }
+
+    // Update the recharge record
+    const updatedRecharge = await Recharge.findByIdAndUpdate(
+      rechargeId,
+      { ...updateData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Recharge record updated successfully",
+      data: updatedRecharge,
+    });
+  } catch (error) {
+    console.error("Error updating recharge:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update recharge record",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * Admin: Delete recharge record
+ */
+export const deleteRecharge = async (req, res) => {
+  try {
+    const { rechargeId } = req.params;
+
+    const recharge = await Recharge.findById(rechargeId);
+    if (!recharge) {
+      return res.status(404).json({
+        success: false,
+        message: "Recharge record not found",
+      });
+    }
+
+    // Only allow deletion if commission hasn't been distributed or if status is pending/failed
+    if (recharge.commissionDistributed && recharge.status === "success") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete recharge record with distributed commissions. Please mark as cancelled instead.",
+      });
+    }
+
+    await Recharge.findByIdAndDelete(rechargeId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Recharge record deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting recharge:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete recharge record",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };

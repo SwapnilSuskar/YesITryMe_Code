@@ -18,6 +18,7 @@ import FAQ from '../components/Pages/FAQ';
 import AdminDashboard from '../components/Admin/AdminDashboard';
 import AdminAnalytics from '../components/Admin/AdminAnalytics';
 import AdminPurchaseManager from '../components/Admin/AdminPurchaseManager';
+import AdminRechargeAnalysis from '../components/Admin/AdminRechargeAnalysis';
 import AdminFundsManager from '../components/Admin/AdminFundsManager';
 import KycManager from '../components/Admin/KycManager';
 import MotivationQuotes from '../components/Admin/MotivationQuotes';
@@ -192,6 +193,7 @@ const AppRouter = () => {
         <Route path="admin-social-tasks" element={<SocialTasks />} />
         <Route path="coin-withdrawal-requests" element={<WithdrawalRequests />} />
         <Route path="wallet-manager" element={<WalletManager />} />
+        <Route path="recharge-analysis" element={<AdminRechargeAnalysis />} />
       </Route>
 
       {/* Catch-all route for 404 */}

@@ -7,6 +7,8 @@ import {
   getRechargeHistory,
   getAllRecharges,
   getRechargeStats,
+  updateRecharge,
+  deleteRecharge,
 } from "../controllers/rechargeController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { admin } from "../middleware/authMiddleware.js";
@@ -25,6 +27,8 @@ router.get("/history", protect, getRechargeHistory);
 // Admin routes
 router.get("/admin/all", protect, admin, getAllRecharges);
 router.get("/admin/stats", protect, admin, getRechargeStats);
+router.put("/admin/:rechargeId", protect, admin, updateRecharge);
+router.delete("/admin/:rechargeId", protect, admin, deleteRecharge);
 
 export default router;
 

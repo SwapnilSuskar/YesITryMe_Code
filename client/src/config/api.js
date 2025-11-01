@@ -269,5 +269,7 @@ export const API_ENDPOINTS = {
     history: `${API_URL}/api/recharge/history`,
     adminAll: `${API_URL}/api/recharge/admin/all`,
     adminStats: `${API_URL}/api/recharge/admin/stats`,
+    adminUpdate: `${API_URL}/api/recharge/admin/:rechargeId`,
+    adminDelete: `${API_URL}/api/recharge/admin/:rechargeId`,
   },
 };

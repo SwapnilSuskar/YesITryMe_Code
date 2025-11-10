@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward'],
+    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward', 'wallet_topup', 'wallet_transfer'],
     required: true
   },
   amount: {
@@ -91,6 +91,11 @@ const walletSchema = new mongoose.Schema({
     min: 0
   },
   totalWithdrawn: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  smartWalletBalance: {
     type: Number,
     default: 0,
     min: 0

@@ -476,7 +476,7 @@ const AdminDashboard = () => {
                 ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
                 : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
                 }`}
-            > 
+            >
               <div className="flex flex-col items-center text-center gap-3">
                 <div className={`p-3 rounded-xl ${location.pathname === "/admin/admin-social-tasks" ? "bg-white/20" : "bg-violet-100 group-hover:bg-violet-200"}`}>
                   <YoutubeIcon className={`w-8 h-8 ${location.pathname === "/admin/admin-social-tasks" ? "text-white" : "text-violet-600"}`} />
@@ -505,11 +505,11 @@ const AdminDashboard = () => {
               </div>
             </Link>
             <Link
-            to="/admin/wallet-manager"
-            className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/wallet-manager"
-              ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
-              : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
-              }`}
+              to="/admin/wallet-manager"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/wallet-manager"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
             >
               <div className="flex flex-col items-center text-center gap-3">
                 <div className={`p-3 rounded-xl ${location.pathname === "/admin/wallet-manager" ? "bg-white/20" : "bg-blue-100 group-hover:bg-blue-200"}`}>
@@ -522,11 +522,11 @@ const AdminDashboard = () => {
               </div>
             </Link>
             <Link
-            to="/admin/recharge-analysis"
-            className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/recharge-analysis"
-              ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
-              : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
-              }`}
+              to="/admin/recharge-analysis"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/recharge-analysis"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
             >
               <div className="flex flex-col items-center text-center gap-3">
                 <div className={`p-3 rounded-xl ${location.pathname === "/admin/recharge-analysis" ? "bg-white/20" : "bg-teal-100 group-hover:bg-teal-200"}`}>
@@ -535,6 +535,23 @@ const AdminDashboard = () => {
                 <div>
                   <h3 className="font-bold text-sm">Recharge Analysis</h3>
                   <p className="text-xs opacity-75 mt-1">Monitor recharges</p>
+                </div>
+              </div>
+            </Link>
+            <Link
+              to="/admin/wallet-topup-manager"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/wallet-topup-manager"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/wallet-topup-manager" ? "bg-white/20" : "bg-green-100 group-hover:bg-green-200"}`}>
+                  <Wallet className={`w-8 h-8 ${location.pathname === "/admin/wallet-topup-manager" ? "text-white" : "text-green-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Wallet Top-Up Manager</h3>
+                  <p className="text-xs opacity-75 mt-1">Approve top-ups</p>
                 </div>
               </div>
             </Link>

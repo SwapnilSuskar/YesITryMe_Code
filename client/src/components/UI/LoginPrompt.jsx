@@ -98,6 +98,12 @@ const promptConfig = {
     buttonText: 'Login to Add Nominee',
     icon: <User className="w-8 h-8" />,
   },
+  recharge: {
+    title: 'Login Required',
+    message: 'Please log in to access recharge and bill payment services.',
+    buttonText: 'Login to Recharge',
+    icon: <Wallet className="w-8 h-8" />,
+  },
 };
 
 const LoginPrompt = ({ type = 'default' }) => {

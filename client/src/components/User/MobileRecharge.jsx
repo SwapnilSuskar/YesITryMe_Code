@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Smartphone, Building, Globe2, IndianRupee, Search, ArrowLeft, Headphones, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Smartphone, Building, Globe2, IndianRupee, Search, ArrowLeft, Headphones, Loader2, Shield, Receipt } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import PhonePay from "../../assets/RechargesLogo/PhonePay.webp"
-import GooglePay from "../../assets/RechargesLogo/Gpay.png"
-import { fetchRechargePlans, initiateRecharge } from '../../services/rechargeService';
+import { fetchRechargePlans, fetchPostpaidBill, initiateRecharge } from '../../services/rechargeService';
 import useToast from '../../hooks/useToast';
+import { useAuthStore } from '../../store/useAuthStore';
+import api, { API_ENDPOINTS } from '../../config/api';
 
 // Operators grouped by type
 const prepaidOperators = [
@@ -29,6 +29,7 @@ const circles = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai', 'Karnataka', 'Maharash
 const MobileRecharge = () => {
 	const navigate = useNavigate();
 	const { showSuccess, showError } = useToast();
+	const { user } = useAuthStore();
 	const [mobile, setMobile] = useState('');
 	const [operator, setOperator] = useState('');
 	const [circle, setCircle] = useState('');
@@ -39,10 +40,28 @@ const MobileRecharge = () => {
 	const [plans, setPlans] = useState([]);
 	const [selectedPlan, setSelectedPlan] = useState(null);
 	const [selectedOperatorData, setSelectedOperatorData] = useState(null);
+	const [billDetails, setBillDetails] = useState(null);
+	const [fetchingBill, setFetchingBill] = useState(false);
+	const [billError, setBillError] = useState('');
+	const [kycStatus, setKycStatus] = useState(null);
+	const [checkingKyc, setCheckingKyc] = useState(true);
+
+	const rechargeType = useMemo(() => {
+		if (operator && operator.toLowerCase().includes('postpaid')) {
+			return 'postpaid';
+		}
+		return 'prepaid';
+	}, [operator]);
 
 	// India mobile validation: must be 10 digits and start with 6-9
 	const isMobileValid = useMemo(() => /^[6-9]\d{9}$/.test(mobile), [mobile]);
-	const canShowAmount = isMobileValid && operator && circle;
+	const canShowAmount = useMemo(() => {
+		if (!isMobileValid || !operator) return false;
+		if (rechargeType === 'postpaid') {
+			return true;
+		}
+		return Boolean(circle);
+	}, [isMobileValid, operator, circle, rechargeType]);
 
 	useEffect(() => {
 		if (!canShowAmount) {
@@ -58,6 +77,57 @@ const MobileRecharge = () => {
 		const operatorData = allOperators.find(op => op.value === operator);
 		setSelectedOperatorData(operatorData || null);
 	}, [operator]);
+
+	useEffect(() => {
+		if (rechargeType !== 'postpaid') {
+			setBillDetails(null);
+			setBillError('');
+		}
+	}, [rechargeType]);
+
+	useEffect(() => {
+		if (rechargeType === 'postpaid') {
+			setBillDetails(null);
+			setBillError('');
+			setAmount('');
+			setPlans([]);
+			setSelectedPlan(null);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [mobile, operator, rechargeType]);
+
+	// Check KYC status
+	const checkKycStatus = useCallback(async () => {
+		if (!user) {
+			setCheckingKyc(false);
+			return;
+		}
+		
+		try {
+			const response = await api.get(API_ENDPOINTS.kyc.status);
+			if (response.data.success && response.data.data) {
+				setKycStatus(response.data.data);
+			} else {
+				if (user?.kycApprovedDate) {
+					setKycStatus({ status: 'approved' });
+				} else {
+					setKycStatus(null);
+				}
+			}
+		} catch (error) {
+			if (user?.kycApprovedDate) {
+				setKycStatus({ status: 'approved' });
+			} else {
+				setKycStatus(null);
+			}
+		} finally {
+			setCheckingKyc(false);
+		}
+	}, [user]);
+
+	useEffect(() => {
+		checkKycStatus();
+	}, [checkKycStatus]);
 
 	// Check for recharge success from callback URL
 	useEffect(() => {
@@ -84,16 +154,13 @@ const MobileRecharge = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// Determine recharge type from operator
-	const rechargeType = useMemo(() => {
-		if (operator && operator.toLowerCase().includes('postpaid')) {
-			return 'postpaid';
-		}
-		return 'prepaid';
-	}, [operator]);
-
 	// Fetch plans from API
 	const handleBrowsePlans = async () => {
+		if (rechargeType === 'postpaid') {
+			showError('Bill fetch is available for postpaid numbers. Please fetch the latest bill instead.');
+			return;
+		}
+
 		if (!canShowAmount) {
 			showError('Please fill in mobile number, operator, and circle');
 			return;
@@ -123,10 +190,66 @@ const MobileRecharge = () => {
 		setPlans([]); // Close plans list
 	};
 
+	const handleFetchBill = useCallback(async () => {
+		if (!isMobileValid) {
+			showError('Please enter a valid mobile number before fetching the bill.');
+			return;
+		}
+
+		if (!operator) {
+			showError('Please select an operator to fetch the bill.');
+			return;
+		}
+
+		try {
+			setFetchingBill(true);
+			setBillError('');
+			const response = await fetchPostpaidBill({ mobileNumber: mobile, operator });
+
+			if (response.success) {
+				const data = response.data;
+				const billAmount = data.bill_amount ?? data.outstanding_amount ?? '';
+				setBillDetails(data);
+				setAmount(billAmount !== '' ? String(billAmount) : '');
+				showSuccess('Bill fetched successfully!');
+			} else {
+				const message = response.message || 'Failed to fetch bill';
+				setBillDetails(null);
+				setAmount('');
+				setBillError(message);
+				showError(message);
+			}
+		} catch (error) {
+			const message = error.message || error?.message || 'Failed to fetch bill';
+			setBillDetails(null);
+			setAmount('');
+			setBillError(message);
+			showError(message);
+		} finally {
+			setFetchingBill(false);
+		}
+	}, [isMobileValid, operator, mobile, showError, showSuccess, fetchPostpaidBill]);
+
 	// Handle payment initiation
-	const handlePayment = async (paymentMethod) => {
+	const handlePayment = async () => {
+		// Check KYC verification before allowing payment
+		const isKycVerified = kycStatus?.status === 'approved' || user?.kycApprovedDate;
+		
+		if (!isKycVerified) {
+			showError('KYC verification required! Please complete your KYC verification to proceed with mobile recharge.');
+			setTimeout(() => {
+				navigate('/kyc');
+			}, 1500);
+			return;
+		}
+
 		if (!amount || parseFloat(amount) <= 0) {
 			showError('Please enter a valid amount');
+			return;
+		}
+
+		if (rechargeType === 'postpaid' && !billDetails) {
+			showError('Please fetch the latest bill before making a payment.');
 			return;
 		}
 
@@ -140,20 +263,15 @@ const MobileRecharge = () => {
 				rechargeType: rechargeType,
 				planId: selectedPlan?.planId || selectedPlan?.id || '',
 				planDescription: selectedPlan?.description || selectedPlan?.name || '',
-				paymentMethod: paymentMethod === 'phonepe' ? 'phonepe' : 'google_pay',
+				paymentMethod: 'wallet',
+				billDetails: billDetails || {},
 			};
 
 			const response = await initiateRecharge(rechargeData);
 
 			if (response.success && response.data) {
-				showSuccess(`💳 Payment initiated! Redirecting to ${paymentMethod === 'phonepe' ? 'PhonePe' : 'Google Pay'}...`);
-				if (response.data.paymentUrl) {
-					// Small delay to show success message
-					setTimeout(() => {
-						window.location.href = response.data.paymentUrl;
-					}, 500);
-				} else {
-					// Navigate to status page or history
+				showSuccess('Recharge initiated from wallet! We will update you shortly.');
+				if (response.data.rechargeId) {
 					navigate(`/recharge/status?rechargeId=${response.data.rechargeId}`);
 				}
 			} else {
@@ -166,6 +284,7 @@ const MobileRecharge = () => {
 			setLoading(false);
 		}
 	};
+
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-24 pb-12">
@@ -196,6 +315,34 @@ const MobileRecharge = () => {
 						</div>
 					</div>
 					<div className="p-5 sm:p-6 space-y-4">
+						{/* KYC Verification Banner */}
+						{checkingKyc ? (
+							<div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+								<div className="flex items-center justify-center gap-2">
+									<Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+									<span className="text-sm text-blue-700">Verifying KYC status...</span>
+								</div>
+							</div>
+						) : (!kycStatus || kycStatus.status !== 'approved') && !user?.kycApprovedDate ? (
+							<div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+										<Shield className="w-5 h-5 text-blue-600" />
+									</div>
+									<div className="flex-1 min-w-0">
+										<p className="text-sm font-semibold text-gray-800">KYC Verification Required</p>
+										<p className="text-xs text-gray-600 mt-0.5">Complete KYC to proceed with recharge</p>
+									</div>
+									<button
+										onClick={() => navigate('/kyc')}
+										className="flex-shrink-0 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+									>
+										Verify Now
+									</button>
+								</div>
+							</div>
+						) : null}
+						
 						{/* Trust strip */}
 						<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 							<div className="flex items-center gap-2 rounded-xl border border-green-100 bg-green-50/60 px-3 py-2">
@@ -277,59 +424,111 @@ const MobileRecharge = () => {
 						</div>
 
 						{/* Circle */}
-						<div>
-							<label className="block text-sm font-medium text-gray-700 mb-1">Circle</label>
-							<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/40">
-								<Globe2 className="w-4 h-4 text-gray-400" />
-								<select value={circle} onChange={(e) => setCircle(e.target.value)} className="w-full outline-none text-sm bg-transparent">
-									<option value="">Select circle</option>
-									{circles.map(c => <option key={c} value={c}>{c}</option>)}
-								</select>
-							</div>
-						</div>
-
-						{/* Amount + Browse Plans */}
-						{canShowAmount && (
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-								<div className="sm:col-span-2">
-									<label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
-									<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/40">
-										<IndianRupee className="w-4 h-4 text-gray-400" />
-										<input
-											type="number"
-											min="1"
-											value={amount}
-											onChange={(e) => setAmount(e.target.value)}
-											placeholder="Enter amount"
-											className="w-full outline-none text-sm placeholder:text-gray-400"
-										/>
-									</div>
-								</div>
-								<div className="flex items-end">
-									<button
-										type="button"
-										onClick={handleBrowsePlans}
-										disabled={browsingPlans}
-										className="w-full px-4 py-2 rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-100 text-sm font-semibold flex items-center justify-center gap-2 text-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										{browsingPlans ? (
-											<>
-												<Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
-												Loading...
-											</>
-										) : (
-											<>
-												<Search className="w-4 h-4 text-orange-600" />
-												Browse Plans
-											</>
-										)}
-									</button>
+						{rechargeType !== 'postpaid' && (
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">Circle</label>
+								<div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/40">
+									<Globe2 className="w-4 h-4 text-gray-400" />
+									<select value={circle} onChange={(e) => setCircle(e.target.value)} className="w-full outline-none text-sm bg-transparent">
+										<option value="">Select circle</option>
+										{circles.map(c => <option key={c} value={c}>{c}</option>)}
+									</select>
 								</div>
 							</div>
 						)}
 
+						{/* Amount + Browse Plans */}
+						{canShowAmount && (
+							<div className="space-y-3">
+								<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+									<div className="sm:col-span-2">
+										<label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+										<div className={`flex items-center gap-2 rounded-xl border ${rechargeType === 'postpaid' ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'} px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-orange-500/40`}>
+											<IndianRupee className="w-4 h-4 text-gray-400" />
+											<input
+												type="number"
+												min="1"
+												value={amount}
+												onChange={(e) => setAmount(e.target.value)}
+												placeholder={rechargeType === 'postpaid' ? 'Fetch bill to autofill amount' : 'Enter amount'}
+												className="w-full outline-none text-sm placeholder:text-gray-400 bg-transparent"
+												readOnly={rechargeType === 'postpaid'}
+											/>
+										</div>
+									</div>
+									<div className="flex items-end">
+										{rechargeType === 'postpaid' ? (
+											<button
+												type="button"
+												onClick={handleFetchBill}
+												disabled={fetchingBill || !isMobileValid || !operator}
+												className="w-full px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-sm font-semibold flex items-center justify-center gap-2 text-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												{fetchingBill ? (
+													<>
+														<Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+														Fetching...
+													</>
+												) : (
+													<>
+														<Receipt className="w-4 h-4 text-blue-600" />
+														Fetch Bill
+													</>
+												)}
+											</button>
+										) : (
+											<button
+												type="button"
+												onClick={handleBrowsePlans}
+												disabled={browsingPlans}
+												className="w-full px-4 py-2 rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-100 text-sm font-semibold flex items-center justify-center gap-2 text-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												{browsingPlans ? (
+													<>
+														<Loader2 className="w-4 h-4 text-orange-600 animate-spin" />
+														Loading...
+													</>
+												) : (
+													<>
+														<Search className="w-4 h-4 text-orange-600" />
+														Browse Plans
+													</>
+												)}
+											</button>
+										)}
+									</div>
+								</div>
+								{billError && (
+									<p className="text-xs text-red-600">{billError}</p>
+								)}
+								{billDetails && (
+									<div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4">
+										<div className="flex items-start gap-3">
+											<div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+												<Receipt className="w-5 h-5 text-blue-600" />
+											</div>
+											<div className="flex-1">
+												<p className="text-sm font-semibold text-gray-800">
+													{billDetails.customer_name || 'Customer'} &bull; {billDetails.operator || operator}
+												</p>
+												<div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
+													<p>Bill Amount: <span className="font-semibold text-gray-800">₹{billDetails.bill_amount ?? billDetails.outstanding_amount ?? '--'}</span></p>
+													<p>Outstanding: <span className="font-semibold text-gray-800">₹{billDetails.outstanding_amount ?? '--'}</span></p>
+													<p>Bill Date: <span className="font-semibold text-gray-800">{billDetails.bill_date ? new Date(billDetails.bill_date).toLocaleDateString() : '--'}</span></p>
+													<p>Due Date: <span className="font-semibold text-red-600">{billDetails.due_date ? new Date(billDetails.due_date).toLocaleDateString() : '--'}</span></p>
+												</div>
+												{billDetails.message && (
+													<p className="text-xs text-gray-500 mt-1">{billDetails.message}</p>
+												)}
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+						)}
+
 						{/* Plans List */}
-						{plans.length > 0 && (
+						{rechargeType !== 'postpaid' && plans.length > 0 && (
 							<div className="mt-4 p-4 rounded-xl border border-orange-200 bg-orange-50/30">
 								<p className="text-sm font-semibold text-gray-700 mb-3">Available Plans</p>
 								<div className="space-y-2 max-h-60 overflow-y-auto">
@@ -365,48 +564,26 @@ const MobileRecharge = () => {
 							</div>
 						)}
 
-						{/* Payment options */}
+						{/* Payment option */}
 						{canShowAmount && amount && parseFloat(amount) > 0 && (
 							<div className="mt-4">
 								<p className="text-sm text-gray-600 mb-1">Proceed to Recharge</p>
-								<p className="text-[11px] text-gray-500 mb-3">We never store your UPI PIN. 256‑bit TLS encryption.</p>
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-									<button
-										onClick={() => handlePayment('phonepe')}
-										disabled={loading}
-										className="group px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-[12px] sm:text-sm font-semibold flex items-center justify-between gap-2 sm:gap-3 transition w-full disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										<div className="flex items-center gap-2 min-w-0">
-											<div className="relative w-8 h-8 rounded-xl bg-white/80 flex items-center justify-center shadow-sm overflow-hidden">
-												<img src={PhonePay} alt="PhonePe" className="w-4 h-4" />
-											</div>
-											<span className="text-indigo-800 truncate">PhonePe UPI</span>
-										</div>
-										{loading ? (
-											<Loader2 className="w-4 h-4 text-indigo-700 animate-spin" />
-										) : (
-											<span className="text-xs text-indigo-700 opacity-80 group-hover:opacity-100">UPI</span>
-										)}
-									</button>
-									<button
-										onClick={() => handlePayment('google_pay')}
-										disabled={loading}
-										className="px-3 py-2 sm:px-4 sm:py-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-[12px] sm:text-sm font-semibold flex items-center justify-between gap-2 sm:gap-3 transition w-full disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										<div className="flex items-center gap-2 min-w-0">
-											<div className="relative w-8 h-8 rounded-xl bg-white/80 flex items-center justify-center shadow-sm overflow-hidden">
-												<img src={GooglePay} alt="GooglePay" className="w-4 h-4" />
-											</div>
-											<span className="text-emerald-800 truncate">Google Pay</span>
-										</div>
-										{loading ? (
+								<p className="text-[11px] text-gray-500 mb-3">Amount will be deducted from your Smart Wallet.</p>
+								<button
+									onClick={handlePayment}
+									disabled={loading}
+									className="px-4 py-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-sm font-semibold flex items-center justify-center gap-2 transition w-full disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{loading ? (
+										<>
 											<Loader2 className="w-4 h-4 text-emerald-700 animate-spin" />
-										) : (
-											<span className="text-xs text-emerald-700 opacity-80">UPI</span>
-										)}
-									</button>
-								</div>
-								<p className="mt-2 text-[11px] text-gray-500">Recharge or 100% refund if operator fails.</p>
+											<span className="text-emerald-700">Processing...</span>
+										</>
+									) : (
+										<span className="text-emerald-800">Recharge from Smart Wallet</span>
+									)}
+								</button>
+								<p className="mt-2 text-[11px] text-gray-500">Instant recharge or automatic refund if the operator fails.</p>
 							</div>
 						)}
 					</div>

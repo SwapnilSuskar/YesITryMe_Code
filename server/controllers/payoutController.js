@@ -335,10 +335,12 @@ export const getWalletBalance = async (req, res) => {
 
     const wallet = await Wallet.findOne({ userId });
     const balance = wallet ? wallet.balance : 0;
+    const smartWalletBalance = wallet ? (wallet.smartWalletBalance || 0) : 0;
 
     res.json({
       success: true,
       balance,
+      smartWalletBalance,
     });
   } catch (error) {
     console.error("Error getting wallet balance:", error);

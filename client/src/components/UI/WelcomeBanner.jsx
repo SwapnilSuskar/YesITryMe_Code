@@ -2,6 +2,7 @@ import WelComeBanner from "../../assets/Images/Banner.webp";
 import { TypeAnimation } from 'react-type-animation';
 import CountUp from 'react-countup';
 import { Link } from "react-router-dom";
+import { Zap, BookOpen, CheckCircle, Youtube, Coins, Smartphone, Wallet } from 'lucide-react';
 const WelcomeBanner = () => {
     return (
         <div className="min-h-screen bg-orange-50  pt-8">
@@ -95,9 +96,7 @@ const WelcomeBanner = () => {
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
                                 <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-[#FF4E00] to-orange-500 rounded-xl">
-                                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
+                                    <Zap className="w-10 h-10 text-white" />
                                 </span>
                                 <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Expert Courses</h3>
                             </div>
@@ -115,9 +114,7 @@ const WelcomeBanner = () => {
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
                                 <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl">
-                                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                    </svg>
+                                    <BookOpen className="w-10 h-10 text-white" />
                                 </span>
                                 <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Fast Learning</h3>
                             </div>
@@ -133,9 +130,7 @@ const WelcomeBanner = () => {
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
                                 <span className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl">
-                                    <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
+                                    <CheckCircle className="w-14 h-14 text-white" />
                                 </span>
                                 <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Certification</h3>
                             </div>
@@ -146,16 +141,15 @@ const WelcomeBanner = () => {
                                 color: '#111827',
                                 lineHeight: '1.3',
                                 textAlign: 'left',
-                            }}>Earn Recognized Certificates To Boost Your Career Prospects.</p>
+                            }}>
+                                Earn Recognized Certificates To Boost Your Career Prospects.</p>
                         </div>
 
                         {/* Feature 4 - YouTube Tasks */}
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
                                 <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-red-500 to-red-600 rounded-xl">
-                                    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                    </svg>
+                                    <Youtube className="w-10 h-10 text-white" />
                                 </span>
                                 <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">YouTube Tasks</h3>
                             </div>
@@ -165,16 +159,15 @@ const WelcomeBanner = () => {
                                 color: '#111827',
                                 lineHeight: '1.3',
                                 textAlign: 'left',
-                            }}>Complete YouTube Tasks And Earn Rewards For Your Engagement.</p>
+                            }}>
+                                Complete YouTube Tasks And Earn Rewards For Your Engagement.</p>
                         </div>
 
                         {/* Feature 5 - Earn Coins */}
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
-                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl">
-                                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
+                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl">
+                                    <Coins className="w-10 h-10 text-white" />
                                 </span>
                                 <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Earn Coins</h3>
                             </div>
@@ -184,8 +177,43 @@ const WelcomeBanner = () => {
                                 color: '#111827',
                                 lineHeight: '1.3',
                                 textAlign: 'left',
-                            }}>Earn Digital Coins Through Various Activities And Tasks.</p>
+                            }}>
+                                Earn Digital Coins Through Various Activities And Tasks.</p>
                         </div>
+                        {/* Feature 6 - Mobile Recharge */}
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
+                            <div className="flex items-center gap-4 mb-4">
+                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl">
+                                    <Smartphone className="w-10 h-10 text-white" />
+                                </span>
+                                <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Mobile Recharge</h3>
+                            </div>
+                            <p className="text-gray-600" style={{
+                                fontFamily: "Lato",
+                                fontSize: '19px',
+                                color: '#111827',
+                                lineHeight: '1.3',
+                                textAlign: 'left',
+                            }}>
+                                Recharge Your Mobile And Earn Commission On Every Transaction.</p>
+                        </div>
+                        {/* Feature 7 - Smart Wallet */}
+                        {/* <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
+                            <div className="flex items-center gap-4 mb-4">
+                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                                    <Wallet className="w-10 h-10 text-white" />
+                                </span>
+                                <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Smart Wallet</h3>
+                            </div>
+                            <p className="text-gray-600" style={{
+                                fontFamily: "Lato",
+                                fontSize: '19px',
+                                color: '#111827',
+                                lineHeight: '1.3',
+                                textAlign: 'left',
+                            }}>
+                                Manage Your Earnings With Secure Digital Wallet System.</p>
+                        </div> */}
                     </div>
 
                     {/* CTA Buttons */}
@@ -197,7 +225,6 @@ const WelcomeBanner = () => {
                             Explore Courses
                         </Link>
                     </div>
-
                     {/* Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-0 pt-12 max-w-4xl">
                         <div className="text-center">
@@ -239,7 +266,6 @@ const WelcomeBanner = () => {
                             }}
                         />
                     </div>
-
                 </div>
             </div>
         </div>

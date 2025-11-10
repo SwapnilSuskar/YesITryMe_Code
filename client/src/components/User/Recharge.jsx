@@ -1,6 +1,11 @@
-import { useState } from 'react';
-import { Smartphone, Tv, Zap, Car, Phone, ShieldCheck, Droplets, Hospital, Building2, ArrowRight, X, Headphones } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowRight, X, Headphones, Wallet, Plus, Send, Eye, RefreshCw, Loader2, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import WalletTopUpVerificationForm from './WalletTopUpVerificationForm';
+import api, { API_ENDPOINTS } from '../../config/api';
+import useToast from '../../hooks/useToast';
+import { useAuthStore } from '../../store/useAuthStore';
+import LoginPrompt from '../UI/LoginPrompt';
 
 // Recharge Imports
 import MobileRecharge from '../../assets/RechargeAndBillPayment/MobileRecharge.png';
@@ -29,45 +34,160 @@ import TrainBooking from '../../assets/RechargeAndBillPayment/TrainBooking.png';
 import Ola from '../../assets/RechargeAndBillPayment/olaBooking.png';
 import Uber from "../../assets/RechargeAndBillPayment/UberBooking.png"
 
-const tilesBase = "flex items-center justify-between w-full p-4 rounded-xl border bg-white/80 hover:bg-white shadow-sm hover:shadow-lg transition cursor-pointer backdrop-blur-sm";
+const tilesBase = "flex items-center justify-between w-full p-4 rounded-xl border shadow-sm hover:shadow-md transition cursor-pointer";
 
 const Recharge = () => {
+    const navigate = useNavigate();
+    const { showSuccess, showError } = useToast();
+    const { user } = useAuthStore();
+    const userId = user?.userId;
     const [comingSoon, setComingSoon] = useState({ open: false, section: '', label: '' });
+    const [showAddMoneyForm, setShowAddMoneyForm] = useState(false);
+    const [smartWalletBalance, setSmartWalletBalance] = useState(0);
+    const [loadingBalance, setLoadingBalance] = useState(false);
+    const [kycStatus, setKycStatus] = useState(null);
+    const [checkingKyc, setCheckingKyc] = useState(true);
 
     const rechargeServices = [
-        { key: 'mobile', label: 'Mobile', icon: MobileRecharge, color: 'text-blue-600', border: 'border-blue-100', bg: 'hover:bg-blue-50' },
-        { key: 'dth', label: 'DTH', icon: DTHRecharge, color: 'text-purple-600', border: 'border-purple-100', bg: 'hover:bg-purple-50' },
-        { key: 'fastag', label: 'FASTag', icon: FASTagRecharge, color: 'text-emerald-600', border: 'border-emerald-100', bg: 'hover:bg-emerald-50' },
-        { key: 'google-play', label: 'Google Play Recharge', icon: GooglePayRecharge, color: 'text-emerald-600', border: 'border-emerald-100', bg: 'hover:bg-emerald-50' },
+        { key: 'mobile', label: 'Mobile', icon: MobileRecharge, color: 'text-blue-600', border: 'border-blue-200', bg: 'bg-blue-50 hover:bg-blue-100' },
+        { key: 'dth', label: 'DTH', icon: DTHRecharge, color: 'text-purple-600', border: 'border-purple-200', bg: 'bg-purple-50 hover:bg-purple-100' },
+        { key: 'fastag', label: 'FASTag', icon: FASTagRecharge, color: 'text-emerald-600', border: 'border-emerald-200', bg: 'bg-emerald-50 hover:bg-emerald-100' },
+        { key: 'google-play', label: 'Google Play Recharge', icon: GooglePayRecharge, color: 'text-emerald-600', border: 'border-emerald-200', bg: 'bg-emerald-50 hover:bg-emerald-100' },
     ];
 
     const billPaymentServices = [
-        { key: 'electricity', label: 'Electricity', icon: ElectricityRecharge, color: 'text-yellow-600', border: 'border-yellow-100', bg: 'hover:bg-yellow-50' },
-        { key: 'insurance', label: 'Insurance Premium', icon: InsurancePremium, color: 'text-indigo-600', border: 'border-indigo-100', bg: 'hover:bg-indigo-50' },
-        { key: 'credit-card', label: 'Credit Card Bill', icon: CreditCardBillPayment, color: 'text-rose-600', border: 'border-rose-100', bg: 'hover:bg-rose-50' },
-        { key: 'lpg', label: 'LPG', icon: LPG, color: 'text-orange-600', border: 'border-orange-100', bg: 'hover:bg-orange-50' },
-        { key: 'broadband', label: 'Broadband', icon: Broadband, color: 'text-sky-600', border: 'border-sky-100', bg: 'hover:bg-sky-50' },
-        { key: 'loan', label: 'Loan Repayment', icon: LoanRepayment, color: 'text-purple-600', border: 'border-purple-100', bg: 'hover:bg-purple-50' },
-        { key: 'cable', label: 'Cable TV', icon: CableTV, color: 'text-indigo-600', border: 'border-indigo-100', bg: 'hover:bg-indigo-50' },
-        { key: 'landline', label: 'Landline', icon: LandlineRecharge, color: 'text-pink-600', border: 'border-pink-100', bg: 'hover:bg-pink-50' },
-        { key: 'education', label: 'Education Fees', icon: EducationFees, color: 'text-amber-600', border: 'border-amber-100', bg: 'hover:bg-amber-50' },
-        { key: 'water', label: 'Water Bill', icon: WaterBill, color: 'text-sky-600', border: 'border-sky-100', bg: 'hover:bg-sky-50' },
+        { key: 'electricity', label: 'Electricity', icon: ElectricityRecharge, color: 'text-yellow-600', border: 'border-yellow-200', bg: 'bg-yellow-50 hover:bg-yellow-100' },
+        { key: 'insurance', label: 'Insurance Premium', icon: InsurancePremium, color: 'text-indigo-600', border: 'border-indigo-200', bg: 'bg-indigo-50 hover:bg-indigo-100' },
+        { key: 'credit-card', label: 'Credit Card Bill', icon: CreditCardBillPayment, color: 'text-rose-600', border: 'border-rose-200', bg: 'bg-rose-50 hover:bg-rose-100' },
+        { key: 'lpg', label: 'LPG', icon: LPG, color: 'text-orange-600', border: 'border-orange-200', bg: 'bg-orange-50 hover:bg-orange-100' },
+        { key: 'broadband', label: 'Broadband', icon: Broadband, color: 'text-sky-600', border: 'border-sky-200', bg: 'bg-sky-50 hover:bg-sky-100' },
+        { key: 'loan', label: 'Loan Repayment', icon: LoanRepayment, color: 'text-purple-600', border: 'border-purple-200', bg: 'bg-purple-50 hover:bg-purple-100' },
+        { key: 'cable', label: 'Cable TV', icon: CableTV, color: 'text-indigo-600', border: 'border-indigo-200', bg: 'bg-indigo-50 hover:bg-indigo-100' },
+        { key: 'landline', label: 'Landline', icon: LandlineRecharge, color: 'text-pink-600', border: 'border-pink-200', bg: 'bg-pink-50 hover:bg-pink-100' },
+        { key: 'education', label: 'Education Fees', icon: EducationFees, color: 'text-amber-600', border: 'border-amber-200', bg: 'bg-amber-50 hover:bg-amber-100' },
+        { key: 'water', label: 'Water Bill', icon: WaterBill, color: 'text-sky-600', border: 'border-sky-200', bg: 'bg-sky-50 hover:bg-sky-100' },
         // { key: 'hospital', label: 'Hospital Bill', icon: Hospital, color: 'text-rose-600', border: 'border-rose-100', bg: 'hover:bg-rose-50' },
-        { key: 'municipality', label: 'Municipality', icon: Municipality, color: 'text-amber-600', border: 'border-amber-100', bg: 'hover:bg-amber-50' },
+        { key: 'municipality', label: 'Municipality', icon: Municipality, color: 'text-amber-600', border: 'border-amber-200', bg: 'bg-amber-50 hover:bg-amber-100' },
     ];
 
     // Travel services
     const travelServices = [
-        { key: 'flight', label: 'Flight', icon: FlightBooking, border: 'border-blue-100', bg: 'hover:bg-blue-50' },
-        { key: 'bus', label: 'Bus Ticket', icon: BusTicketBooking, border: 'border-green-100', bg: 'hover:bg-green-50' },
-        { key: 'train', label: 'Trains', icon: TrainBooking, border: 'border-purple-100', bg: 'hover:bg-purple-50' },
-        { key: "Ola", label: "Ola", icon: Ola, border: 'border-red-100', bg: 'hover:bg-red-50' },
-        { key: "Uber", label: "Uber", icon: Uber, border: 'border-red-100', bg: 'hover:bg-red-50' },
+        { key: 'flight', label: 'Flight', icon: FlightBooking, border: 'border-blue-200', bg: 'bg-blue-50 hover:bg-blue-100' },
+        { key: 'bus', label: 'Bus Ticket', icon: BusTicketBooking, border: 'border-green-200', bg: 'bg-green-50 hover:bg-green-100' },
+        { key: 'train', label: 'Trains', icon: TrainBooking, border: 'border-purple-200', bg: 'bg-purple-50 hover:bg-purple-100' },
+        { key: "Ola", label: "Ola", icon: Ola, border: 'border-red-200', bg: 'bg-red-50 hover:bg-red-100' },
+        { key: "Uber", label: "Uber", icon: Uber, border: 'border-red-200', bg: 'bg-red-50 hover:bg-red-100' },
     ];
 
-    const navigate = useNavigate();
+    // Fetch wallet balance
+    const isFetchingWalletRef = useRef(false);
+
+    const fetchWalletBalance = useCallback(async () => {
+        if (!userId || isFetchingWalletRef.current) return;
+
+        isFetchingWalletRef.current = true;
+        setLoadingBalance(true);
+        try {
+            const response = await api.get(API_ENDPOINTS.payout.balance);
+            if (response.data.success) {
+                setSmartWalletBalance(response.data.smartWalletBalance || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching wallet balance:', error);
+        } finally {
+            setLoadingBalance(false);
+            isFetchingWalletRef.current = false;
+        }
+    }, [userId]);
+
+    // Check KYC status
+    const checkKycStatus = useCallback(async () => {
+        if (!userId) {
+            setCheckingKyc(false);
+            return;
+        }
+
+        try {
+            const response = await api.get(API_ENDPOINTS.kyc.status);
+            if (response.data.success && response.data.data) {
+                setKycStatus(response.data.data);
+            } else {
+                if (user?.kycApprovedDate) {
+                    setKycStatus({ status: 'approved' });
+                } else {
+                    setKycStatus(null);
+                }
+            }
+        } catch (error) {
+            if (user?.kycApprovedDate) {
+                setKycStatus({ status: 'approved' });
+            } else {
+                setKycStatus(null);
+            }
+        } finally {
+            setCheckingKyc(false);
+        }
+    }, [userId, user]);
+
+    useEffect(() => {
+        checkKycStatus();
+    }, [checkKycStatus]);
+
+    useEffect(() => {
+        fetchWalletBalance();
+        // Auto-refresh balance every 30 seconds to check for admin approvals
+        const interval = setInterval(() => {
+            fetchWalletBalance();
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [fetchWalletBalance]);
+
+    const ensureKycVerified = useCallback(() => {
+        if (checkingKyc) {
+            showError('Please wait while we verify your KYC status...');
+            return false;
+        }
+
+        const isKycVerified = kycStatus?.status === 'approved' || user?.kycApprovedDate;
+
+        if (!isKycVerified) {
+            showError('KYC verification required! Please complete your KYC to use this feature.');
+            setTimeout(() => {
+                navigate('/kyc');
+            }, 1500);
+            return false;
+        }
+
+        return true;
+    }, [checkingKyc, kycStatus, user, showError, navigate]);
+
+    const handleAddMoneySuccess = () => {
+        setShowAddMoneyForm(false);
+        showSuccess('Wallet top-up request submitted successfully! Admin will review and approve your request.');
+        // Refresh balance after a short delay to allow admin to approve
+        setTimeout(() => {
+            fetchWalletBalance();
+        }, 2000);
+    };
+
+    const handleAddMoneyClick = () => {
+        if (!ensureKycVerified()) return;
+        setShowAddMoneyForm(true);
+    };
+
+    const handleSendMoney = () => {
+        if (!ensureKycVerified()) return;
+        showError('Send Money feature coming soon!');
+    };
+
+    const handleViewBalance = () => {
+        showSuccess(`Your Smart Wallet Balance (Added Money): ₹${smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    };
 
     const onSelectService = (section, service) => {
+        if (!ensureKycVerified()) return;
+
         if (service.key === 'mobile') {
             navigate('/recharge/mobile');
             return;
@@ -75,11 +195,44 @@ const Recharge = () => {
         setComingSoon({ open: true, section, label: service.label });
     };
 
+    // Show login prompt if user is not authenticated
+    if (!user) {
+        return <LoginPrompt type="recharge" />;
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-24 pb-12">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Recharge & Bill Payments</h1>
                 <p className="text-gray-600 mb-6">Select a service to get started.</p>
+
+                {/* KYC Verification Banner */}
+                {checkingKyc ? (
+                    <div className="mb-6 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                            <span className="text-sm text-blue-700">Verifying KYC status...</span>
+                        </div>
+                    </div>
+                ) : (!kycStatus || kycStatus.status !== 'approved') && !user?.kycApprovedDate ? (
+                    <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Shield className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-800">KYC Verification Required</p>
+                                <p className="text-xs text-gray-600 mt-0.5">Complete KYC to access all services</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/kyc')}
+                                className="flex-shrink-0 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                Verify Now
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="overflow-hidden bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-orange-100">
                     {/* Gradient header */}
@@ -118,6 +271,67 @@ const Recharge = () => {
                                 <span className="text-[12px] font-semibold text-purple-700">24/7 Support</span>
                             </div>
                         </div>
+
+                        {/* Wallet Options */}
+                        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <button
+                                onClick={handleAddMoneyClick}
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold hover:shadow-lg transition-all"
+                            >
+                                <Plus className="w-5 h-5" />
+                                <span>Add Money</span>
+                            </button>
+                            <button
+                                onClick={handleSendMoney}
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
+                            >
+                                <Send className="w-5 h-5" />
+                                <span>Send Money</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    fetchWalletBalance();
+                                    handleViewBalance();
+                                }}
+                                disabled={loadingBalance}
+                                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                            >
+                                {loadingBalance ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Eye className="w-5 h-5" />
+                                        <span>Wallet Balance</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {/* Smart Wallet Balance Display (Added Money) */}
+                        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Wallet className="w-5 h-5 text-purple-600" />
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-700">YesITryMe Smart Wallet</span>
+                                        <p className="text-xs text-gray-500">(Added Money)</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl font-bold text-purple-600">
+                                        ₹{loadingBalance ? '...' : smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                    <button
+                                        onClick={fetchWalletBalance}
+                                        disabled={loadingBalance}
+                                        className="p-2 rounded-lg bg-purple-100 hover:bg-purple-200 transition-colors disabled:opacity-50"
+                                        title="Refresh balance"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 text-purple-600 ${loadingBalance ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <h2 className="text-sm font-semibold text-gray-700 mb-3">Recharge</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
                             {rechargeServices.map(s => {
@@ -227,6 +441,14 @@ const Recharge = () => {
                     )}
                 </div>
             </div>
+
+            {/* Add Money Form Modal */}
+            {showAddMoneyForm && (
+                <WalletTopUpVerificationForm
+                    onClose={() => setShowAddMoneyForm(false)}
+                    onSuccess={handleAddMoneySuccess}
+                />
+            )}
         </div>
     );
 };

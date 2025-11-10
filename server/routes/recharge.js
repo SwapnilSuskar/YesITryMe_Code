@@ -1,6 +1,7 @@
 import express from "express";
 import {
   fetchRechargePlans,
+  fetchPostpaidBill,
   initiateRecharge,
   phonePeCallback,
   checkRechargeStatus,
@@ -20,6 +21,7 @@ router.post("/payment-callback", phonePeCallback);
 
 // Protected user routes
 router.get("/plans", protect, fetchRechargePlans);
+router.post("/postpaid/fetch-bill", protect, fetchPostpaidBill);
 router.post("/initiate", protect, initiateRecharge);
 router.get("/status/:rechargeId", protect, checkRechargeStatus);
 router.get("/history", protect, getRechargeHistory);

@@ -15,6 +15,7 @@ const AdminRechargeAnalysis = () => {
     pendingRecharges: 0,
     totalRevenue: 0,
     totalCommission: 0,
+    providerCommission: 0,
     operatorStats: [],
   });
   const [recharges, setRecharges] = useState([]);
@@ -54,7 +55,7 @@ const AdminRechargeAnalysis = () => {
 
       const response = await api.get(`${API_ENDPOINTS.recharge.adminStats}?${params.toString()}`);
       if (response.data.success) {
-        setStats(response.data.data);
+        setStats(prev => ({ ...prev, ...response.data.data }));
       }
     } catch (error) {
       console.error('Error fetching recharge stats:', error);
@@ -154,11 +155,12 @@ const AdminRechargeAnalysis = () => {
   };
 
   const formatCurrency = (amount) => {
+    const value = Number(amount || 0);
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(value);
   };
 
   const formatDate = (dateString) => {
@@ -216,7 +218,7 @@ const AdminRechargeAnalysis = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-gray-600">Total Transactions</h3>
@@ -242,6 +244,15 @@ const AdminRechargeAnalysis = () => {
             </div>
             <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.totalCommission)}</p>
             <p className="text-xs text-gray-500 mt-1">Admin commission earned</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-gray-600">Provider Commission</h3>
+              <Wallet className="w-5 h-5 text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.providerCommission)}</p>
+            <p className="text-xs text-gray-500 mt-1">Commission reported by provider</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
@@ -282,6 +293,9 @@ const AdminRechargeAnalysis = () => {
                     </p>
                     <p className="text-sm text-gray-600">
                       Commission: <span className="font-bold text-purple-600">{formatCurrency(op.commission)}</span>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Provider Commission: <span className="font-bold text-blue-600">{formatCurrency(op.providerCommission || 0)}</span>
                     </p>
                   </div>
                 </div>
@@ -372,6 +386,7 @@ const AdminRechargeAnalysis = () => {
                       <th className="px-4 py-3 text-left text-sm font-semibold">Amount</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold">Admin Commission</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold">User Commission</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold">Provider (API)</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold">Date</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold">Actions</th>
@@ -417,6 +432,26 @@ const AdminRechargeAnalysis = () => {
                             <p className="text-xs text-gray-500">
                               ({recharge.userCommissionPercentage}%)
                             </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="font-medium text-blue-600">
+                            {formatCurrency(recharge.providerCommission || 0)}
+                          </span>
+                          {recharge.providerBalance ? (
+                            <p className="text-xs text-gray-500">
+                              Provider Wallet: {formatCurrency(recharge.providerBalance)}
+                            </p>
+                          ) : null}
+                          {recharge.providerReceiptUrl && (
+                            <a
+                              href={recharge.providerReceiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1"
+                            >
+                              View Receipt
+                            </a>
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm">{getStatusBadge(recharge.status)}</td>
@@ -599,6 +634,37 @@ const AdminRechargeAnalysis = () => {
                   />
                 </div>
               </div>
+            {editingRecharge && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Provider Response Snapshot</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                  <p>
+                    Provider Commission:{' '}
+                    <span className="font-semibold text-blue-600">
+                      {formatCurrency(editingRecharge.providerCommission || 0)}
+                    </span>
+                  </p>
+                  <p>
+                    Provider Wallet:{' '}
+                    <span className="font-semibold text-blue-600">
+                      {formatCurrency(editingRecharge.providerBalance || 0)}
+                    </span>
+                  </p>
+                  {editingRecharge.providerReceiptUrl && (
+                    <p className="md:col-span-2">
+                      <a
+                        href={editingRecharge.providerReceiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline flex items-center gap-1"
+                      >
+                        View Provider Receipt
+                      </a>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Failure Reason</label>
                 <textarea

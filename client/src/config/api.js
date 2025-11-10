@@ -15,13 +15,13 @@ export const api = axios.create({
 // Helper to check if token is expired
 const isTokenExpired = (token) => {
   if (!token) return true;
-  
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(token.split(".")[1]));
     const currentTime = Date.now() / 1000;
     return payload.exp < currentTime;
   } catch (error) {
-    console.error('Error parsing token:', error);
+    console.error("Error parsing token:", error);
     return true;
   }
 };
@@ -30,18 +30,18 @@ const isTokenExpired = (token) => {
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("authToken");
-    
+
     // Check if token is expired before making the request
     if (token && isTokenExpired(token)) {
-      console.log('Token expired, clearing auth data...');
-      localStorage.removeItem('authUser');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('adminSessionTimeout');
-      
+      console.log("Token expired, clearing auth data...");
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("adminSessionTimeout");
+
       // Reject the request to prevent unnecessary API calls
-      return Promise.reject(new Error('Token expired'));
+      return Promise.reject(new Error("Token expired"));
     }
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -63,19 +63,20 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.log('🔒 401 Unauthorized - Token may be expired');
-      
+      console.log("🔒 401 Unauthorized - Token may be expired");
+
       // Clear stored auth data and redirect to login
-      localStorage.removeItem('authUser');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('adminSessionTimeout');
-      
+      localStorage.removeItem("authUser");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("adminSessionTimeout");
+
       // Only redirect if we're not already on login page
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/admin/login') {
-        // Show a user-friendly message
-        if (window.confirm('Your session has expired. Please log in again.')) {
-          window.location.href = '/login';
-        }
+      if (
+        window.location.pathname !== "/login" &&
+        window.location.pathname !== "/admin/login"
+      ) {
+        // Redirect silently without alert
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);
@@ -264,6 +265,7 @@ export const API_ENDPOINTS = {
   },
   recharge: {
     plans: `${API_URL}/api/recharge/plans`,
+    postpaidFetchBill: `${API_URL}/api/recharge/postpaid/fetch-bill`,
     initiate: `${API_URL}/api/recharge/initiate`,
     status: `${API_URL}/api/recharge/status`,
     history: `${API_URL}/api/recharge/history`,
@@ -271,5 +273,14 @@ export const API_ENDPOINTS = {
     adminStats: `${API_URL}/api/recharge/admin/stats`,
     adminUpdate: `${API_URL}/api/recharge/admin/:rechargeId`,
     adminDelete: `${API_URL}/api/recharge/admin/:rechargeId`,
+  },
+  walletTopUp: {
+    submit: `${API_URL}/api/wallet-topup/submit`,
+    history: `${API_URL}/api/wallet-topup/history`,
+    adminAll: `${API_URL}/api/wallet-topup/admin/all`,
+    adminStats: `${API_URL}/api/wallet-topup/admin/stats`,
+    adminGet: `${API_URL}/api/wallet-topup/admin/:id`,
+    adminApprove: `${API_URL}/api/wallet-topup/admin/:id/approve`,
+    adminReject: `${API_URL}/api/wallet-topup/admin/:id/reject`,
   },
 };

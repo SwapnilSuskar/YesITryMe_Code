@@ -24,6 +24,10 @@ const rechargeSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    operatorApiCode: {
+      type: String,
+      default: "",
+    },
     circle: {
       type: String,
       required: true,
@@ -59,10 +63,36 @@ const rechargeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    providerCommission: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    providerBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    providerReceiptUrl: {
+      type: String,
+      default: "",
+    },
+    providerResponse: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    billDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    billFetchedAt: {
+      type: Date,
+    },
     // Payment gateway details
     paymentMethod: {
       type: String,
-      enum: ["phonepe", "google_pay", "upi"],
+      enum: ["wallet", "phonepe", "google_pay", "upi"],
+      default: "wallet",
       required: true,
     },
     phonePeTransactionId: {

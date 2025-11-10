@@ -20,11 +20,29 @@ export const fetchRechargePlans = async (mobileNumber, operator, circle, recharg
 };
 
 /**
+ * Fetch postpaid bill details
+ */
+export const fetchPostpaidBill = async ({ mobileNumber, operator }) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.recharge.postpaidFetchBill, {
+      mobileNumber,
+      operator,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch postpaid bill' };
+  }
+};
+
+/**
  * Initiate recharge and payment
  */
 export const initiateRecharge = async (rechargeData) => {
   try {
-    const response = await api.post(API_ENDPOINTS.recharge.initiate, rechargeData);
+    const response = await api.post(API_ENDPOINTS.recharge.initiate, {
+      paymentMethod: 'wallet',
+      ...rechargeData,
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to initiate recharge' };

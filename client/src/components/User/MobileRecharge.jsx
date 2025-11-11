@@ -155,33 +155,61 @@ const MobileRecharge = () => {
 	}, []);
 
 	// Fetch plans from API
-	const handleBrowsePlans = async () => {
-		if (rechargeType === 'postpaid') {
-			showError('Bill fetch is available for postpaid numbers. Please fetch the latest bill instead.');
-			return;
-		}
-
-		if (!canShowAmount) {
-			showError('Please fill in mobile number, operator, and circle');
-			return;
-		}
-
-		setBrowsingPlans(true);
-		try {
-			const response = await fetchRechargePlans(mobile, operator, circle, rechargeType);
-			if (response.success && response.data) {
-				setPlans(response.data);
-				showSuccess('Plans loaded successfully');
-			} else {
-				showError(response.message || 'No plans found');
+	const handleBrowsePlans = useCallback(
+		async ({ silent = false } = {}) => {
+			if (rechargeType === 'postpaid') {
+				if (!silent) {
+					showError('Bill fetch is available for postpaid numbers. Please fetch the latest bill instead.');
+				}
+				return false;
 			}
-		} catch (error) {
-			console.error('Error fetching plans:', error);
-			showError(error.message || 'Failed to fetch plans');
-		} finally {
-			setBrowsingPlans(false);
-		}
-	};
+
+			if (!canShowAmount) {
+				if (!silent) {
+					showError('Please fill in mobile number, operator, and circle');
+				}
+				return false;
+			}
+
+			setBrowsingPlans(true);
+			try {
+				const response = await fetchRechargePlans(mobile, operator, circle, rechargeType);
+				if (response.success && Array.isArray(response.data)) {
+					setPlans(response.data);
+					if (!silent) {
+						showSuccess(
+							response.data.length > 0
+								? 'Plans loaded successfully'
+								: 'No plans returned. You can enter the amount manually.'
+						);
+					}
+					return response.data.length > 0;
+				}
+				if (!silent) {
+					showError(response.message || 'No plans found');
+				}
+				return false;
+			} catch (error) {
+				console.error('Error fetching plans:', error);
+				if (!silent) {
+					showError(error.message || 'Failed to fetch plans');
+				}
+				return false;
+			} finally {
+				setBrowsingPlans(false);
+			}
+		},
+		[
+			rechargeType,
+			canShowAmount,
+			mobile,
+			operator,
+			circle,
+			showError,
+			showSuccess,
+			fetchRechargePlans,
+		]
+	);
 
 	// Handle plan selection
 	const handleSelectPlan = (plan) => {
@@ -204,6 +232,19 @@ const MobileRecharge = () => {
 		try {
 			setFetchingBill(true);
 			setBillError('');
+			if (rechargeType !== 'postpaid') {
+				// Prepaid numbers don't have bills; surface plans instead
+				setBillDetails(null);
+				setBillError('');
+				const plansLoaded = await handleBrowsePlans({ silent: true });
+				if (plansLoaded) {
+					showSuccess('Prepaid plans are now available. Please pick a plan to continue.');
+				} else {
+					showError('No plans available right now. You can still enter an amount manually.');
+				}
+				return;
+			}
+
 			const response = await fetchPostpaidBill({ mobileNumber: mobile, operator });
 
 			if (response.success) {
@@ -228,7 +269,16 @@ const MobileRecharge = () => {
 		} finally {
 			setFetchingBill(false);
 		}
-	}, [isMobileValid, operator, mobile, showError, showSuccess, fetchPostpaidBill]);
+	}, [
+		isMobileValid,
+		operator,
+		mobile,
+		rechargeType,
+		showError,
+		showSuccess,
+		fetchPostpaidBill,
+		handleBrowsePlans,
+	]);
 
 	// Handle payment initiation
 	const handlePayment = async () => {

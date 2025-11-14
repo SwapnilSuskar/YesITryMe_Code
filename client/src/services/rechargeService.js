@@ -1,18 +1,41 @@
 import api, { API_ENDPOINTS } from '../config/api.js';
 
 /**
- * Fetch recharge plans from aiTopUp API
+ * Fetch recharge plans from aiTopUp API (Prepaid only)
  */
-export const fetchRechargePlans = async (mobileNumber, operator, circle, rechargeType = 'prepaid') => {
+export const fetchRechargePlans = async (
+  mobileNumber,
+  operator,
+  circle,
+  rechargeType = 'prepaid',
+  extraParams = {}
+) => {
+  // Only allow prepaid plans
+  if (rechargeType === 'postpaid') {
+    throw new Error('Plans are only available for prepaid recharges. Use fetch bill for postpaid.');
+  }
+  
   try {
-    const response = await api.get(API_ENDPOINTS.recharge.plans, {
-      params: {
+    const params = {
         mobileNumber,
         operator,
-        circle,
-        rechargeType,
-      },
-    });
+        rechargeType: 'prepaid', // Force prepaid
+    };
+
+    if (circle) {
+      params.circle = circle;
+    }
+    if (extraParams.circleLabel) {
+      params.circleLabel = extraParams.circleLabel;
+    }
+    if (extraParams.circleCode) {
+      params.circleCode = extraParams.circleCode;
+    }
+    if (extraParams.circleNumeric) {
+      params.circleNumeric = extraParams.circleNumeric;
+    }
+
+    const response = await api.get(API_ENDPOINTS.recharge.plans, { params });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch recharge plans' };
@@ -20,32 +43,105 @@ export const fetchRechargePlans = async (mobileNumber, operator, circle, recharg
 };
 
 /**
- * Fetch postpaid bill details
+ * Detect circle from mobile number and operator (Auto-detection)
  */
-export const fetchPostpaidBill = async ({ mobileNumber, operator }) => {
+export const detectCircle = async (mobileNumber, operator, rechargeType = 'prepaid') => {
   try {
-    const response = await api.post(API_ENDPOINTS.recharge.postpaidFetchBill, {
+    const response = await api.get(API_ENDPOINTS.recharge.detectCircle, {
+      params: {
+        mobileNumber,
+        operator,
+        rechargeType,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to detect circle' };
+  }
+};
+
+/**
+ * Fetch postpaid bill details (Postpaid only)
+ */
+export const fetchPostpaidBill = async ({
+  mobileNumber,
+  operator,
+  circle,
+  circleCode,
+  circleNumeric,
+  circleLabel,
+}) => {
+  try {
+    const payload = {
       mobileNumber,
       operator,
-    });
+    };
+
+    if (circle) {
+      payload.circle = circle;
+    }
+    if (circleCode) {
+      payload.circleCode = circleCode;
+    }
+    if (circleNumeric) {
+      payload.circleNumeric = circleNumeric;
+    }
+    if (circleLabel) {
+      payload.circleLabel = circleLabel;
+    }
+
+    const response = await api.post(API_ENDPOINTS.recharge.postpaidFetchBill, payload);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch postpaid bill' };
   }
 };
 
+
+/**
+ * Get wallet balance
+ */
+export const getWalletBalance = async () => {
+  try {
+    const response = await api.get(API_ENDPOINTS.payout.balance);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch wallet balance' };
+  }
+};
+
 /**
  * Initiate recharge and payment
+ * @param {Object} rechargeData - Recharge data including mobileNumber, operator, amount, etc.
+ * @param {Object} rechargeData.billDetails - For postpaid: must include bill_id or transaction_id
  */
 export const initiateRecharge = async (rechargeData) => {
   try {
-    const response = await api.post(API_ENDPOINTS.recharge.initiate, {
+    // Ensure payment method is wallet
+    const payload = {
       paymentMethod: 'wallet',
       ...rechargeData,
-    });
+    };
+    
+    // For postpaid, ensure bill reference is included
+    if (rechargeData.rechargeType === 'postpaid' && rechargeData.billDetails) {
+      payload.billDetails = {
+        ...rechargeData.billDetails,
+        // Ensure bill_id or transaction_id is present
+        bill_id: rechargeData.billDetails.bill_id || rechargeData.billDetails.transaction_id || rechargeData.billDetails.billId,
+        transaction_id: rechargeData.billDetails.transaction_id || rechargeData.billDetails.bill_id || rechargeData.billDetails.billId,
+      };
+    }
+    
+    const response = await api.post(API_ENDPOINTS.recharge.initiate, payload);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Failed to initiate recharge' };
+    // Preserve the error response structure
+    const errorData = error.response?.data || { 
+      success: false,
+      message: error.message || 'Failed to initiate recharge' 
+    };
+    throw errorData;
   }
 };
 

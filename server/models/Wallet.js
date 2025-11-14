@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward', 'wallet_topup', 'wallet_transfer'],
+    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward', 'wallet_topup', 'wallet_transfer', 'recharge_payment', 'recharge_refund'],
     required: true
   },
   amount: {

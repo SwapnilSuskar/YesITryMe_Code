@@ -2,84 +2,79 @@ import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import axios from "axios";
-import crypto from "crypto";
 
-const A1TOPUP_BASE_URL =
-  process.env.AITOPUP_BASE_URL ||
-  process.env.AITOPUP_BASE_URL_V1 ||
-  "https://a1topup.com";
+// Legacy base URL for legacy endpoints (plans, etc.)
+const A1TOPUP_LEGACY_BASE_URL =
+  process.env.AITOPUP_BASE_URL || "https://business.a1topup.com";
+
+const normalizePath = (path) => (path || "").replace(/^\/+/, "");
+
+const buildA1TopupUrl = (path) => {
+  const base = A1TOPUP_LEGACY_BASE_URL.replace(/\/+$/, "");
+  const cleaned = normalizePath(path);
+  return `${base}/${cleaned}`;
+};
+
+const A1TOPUP_RECHARGE_ENDPOINT = normalizePath(
+  process.env.AITOPUP_RECHARGE_ENDPOINT || "recharge"
+);
+const A1TOPUP_POSTPAID_FETCH_ENDPOINT = normalizePath(
+  process.env.AITOPUP_POSTPAID_FETCH_ENDPOINT || "postpaid/fetch-bill"
+);
+const A1TOPUP_POSTPAID_PAY_ENDPOINT = normalizePath(
+  process.env.AITOPUP_POSTPAID_PAY_ENDPOINT || "postpaid"
+);
 
 const A1TOPUP_PLANS_ENDPOINT =
   process.env.AITOPUP_PLANS_ENDPOINT || "/recharge/api";
-const A1TOPUP_PLANS_METHOD =
-  (process.env.AITOPUP_PLANS_METHOD || "post").toLowerCase();
+const A1TOPUP_PLANS_METHOD = (
+  process.env.AITOPUP_PLANS_METHOD || "post"
+).toLowerCase();
 const A1TOPUP_PLAN_ACTION =
-  process.env.AITOPUP_PLAN_ACTION || process.env.AITOPUP_ACTION_FETCH_PLANS || "plans";
-const A1TOPUP_POSTPAID_FETCH_ENDPOINT =
-  process.env.AITOPUP_POSTPAID_FETCH_ENDPOINT || "/recharge/api";
-const A1TOPUP_POSTPAID_FETCH_METHOD =
-  (process.env.AITOPUP_POSTPAID_FETCH_METHOD || "post").toLowerCase();
-const A1TOPUP_POSTPAID_FETCH_ACTION =
-  process.env.AITOPUP_POSTPAID_FETCH_ACTION ||
-  process.env.AITOPUP_ACTION_POSTPAID_FETCH ||
-  "postpaid_fetch_bill";
-const A1TOPUP_POSTPAID_PAY_ENDPOINT =
-  process.env.AITOPUP_POSTPAID_PAY_ENDPOINT || "/recharge/api";
-const A1TOPUP_POSTPAID_PAY_METHOD =
-  (process.env.AITOPUP_POSTPAID_PAY_METHOD || "post").toLowerCase();
-const A1TOPUP_POSTPAID_PAY_ACTION =
-  process.env.AITOPUP_POSTPAID_PAY_ACTION ||
-  process.env.AITOPUP_ACTION_POSTPAID_PAY ||
-  "postpaid_pay_bill";
-const A1TOPUP_RECHARGE_ENDPOINT =
-  process.env.AITOPUP_RECHARGE_ENDPOINT || "/recharge/api";
-const A1TOPUP_RECHARGE_METHOD =
-  (process.env.AITOPUP_RECHARGE_METHOD || "post").toLowerCase();
-const A1TOPUP_RECHARGE_ACTION =
-  process.env.AITOPUP_RECHARGE_ACTION ||
-  process.env.AITOPUP_ACTION_RECHARGE ||
-  "prepaid_recharge";
+  process.env.AITOPUP_PLAN_ACTION ||
+  process.env.AITOPUP_ACTION_FETCH_PLANS ||
+  "plans";
 
 const CIRCLE_CODE_MAP = {
-  "ANDHRA_PRADESH": "AP",
-  "ANDHRA_PRADESH_TELANGANA": "AP",
-  "ARUNACHAL_PRADESH": "NE",
-  "ASSAM": "AS",
-  "BIHAR": "BH",
-  "CHATTISGARH": "CG",
-  "DELHI_NCR": "DL",
-  "DELHI": "DL",
-  "GOA": "GA",
-  "GUJARAT": "GJ",
-  "HARYANA": "HR",
-  "HIMACHAL_PRADESH": "HP",
-  "JAMMU_AND_KASHMIR": "JK",
-  "JHARKHAND": "JH",
-  "KARNATAKA": "KA",
-  "KERALA": "KL",
-  "KOLKATA": "KO",
-  "MADHYA_PRADESH": "MP",
-  "MAHARASHTRA": "MH",
-  "MAHARASHTRA_MUMBAI": "MH",
-  "MAHARASHTRA_MUMBAI_CITY": "MH",
-  "MAHARASHTRA_MUMBAI_METRO": "MH",
-  "MUMBAI": "MB",
-  "NORTH_EAST": "NE",
-  "ODISHA": "OR",
-  "ORISSA": "OR",
-  "PUNJAB": "PB",
-  "RAJASTHAN": "RJ",
-  "TAMIL_NADU": "TN",
-  "CHENNAI": "CH",
-  "TELANGANA": "TS",
-  "UTTAR_PRADESH_EAST": "UPE",
-  "UTTAR_PRADESH_WEST": "UPW",
-  "UTTARAKHAND": "UK",
-  "WEST_BENGAL": "WB",
-  "BIHAR_JHARKHAND": "BH",
-  "MADHYA_PRADESH_CHHATTISGARH": "MP",
-  "HARYANA_PUNJAB": "PB",
-  "HARYANA_DELHI": "DL",
+  ANDHRA_PRADESH: "AP",
+  ANDHRA_PRADESH_TELANGANA: "AP",
+  ARUNACHAL_PRADESH: "NE",
+  ASSAM: "AS",
+  BIHAR: "BH",
+  CHATTISGARH: "CG",
+  DELHI_NCR: "DL",
+  DELHI: "DL",
+  GOA: "GA",
+  GUJARAT: "GJ",
+  HARYANA: "HR",
+  HIMACHAL_PRADESH: "HP",
+  JAMMU_AND_KASHMIR: "JK",
+  JHARKHAND: "JH",
+  KARNATAKA: "KA",
+  KERALA: "KL",
+  KOLKATA: "KO",
+  MADHYA_PRADESH: "MP",
+  MAHARASHTRA: "MH",
+  MAHARASHTRA_MUMBAI: "MH",
+  MAHARASHTRA_MUMBAI_CITY: "MH",
+  MAHARASHTRA_MUMBAI_METRO: "MH",
+  MUMBAI: "MB",
+  NORTH_EAST: "NE",
+  ODISHA: "OR",
+  ORISSA: "OR",
+  PUNJAB: "PB",
+  RAJASTHAN: "RJ",
+  TAMIL_NADU: "TN",
+  CHENNAI: "CH",
+  TELANGANA: "TS",
+  UTTAR_PRADESH_EAST: "UPE",
+  UTTAR_PRADESH_WEST: "UPW",
+  UTTARAKHAND: "UK",
+  WEST_BENGAL: "WB",
+  BIHAR_JHARKHAND: "BH",
+  MADHYA_PRADESH_CHHATTISGARH: "MP",
+  HARYANA_PUNJAB: "PB",
+  HARYANA_DELHI: "DL",
 };
 
 const CIRCLE_NUMERIC_CODE_MAP = {
@@ -134,7 +129,116 @@ const CIRCLE_NUMERIC_CODE_MAP = {
   NE: "26",
   KOLKATA: "6",
   KO: "6",
+  TELANGANA: "28",
+  TS: "28",
+  UTTARAKHAND: "19",
+  UK: "19",
+  GOA: "15",
+  GA: "15",
 };
+
+const normalizeCircleKey = (value) => {
+  if (!value && value !== 0) return "";
+  return value
+    .toString()
+    .trim()
+    .replace(/&/g, "AND")
+    .replace(/[^A-Z0-9]+/gi, "_")
+    .replace(/_{2,}/g, "_")
+    .replace(/^_|_$/g, "")
+    .toUpperCase();
+};
+
+const CIRCLE_DISPLAY_NAME_MAP = {
+  AP: "Andhra Pradesh",
+  AS: "Assam",
+  BH: "Bihar & Jharkhand",
+  CH: "Chennai",
+  CG: "Chhattisgarh",
+  DL: "Delhi NCR",
+  GA: "Goa",
+  GJ: "Gujarat",
+  HP: "Himachal Pradesh",
+  HR: "Haryana",
+  JH: "Jharkhand",
+  JK: "Jammu & Kashmir",
+  KA: "Karnataka",
+  KL: "Kerala",
+  KO: "Kolkata",
+  MB: "Mumbai",
+  MH: "Maharashtra",
+  MP: "Madhya Pradesh & Chhattisgarh",
+  NE: "North East",
+  OR: "Odisha",
+  PB: "Punjab",
+  RJ: "Rajasthan",
+  TN: "Tamil Nadu",
+  TS: "Telangana",
+  UPE: "Uttar Pradesh East",
+  UPW: "Uttar Pradesh West",
+  UK: "Uttarakhand",
+  WB: "West Bengal",
+};
+
+const getPreferredCircleName = (value) => {
+  if (!value && value !== 0) return undefined;
+  const raw = value.toString().trim();
+  if (!raw) return undefined;
+
+  const directCode = CIRCLE_DISPLAY_NAME_MAP[raw.toUpperCase()];
+  if (directCode) return directCode;
+
+  const normalizedKey = normalizeCircleKey(raw);
+  if (!normalizedKey) return raw;
+
+  const mappedCode = CIRCLE_CODE_MAP[normalizedKey];
+  if (mappedCode && CIRCLE_DISPLAY_NAME_MAP[mappedCode.toUpperCase()]) {
+    return CIRCLE_DISPLAY_NAME_MAP[mappedCode.toUpperCase()];
+  }
+
+  const withoutAnd = normalizedKey.replace(/_AND_/g, "_");
+  if (withoutAnd !== normalizedKey) {
+    const code = CIRCLE_CODE_MAP[withoutAnd];
+    if (code && CIRCLE_DISPLAY_NAME_MAP[code.toUpperCase()]) {
+      return CIRCLE_DISPLAY_NAME_MAP[code.toUpperCase()];
+    }
+  }
+
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const CIRCLE_DETECTION_PRIORITY = [
+  "Delhi NCR",
+  "Mumbai",
+  "Maharashtra",
+  "Karnataka",
+  "Tamil Nadu",
+  "Gujarat",
+  "Andhra Pradesh",
+  "Telangana",
+  "Uttar Pradesh East",
+  "Uttar Pradesh West",
+  "Rajasthan",
+  "Punjab",
+  "West Bengal",
+  "Bihar Jharkhand",
+  "Madhya Pradesh Chhattisgarh",
+  "Kerala",
+  "Assam",
+  "North East",
+  "Odisha",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Chennai",
+  "Goa",
+  "Kolkata",
+  "Uttarakhand",
+];
 
 const resolveCircleCode = (circleValue) => {
   if (!circleValue) return undefined;
@@ -149,8 +253,28 @@ const resolveCircleNumericCode = (circleValue) => {
   if (!circleValue) return undefined;
   const normalized = circleValue.toString().trim();
   if (!normalized) return undefined;
+  
+  // If it's already a numeric code, return it
+  if (/^\d+$/.test(normalized)) {
+    return normalized;
+  }
+  
+  // Try direct lookup
   const upperKey = normalized.replace(/\s+/g, "_").toUpperCase();
-  return CIRCLE_NUMERIC_CODE_MAP[upperKey];
+  let numericCode = CIRCLE_NUMERIC_CODE_MAP[upperKey];
+  
+  // If not found, try resolving to text code first, then to numeric
+  if (!numericCode) {
+    const textCode = CIRCLE_CODE_MAP[upperKey];
+    if (textCode) {
+      const textCodeUpper = textCode.toUpperCase();
+      numericCode =
+        CIRCLE_NUMERIC_CODE_MAP[textCodeUpper] ||
+        CIRCLE_NUMERIC_CODE_MAP[textCode];
+    }
+  }
+  
+  return numericCode;
 };
 
 const A1TOPUP_USERNAME =
@@ -159,7 +283,8 @@ const A1TOPUP_USERNAME =
   process.env.AITOPUP_ACCOUNT_ID ||
   process.env.AITOPUP_ACCOUNT ||
   "";
-const A1TOPUP_PASSWORD = process.env.AITOPUP_PASSWORD || process.env.AITOPUP_PWD || "";
+const A1TOPUP_PASSWORD =
+  process.env.AITOPUP_PASSWORD || process.env.AITOPUP_PWD || "";
 
 const buildProviderParams = (baseParams = {}) => {
   const params = {};
@@ -192,7 +317,8 @@ const buildProviderParams = (baseParams = {}) => {
   setValue("format", "json");
   setValue("response", "json");
 
-  const mobile = baseParams.mobile || baseParams.number || baseParams.mobileNumber;
+  const mobile =
+    baseParams.mobile || baseParams.number || baseParams.mobileNumber;
   if (mobile) {
     setValue("mobile", mobile);
     setValue("number", mobile);
@@ -218,9 +344,7 @@ const buildProviderParams = (baseParams = {}) => {
   }
 
   const circle =
-    baseParams.circle ||
-    baseParams.circle_code ||
-    baseParams.circlecode;
+    baseParams.circle || baseParams.circle_code || baseParams.circlecode;
   if (circle) {
     setValue("circle", circle);
     setValue("circle_code", circle);
@@ -228,7 +352,8 @@ const buildProviderParams = (baseParams = {}) => {
     setValue("circlecode", circle);
   }
 
-  const typeValue = baseParams.type || baseParams.recharge_type || baseParams.category;
+  const typeValue =
+    baseParams.type || baseParams.recharge_type || baseParams.category;
   if (typeValue) {
     setValue("type", typeValue);
     setValue("recharge_type", typeValue);
@@ -241,7 +366,8 @@ const buildProviderParams = (baseParams = {}) => {
     setValue("recharge_amount", baseParams.amount);
   }
 
-  const orderId = baseParams.orderId || baseParams.orderid || baseParams.reference;
+  const orderId =
+    baseParams.orderId || baseParams.orderid || baseParams.reference;
   if (orderId) {
     setValue("orderid", orderId);
     setValue("orderId", orderId);
@@ -259,64 +385,249 @@ const buildProviderParams = (baseParams = {}) => {
   }
 
   if (baseParams.extra) {
-    Object.entries(baseParams.extra).forEach(([key, value]) => setValue(key, value));
+    Object.entries(baseParams.extra).forEach(([key, value]) =>
+      setValue(key, value)
+    );
   }
 
   return params;
 };
 
+const parseA1TopupLegacyResponse = (rawResponse) => {
+  if (rawResponse === null || rawResponse === undefined) {
+    return {};
+  }
+
+  if (typeof rawResponse === "object" && !Array.isArray(rawResponse)) {
+    return rawResponse;
+  }
+
+  if (typeof rawResponse !== "string") {
+    return { raw: rawResponse };
+  }
+
+  const trimmed = rawResponse.trim();
+  if (!trimmed) {
+    return {};
+  }
+
+  const jsonLike = trimmed.startsWith("{") || trimmed.startsWith("[");
+  if (jsonLike) {
+    try {
+      return JSON.parse(trimmed);
+  } catch (error) {
+      return { raw: trimmed, parseError: error.message };
+    }
+  }
+
+  if (trimmed.includes(",")) {
+    const parts = trimmed.split(",").map((part) => part.trim());
+    const [txid, status, opid, number, amount, orderid, ...rest] = parts;
+    const response = {
+      txid,
+      status,
+      opid,
+      number,
+      amount,
+      orderid,
+      raw: trimmed,
+    };
+    if (rest.length > 0) {
+      response.extra = rest;
+    }
+    return response;
+  }
+
+  return { status: trimmed, message: trimmed, raw: trimmed };
+};
+
+const extractA1TopupStatus = (payload) => {
+  if (!payload || typeof payload !== "object") return "";
+  const candidates = [
+    payload.status,
+    payload.Status,
+    payload.STATUS,
+    payload.message,
+    payload.Message,
+    payload.response,
+  ];
+  const status = candidates.find(
+    (value) => value !== undefined && value !== null && value !== ""
+  );
+  return status ? status.toString() : "";
+};
+
+const isA1TopupSuccessStatus = (status) => /success/i.test(status || "");
+const isA1TopupPendingStatus = (status) =>
+  /(pending|inprocess|processing)/i.test(status || "");
+
+const callA1TopupRechargeEndpoint = async (params) => {
+  const legacyUrl = new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString();
+  const formBody = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      formBody.append(key, value.toString());
+    }
+  });
+
+  const response = await axios.post(legacyUrl, formBody.toString(), {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    timeout: 10000,
+  });
+
+  return response.data;
+};
+
+const MINIMUM_PLAN_REQUEST_AMOUNT = "10";
+
+const LOCAL_PREPAID_PLAN_CATALOG = {
+  "RELIANCE JIO": [
+    {
+      amount: 19,
+      validity: "1 day",
+      benefits: "1GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1GB/day combo plan",
+    },
+    {
+      amount: 209,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1.5GB/day combo plan",
+    },
+    {
+      amount: 239,
+      validity: "28 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 2GB/day high data pack",
+    },
+    {
+      amount: 666,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio long-validity combo pack",
+    },
+  ],
+  Airtel: [
+    {
+      amount: 265,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel 1.5GB/day combo plan",
+    },
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel entertainment plan",
+    },
+    {
+      amount: 719,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel long-validity combo pack",
+    },
+  ],
+  Vodafone: [
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI 1.5GB/day combo pack",
+    },
+    {
+      amount: 399,
+      validity: "35 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI 35-day validity pack",
+    },
+    {
+      amount: 799,
+      validity: "56 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI weekend rollover plan",
+    },
+  ],
+  Idea: [
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea 1.5GB/day combo pack",
+    },
+    {
+      amount: 359,
+      validity: "28 days",
+      benefits: "3GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea high-data pack",
+    },
+    {
+      amount: 719,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea long-validity combo pack",
+    },
+  ],
+  "BSNL TOPUP": [
+    {
+      amount: 247,
+      validity: "30 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL STV combo plan",
+    },
+    {
+      amount: 347,
+      validity: "56 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL data-centric pack",
+    },
+    {
+      amount: 447,
+      validity: "60 days",
+      benefits: "100GB total data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL work-from-home pack",
+    },
+  ],
+};
+
+const getLocalPlansForOperator = (operator) => {
+  if (!operator) return [];
+  return LOCAL_PREPAID_PLAN_CATALOG[operator.toString().trim()] || [];
+};
+
 // ==================== Helper Functions ====================
 
-/**
- * Generate PhonePe payment signature
- */
-const generatePhonePeSignature = (payload, saltKey, saltIndex) => {
-  const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-  const stringToHash = base64Payload + "/pg/v1/pay" + saltKey;
-  const sha256Hash = crypto.createHash("sha256").update(stringToHash).digest("hex");
-  const finalString = sha256Hash + saltKey;
-  const signature = crypto.createHash("sha256").update(finalString).digest("hex") + "###" + saltIndex;
-  return { base64Payload, signature };
-};
-
-/**
- * Verify PhonePe callback signature
- */
-const verifyPhonePeSignature = (response, saltKey, saltIndex) => {
-  try {
-    const xVerify = response.headers["x-verify"] || "";
-    const [receivedSignature] = xVerify.split("###");
-    
-    const stringToHash = response.body.response + "/pg/v1/status/" + 
-      process.env.PHONEPE_MERCHANT_ID + saltKey;
-    const sha256Hash = crypto.createHash("sha256").update(stringToHash).digest("hex");
-    const finalString = sha256Hash + saltKey;
-    const calculatedSignature = crypto.createHash("sha256").update(finalString).digest("hex");
-    
-    return calculatedSignature === receivedSignature;
-  } catch (error) {
-    console.error("Signature verification error:", error);
-    return false;
-  }
-};
 
 /**
  * Operator code mapping for aiTopUp API
+ * Separated into PREPAID and POSTPAID for clarity
  */
-export const OPERATOR_CODES = {
-  // Prepaid/Topup
+
+// PREPAID OPERATORS - Only for prepaid recharges
+export const PREPAID_OPERATORS = {
   Airtel: { code: "A", apiCode: "AIRTEL", type: "prepaid" },
   Vodafone: { code: "V", apiCode: "VI", type: "prepaid" },
   "BSNL TOPUP": { code: "BT", apiCode: "BSNL", type: "prepaid" },
   "RELIANCE JIO": { code: "RC", apiCode: "JIO", type: "prepaid" },
   Idea: { code: "I", apiCode: "IDEA", type: "prepaid" },
   "BSNL STV": { code: "BR", apiCode: "BSNL", type: "prepaid" },
-  // Postpaid
+};
+
+// POSTPAID OPERATORS - Only for postpaid bill payments
+// Operator codes as per A1Topup API documentation
+export const POSTPAID_OPERATORS = {
   "Airtel Postpaid": { code: "PAT", apiCode: "AIRTEL", type: "postpaid" },
   "Idea Postpaid": { code: "IP", apiCode: "IDEA", type: "postpaid" },
   "Vodafone Postpaid": { code: "VP", apiCode: "VI", type: "postpaid" },
   "JIO PostPaid": { code: "JPP", apiCode: "JIO", type: "postpaid" },
-  "BSNL Postpaid": { code: "BSNL", apiCode: "BSNL", type: "postpaid" },
+  "BSNL Postpaid": { code: "BP", apiCode: "BSNL", type: "postpaid" }, // Updated to "BP" as per API docs
+};
+
+// Combined mapping for backward compatibility
+export const OPERATOR_CODES = {
+  ...PREPAID_OPERATORS,
+  ...POSTPAID_OPERATORS,
 };
 
 const getOperatorDetails = (operator) => OPERATOR_CODES[operator] || {};
@@ -340,11 +651,11 @@ export const calculateCommissions = (operator, amount) => {
   const adminRates = {
     "RELIANCE JIO": 0.65,
     "JIO PostPaid": 0.65,
-    "Airtel": 2.0,
+    Airtel: 2.0,
     "Airtel Postpaid": 2.0,
-    "Vodafone": 3.0,
+    Vodafone: 3.0,
     "Vodafone Postpaid": 3.0,
-    "Idea": 3.0,
+    Idea: 3.0,
     "Idea Postpaid": 3.0,
     "BSNL TOPUP": 4.0,
     "BSNL STV": 4.0,
@@ -355,11 +666,11 @@ export const calculateCommissions = (operator, amount) => {
   const userRates = {
     "RELIANCE JIO": 0,
     "JIO PostPaid": 0,
-    "Airtel": 0.5,
+    Airtel: 0.5,
     "Airtel Postpaid": 0.5,
-    "Vodafone": 1.0,
+    Vodafone: 1.0,
     "Vodafone Postpaid": 1.0,
-    "Idea": 1.0,
+    Idea: 1.0,
     "Idea Postpaid": 1.0,
     "BSNL TOPUP": 1.0,
     "BSNL STV": 1.0,
@@ -412,7 +723,16 @@ const distributeCommissions = async (recharge) => {
       });
 
       await adminWallet.save();
-      console.log(`✅ Admin commission distributed: ₹${recharge.adminCommission}`);
+      console.log(
+        `✅ Admin commission distributed: ₹${recharge.adminCommission}`
+      );
+    }
+
+    // If discount was applied upfront, skip user commission distribution
+    if (recharge.discountApplied) {
+      recharge.commissionDistributed = true;
+      await recharge.save();
+      return true;
     }
 
     // Distribute user commission
@@ -441,7 +761,9 @@ const distributeCommissions = async (recharge) => {
       });
 
       await userWallet.save();
-      console.log(`✅ User commission distributed: ₹${recharge.userCommission}`);
+      console.log(
+        `✅ User commission distributed: ₹${recharge.userCommission}`
+      );
     }
 
     recharge.commissionDistributed = true;
@@ -461,7 +783,21 @@ const distributeCommissions = async (recharge) => {
  */
 export const fetchRechargePlans = async (req, res) => {
   try {
-    const { mobileNumber, operator, circle, rechargeType = "prepaid" } = req.query;
+    const {
+      mobileNumber,
+      operator,
+      circle,
+      rechargeType = "prepaid",
+    } = req.query;
+
+    if (!A1TOPUP_USERNAME || !A1TOPUP_PASSWORD) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message:
+          "Plans are not available from the provider API. Please enter the amount manually.",
+      });
+    }
 
     if (!mobileNumber || !operator || !circle) {
       return res.status(400).json({
@@ -470,345 +806,39 @@ export const fetchRechargePlans = async (req, res) => {
       });
     }
 
-    // Get operator code from operator name
-    const operatorInfo = OPERATOR_CODES[operator];
+    // Get operator code from operator name - Only allow PREPAID operators
+    const operatorInfo = PREPAID_OPERATORS[operator];
     if (!operatorInfo) {
       return res.status(400).json({
         success: false,
-        message: "Invalid operator selected",
+        message: "Invalid prepaid operator selected. Please select a prepaid operator.",
       });
     }
 
-    // Call aiTopUp API to fetch plans using operator code
-    const rawCircle = circle && operatorInfo.type !== "postpaid" ? circle : undefined;
-    const providerCircle = resolveCircleCode(rawCircle);
+    const plansFromProvider = getLocalPlansForOperator(operator);
 
-    const operatorVariants = Array.from(
-      new Set(
-        [
-          operatorInfo.code,
-          operatorInfo.apiCode,
-          operator.toUpperCase(),
-          operator.toUpperCase().replace(/\s+/g, "_"),
-        ].filter(Boolean)
-      )
-    );
-
-  const circleNumeric = resolveCircleNumericCode(providerCircle || circle || rawCircle);
-  const circleVariants = providerCircle
-      ? Array.from(
-          new Set([
-            providerCircle,
-            circleNumeric,
-            resolveCircleCode(circle),
-            resolveCircleCode(rawCircle),
-            rawCircle,
-            circleNumeric ? String(circleNumeric) : undefined,
-            undefined,
-          ])
-        )
-      : [undefined];
-
-    const primaryPlansUrl = new URL(A1TOPUP_PLANS_ENDPOINT, A1TOPUP_BASE_URL).toString();
-    const planCandidates = [
-      {
-        url: primaryPlansUrl,
-        method: A1TOPUP_PLANS_METHOD,
-        includeAction: !!A1TOPUP_PLAN_ACTION,
-        format: "json",
-      },
-      {
-        url: primaryPlansUrl,
-        method: A1TOPUP_PLANS_METHOD === "post" ? "get" : "post",
-        includeAction: !!A1TOPUP_PLAN_ACTION,
-        format: "json",
-      },
-      {
-        url: primaryPlansUrl,
-        method: A1TOPUP_PLANS_METHOD,
-        includeAction: !!A1TOPUP_PLAN_ACTION,
-        format: "form",
-      },
-      {
-        url: primaryPlansUrl,
-        method: A1TOPUP_PLANS_METHOD === "post" ? "get" : "post",
-        includeAction: !!A1TOPUP_PLAN_ACTION,
-        format: "form",
-      },
-    ].filter(
-      (candidate, index, self) =>
-        self.findIndex(
-          (item) =>
-            item.url === candidate.url &&
-            item.method === candidate.method &&
-            item.format === candidate.format
-        ) === index
-    );
-
-    const fetchPlansFromProvider = async (candidate, opCode, circleParam, actionValue) => {
-      const circleKey =
-        typeof circleParam === "string"
-          ? circleParam.replace(/\s+/g, "_").toUpperCase()
-          : typeof circleParam === "number"
-          ? String(circleParam)
-          : undefined;
-      let circleNumeric =
-        circleKey && CIRCLE_NUMERIC_CODE_MAP[circleKey]
-          ? CIRCLE_NUMERIC_CODE_MAP[circleKey]
-          : undefined;
-      if (!circleNumeric && typeof circleParam === "string" && /^\d+$/.test(circleParam)) {
-        circleNumeric = circleParam;
-      }
-      const circleValueForPayload = circleNumeric || circleParam;
-
-      // Build a minimal payload per A1Topup docs for plans:
-      // username, pwd, operatorcode, circlecode (optional), format=json, action=plan|plans
-      const minimalPayload = {
-        action: candidate.includeAction ? actionValue : undefined,
-        operatorcode: opCode,
-        circlecode: circleValueForPayload,
-        number: mobileNumber,
-        format: "json",
-      };
-      // Merge credentials and allow provider param synonyms just in case
-      const params = buildProviderParams(minimalPayload);
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${process.env.AITOPUP_API_KEY}`,
-        },
-        timeout: 8000,
-      };
-
-      // Debug: log outgoing request details
-      try {
-        console.log(
-          "[A1Topup][Plans][Request]",
-          JSON.stringify(
-            {
-              url: candidate.url,
-              method: candidate.method,
-              action: actionValue,
-              operatorcode: opCode,
-              circlecode: circleParam,
-              headers: Object.keys(config.headers || {}),
-              sendingKeys: Object.keys(params),
-            },
-            null,
-            2
-          )
-        );
-      } catch (_) {}
-
-      if (candidate.method === "post") {
-        let body = params;
-        if (candidate.format === "form") {
-          const formBody = new URLSearchParams();
-          Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-              formBody.append(key, value.toString());
-            }
-          });
-          body = formBody.toString();
-          config.headers["Content-Type"] = "application/x-www-form-urlencoded";
-        } else {
-          config.headers["Content-Type"] = "application/json";
-        }
-        const resp = await axios.post(candidate.url, body, config);
-        // Debug: log short response info
-        try {
-          const snippet =
-            typeof resp.data === "string"
-              ? resp.data.substring(0, 300)
-              : JSON.stringify(resp.data).substring(0, 300);
-          console.log(
-            "[A1Topup][Plans][Response][POST]",
-            JSON.stringify({ status: resp.status, snippet }, null, 2)
-          );
-        } catch (_) {}
-        return resp;
-      }
-
-      config.headers["Content-Type"] = "application/json";
-      config.params = params;
-      const resp = await axios.get(candidate.url, config);
-      try {
-        const snippet =
-          typeof resp.data === "string"
-            ? resp.data.substring(0, 300)
-            : JSON.stringify(resp.data).substring(0, 300);
-        console.log(
-          "[A1Topup][Plans][Response][GET]",
-          JSON.stringify({ status: resp.status, snippet }, null, 2)
-        );
-      } catch (_) {}
-      return resp;
-    };
-
-    let lastError;
-    let lastCandidate;
-    // Try common action names that providers use
-    const actionVariants = Array.from(
-      new Set([A1TOPUP_PLAN_ACTION, "plan", "plans"].filter(Boolean))
-    );
-
-    // Expand operator variants for common provider codes (helps when mapping is unknown)
-    const extraVariants = [];
-    if (/JIO/i.test(operator)) {
-      extraVariants.push("J", "JIO");
+    if (plansFromProvider.length > 0) {
+                    return res.status(200).json({
+                      success: true,
+        data: plansFromProvider,
+                      message:
+          "Plans are served from the local catalog. Please select an amount to continue.",
+        source: "local_catalog",
+      });
     }
-    if (/AIRTEL/i.test(operator)) {
-      extraVariants.push("A", "AIRTEL");
-    }
-    if (/(VODAFONE|VI)/i.test(operator)) {
-      extraVariants.push("V", "VI");
-    }
-    if (/IDEA/i.test(operator)) {
-      extraVariants.push("I", "IDEA");
-    }
-    if (/BSNL/i.test(operator)) {
-      extraVariants.push("B", "BSNL");
-    }
-    const operatorVariantsWithExtras = Array.from(new Set([...operatorVariants, ...extraVariants]));
 
-    for (const candidate of planCandidates) {
-      for (const opCode of operatorVariantsWithExtras) {
-        for (const circleVariant of circleVariants) {
-          for (const actionValue of actionVariants) {
-            try {
-              lastCandidate = candidate;
-              const response = await fetchPlansFromProvider(
-                candidate,
-                opCode,
-                circleVariant,
-                actionValue
-              );
-            let payload = response.data;
-
-            if (typeof payload === "string") {
-              try {
-                payload = JSON.parse(payload);
-              } catch (parseError) {
-                // If provider returns known message, degrade gracefully with empty plans
-                const raw = typeof payload === "string" ? payload : String(payload || "");
-                try {
-                  console.error(
-                    "A1Topup plan raw response:",
-                    raw.substring(0, 1000)
-                  );
-                } catch (_) {}
-                if (/parament(er|ar)\s+is\s+missing/i.test(raw)) {
                   return res.status(200).json({
-                    success: true,
-                    data: [],
-                    message:
-                      "Plans are not available from provider for this selection. Please enter amount manually.",
-                    provider: {
-                      endpoint: candidate.url,
-                      method: candidate.method,
-                      operatorTried: opCode,
-                      circleTried: circleVariant,
-                    },
-                  });
-                }
-                lastError = new Error(
-                  `Provider returned non-JSON response for operator ${opCode} (${candidate.method.toUpperCase()})`
-                );
-                continue;
-              }
-            }
-
-            if (payload && typeof payload === "object") {
-              const plans =
-                Array.isArray(payload.data) && payload.data.length
-                  ? payload.data
-                  : Array.isArray(payload.plans) && payload.plans.length
-                  ? payload.plans
-                  : Array.isArray(payload.result) && payload.result.length
-                  ? payload.result
-                  : [];
-
-              if (
-                plans.length > 0 ||
-                payload.success === true ||
-                (typeof payload.status === "string" && payload.status.toLowerCase() === "success")
-              ) {
-                const resolvedPlans = plans.length > 0 ? plans : payload.data || payload.plans || [];
-              return res.status(200).json({
-                success: true,
-                data: resolvedPlans,
-                message: "Plans fetched successfully",
-                resolvedOperator: opCode,
-                resolvedCircle: circleVariant,
-                resolvedEndpoint: candidate.url,
-                resolvedMethod: candidate.method,
-                resolvedAction: actionValue,
-              });
-            }
-            }
-
-            // If the provider returned HTML or unexpected structure, treat as failure
-            lastError = new Error(
-              `Unexpected response structure while fetching plans for operator ${opCode}`
-            );
-              try {
-                console.error(
-                  "A1Topup unexpected plan payload:",
-                  typeof payload === "string"
-                    ? payload.substring(0, 1000)
-                    : JSON.stringify(payload).substring(0, 1000)
-                );
-              } catch (_) {}
-            } catch (error) {
-              lastError = error;
-              // Dump as much error context as possible
-              try {
-                console.error(
-                  "[A1Topup][Plans][Error]",
-                  JSON.stringify(
-                    {
-                      message: error.message,
-                      status: error.response?.status,
-                      statusText: error.response?.statusText,
-                      data:
-                        typeof error.response?.data === "string"
-                          ? error.response?.data.substring(0, 1000)
-                          : JSON.stringify(error.response?.data).substring(0, 1000),
-                    },
-                    null,
-                    2
-                  )
-                );
-              } catch (_) {}
-              continue;
-            }
-          }
-        }
-      }
-    }
-
-    if (lastError?.response?.status === 404) {
-      // Provider doesn't support plans endpoint; return empty list so UI can proceed with manual amount
-      return res.status(200).json({
-        success: true,
+      success: false,
         data: [],
         message:
-          "Plans are not available for this operator/circle. Please enter amount manually.",
-        provider: {
-          baseUrl: A1TOPUP_BASE_URL,
-          endpointTried: lastCandidate?.url,
-          method: lastCandidate?.method,
-        },
-      });
-    }
-
-    if (lastError) {
-      throw lastError;
-    }
-
-    throw new Error("Failed to fetch recharge plans");
+        "Plans are not available. Please enter the recharge amount manually.",
+      source: "manual_entry",
+    });
   } catch (error) {
-    console.error("Error fetching recharge plans:", error.response?.data || error.message);
+    console.error(
+      "Error fetching recharge plans:",
+      error.response?.data || error.message
+    );
     return res.status(500).json({
       success: false,
       message: "Failed to fetch recharge plans",
@@ -818,11 +848,34 @@ export const fetchRechargePlans = async (req, res) => {
 };
 
 /**
+ * Detect circle from mobile number and operator
+ * Uses A1Topup API to detect the circle automatically
+ */
+export const detectCircle = async (req, res) => {
+  try {
+    return res.status(200).json({
+      success: false,
+      message:
+        "Circle detection by provider has been disabled. Please select your circle manually.",
+      circle: null,
+    });
+  } catch (error) {
+    console.error("Circle detection disabled. Request details:", error.message);
+    return res.status(500).json({
+      success: false,
+      message:
+        "Circle detection is disabled. Please select your circle manually before proceeding.",
+    });
+  }
+};
+
+/**
  * Fetch postpaid bill details from A1Topup
+ * Tries both new REST API and legacy API sequentially
  */
 export const fetchPostpaidBill = async (req, res) => {
   try {
-    const { mobileNumber, operator } = req.body;
+    const { mobileNumber, operator, circle } = req.body;
 
     if (!mobileNumber) {
       return res.status(400).json({
@@ -831,168 +884,24 @@ export const fetchPostpaidBill = async (req, res) => {
       });
     }
 
-    const operatorInfo = operator ? getOperatorDetails(operator) : null;
-    const basePayload = {
-      mobile: mobileNumber,
-      operator: operatorInfo?.apiCode || operator || "",
-      type: "postpaid",
-    };
+    const operatorInfo = operator ? POSTPAID_OPERATORS[operator] : null;
+    const operatorCode = operatorInfo?.code || null;
+    const operatorApiCode = operatorInfo?.apiCode || operator || null;
 
-    const primaryEndpoint = new URL(A1TOPUP_POSTPAID_FETCH_ENDPOINT, A1TOPUP_BASE_URL).toString();
-    const candidateEndpoints = [
-      {
-        url: primaryEndpoint,
-        method: A1TOPUP_POSTPAID_FETCH_METHOD,
-        includeAction: false,
-        format: "json",
-      },
-      {
-        url: primaryEndpoint,
-        method: A1TOPUP_POSTPAID_FETCH_METHOD === "post" ? "get" : "post",
-        includeAction: false,
-        format: "json",
-      },
-      {
-        url: primaryEndpoint,
-        method: A1TOPUP_POSTPAID_FETCH_METHOD,
-        includeAction: false,
-        format: "form",
-      },
-      {
-        url: primaryEndpoint,
-        method: A1TOPUP_POSTPAID_FETCH_METHOD === "post" ? "get" : "post",
-        includeAction: false,
-        format: "form",
-      },
-    ].filter(
-      (candidate, index, self) =>
-        self.findIndex(
-          (item) =>
-            item.url === candidate.url &&
-            item.method === candidate.method &&
-            item.format === candidate.format
-        ) === index
-    );
-
-    let lastError;
-    let lastCandidate;
-
-    for (const candidate of candidateEndpoints) {
-      try {
-        lastCandidate = candidate;
-        const operatorInfo = operator ? getOperatorDetails(operator) : null;
-        const providerOperatorCode =
-          operatorInfo?.code || operatorInfo?.apiCode || operator || basePayload.operator;
-        const circleKey =
-          basePayload.circle && typeof basePayload.circle === "string"
-            ? basePayload.circle.replace(/\s+/g, "_").toUpperCase()
-            : undefined;
-        const circleNumeric =
-          circleKey && CIRCLE_NUMERIC_CODE_MAP[circleKey]
-            ? CIRCLE_NUMERIC_CODE_MAP[circleKey]
-            : undefined;
-        const circleValueForPayload = circleNumeric || resolveCircleCode(basePayload.circle);
-
-        // Minimal payload for postpaid inquiry (provider specifics vary; send core fields only)
-        const minimalPayload = {
-          operatorcode: providerOperatorCode,
-          number: mobileNumber,
-          format: "json",
-          circlecode: circleValueForPayload,
-        };
-        const payload = buildProviderParams(minimalPayload);
-        const config = {
-          headers: {},
-          timeout: 8000,
-        };
-
-        let response;
-        if (candidate.method === "get") {
-          config.params = payload;
-          config.headers["Content-Type"] = "application/json";
-          response = await axios.get(candidate.url, config);
-        } else {
-          if (candidate.format === "form") {
-            const formBody = new URLSearchParams();
-            Object.entries(payload).forEach(([key, value]) => {
-              if (value !== undefined && value !== null) {
-                formBody.append(key, value.toString());
-              }
-            });
-            config.headers["Content-Type"] = "application/x-www-form-urlencoded";
-            response = await axios.post(candidate.url, formBody.toString(), config);
-          } else {
-            config.headers["Content-Type"] = "application/json";
-            response = await axios.post(candidate.url, payload, config);
-          }
-        }
-
-        let data = response.data;
-
-        if (typeof data === "string") {
-          try {
-            data = JSON.parse(data);
-          } catch (parseError) {
-            console.error("A1Topup postpaid bill raw response:", data.substring(0, 500));
-            // Graceful degrade on provider non-JSON message like "Paramenter is missing"
-            return res.status(200).json({
-              success: true,
-              data: { note: "Bill fetch not available. Please enter amount manually." },
-              message: "Postpaid bill fetch unavailable from provider",
-              provider: {
-                baseUrl: A1TOPUP_BASE_URL,
-                endpointTried: candidate.url,
-                method: candidate.method,
-                raw: data.substring(0, 200),
-              },
-            });
-          }
-        }
-
-        const isSuccess =
-          data &&
-          (data.success === true ||
-            (typeof data.status === "string" && data.status.toLowerCase() === "success"));
-
-        if (isSuccess) {
-          return res.status(200).json({
-            success: true,
-            data,
-            message: "Bill fetched successfully",
-            resolvedEndpoint: candidate.url,
-            resolvedMethod: candidate.method,
-          });
-        }
-
-        const errorMessage = data?.message || "Failed to fetch bill details";
-        const errorCode = data?.error_code ? ` (Code: ${data.error_code})` : "";
-        lastError = new Error(`${errorMessage}${errorCode}`);
-      } catch (error) {
-        lastError = error;
-        console.error(
-          "A1Topup postpaid bill error:",
-          error.response?.data || error.message || error.toString()
-        );
-      }
-    }
-
-    if (lastError?.response?.status === 404) {
-      // Gracefully degrade: allow manual postpaid payment without fetched bill
       return res.status(200).json({
-        success: true,
-        data: { note: "Bill fetch not available. Proceed by entering amount manually." },
-        message: "Postpaid bill fetch unavailable from provider",
-        provider: {
-          baseUrl: A1TOPUP_BASE_URL,
-          endpointTried: lastCandidate?.url,
-          method: lastCandidate?.method,
-        },
-      });
-    }
-
-    throw lastError || new Error("Failed to fetch bill details");
+        success: false,
+        data: {},
+        message:
+        "Bill fetch is not available via the A1Topup recharge API. Please enter the outstanding amount manually before proceeding with payment.",
+      apiUsed: "not_supported",
+      circleUsed: circle || null,
+      operatorUsed: operatorApiCode || operatorCode || operator || null,
+    });
   } catch (error) {
-    console.error("Error fetching postpaid bill:", error.response?.data || error.message);
+    console.error(
+      "Error fetching postpaid bill:",
+      error.response?.data || error.message
+    );
     return res.status(500).json({
       success: false,
       message: "Failed to fetch bill details",
@@ -1019,14 +928,21 @@ export const initiateRecharge = async (req, res) => {
       billDetails = {},
     } = req.body;
 
-    // Validation
-    const tentativeRechargeType = operatorInfo?.type || rechargeType;
-    const requiresCircle = tentativeRechargeType !== "postpaid";
-
-    if (!mobileNumber || !operator || (requiresCircle && !circle) || !amount || amount <= 0) {
+    // Only wallet payment is supported
+    if (paymentMethod !== "wallet") {
       return res.status(400).json({
         success: false,
-        message: "All required fields must be provided and amount must be greater than 0",
+        message: "Only wallet payment is supported. Please use wallet payment method.",
+        error: "INVALID_PAYMENT_METHOD",
+      });
+    }
+
+    // Validate basic fields first
+    if (!mobileNumber || !operator || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "All required fields must be provided and amount must be greater than 0",
       });
     }
 
@@ -1039,20 +955,70 @@ export const initiateRecharge = async (req, res) => {
     }
 
     // Get operator code and type
-    const operatorInfo = OPERATOR_CODES[operator];
-    if (!operatorInfo) {
+    // First determine recharge type, then validate operator
+    let actualRechargeType = rechargeType;
+    
+    // Try to determine type from operator name if not explicitly set
+    if (!actualRechargeType && operator) {
+      if (operator.toLowerCase().includes("postpaid")) {
+        actualRechargeType = "postpaid";
+      } else {
+        actualRechargeType = "prepaid";
+      }
+    }
+    
+    // Now check if circle is required (only for prepaid)
+    const requiresCircle = actualRechargeType !== "postpaid";
+    if (requiresCircle && !circle) {
       return res.status(400).json({
         success: false,
-        message: "Invalid operator selected",
+        message: "Circle is required for prepaid recharges",
       });
     }
+    
+    // Validate operator based on recharge type
+    let operatorInfo;
+    if (actualRechargeType === "postpaid") {
+      operatorInfo = POSTPAID_OPERATORS[operator];
+      if (!operatorInfo) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid postpaid operator selected. Please select a postpaid operator.",
+        });
+      }
+    } else {
+      operatorInfo = PREPAID_OPERATORS[operator];
+      if (!operatorInfo) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid prepaid operator selected. Please select a prepaid operator.",
+        });
+      }
+    }
+
+    // Use operator type from operatorInfo if available
+    actualRechargeType = operatorInfo.type || actualRechargeType;
+    const normalizedCircle =
+      actualRechargeType === "postpaid" ? circle || "NA" : circle;
 
     // Calculate commissions
     const commissionData = calculateCommissions(operator, parseFloat(amount));
 
-    // Determine recharge type from operator
-    const actualRechargeType = operatorInfo.type || rechargeType;
-    const normalizedCircle = actualRechargeType === "postpaid" ? circle || "NA" : circle;
+    const originalAmount = Math.round(parseFloat(amount) * 100) / 100;
+    const calculatedDiscount =
+      commissionData.userCommission > 0
+        ? Math.round(commissionData.userCommission * 100) / 100
+        : 0;
+    const discountAmount = Math.min(calculatedDiscount, originalAmount);
+    const discountPercentage =
+      discountAmount > 0 ? commissionData.userPercentage : 0;
+    const netAmount = Math.max(
+      Math.round((originalAmount - discountAmount) * 100) / 100,
+      0
+    );
+    const discountApplied = discountAmount > 0;
 
     // Create recharge record
     const recharge = new Recharge({
@@ -1062,19 +1028,28 @@ export const initiateRecharge = async (req, res) => {
       operatorCode: operatorInfo.code,
       circle: normalizedCircle,
       rechargeType: actualRechargeType,
-      amount: parseFloat(amount),
+      amount: originalAmount,
+      netAmount,
+      discountAmount,
+      discountPercentage,
+      discountApplied,
       planId,
       planDescription,
       paymentMethod,
       status: "pending",
       adminCommission: commissionData.adminCommission,
       adminCommissionPercentage: commissionData.adminPercentage,
-      userCommission: commissionData.userCommission,
-      userCommissionPercentage: commissionData.userPercentage,
+      userCommission: discountApplied ? 0 : commissionData.userCommission,
+      userCommissionPercentage: discountApplied
+        ? 0
+        : commissionData.userPercentage,
       paymentInitiatedAt: new Date(),
       operatorApiCode: operatorInfo.apiCode || operatorInfo.code || operator,
       billDetails,
-      billFetchedAt: billDetails && Object.keys(billDetails).length > 0 ? new Date() : undefined,
+      billFetchedAt:
+        billDetails && Object.keys(billDetails).length > 0
+          ? new Date()
+          : undefined,
     });
 
     recharge.aiTopUpOrderId =
@@ -1086,7 +1061,7 @@ export const initiateRecharge = async (req, res) => {
     // If paying from wallet (manual mode)
     if (paymentMethod === "wallet") {
       const wallet = await Wallet.findOne({ userId });
-      if (!wallet || (wallet.balance || 0) < amount) {
+      if (!wallet || (wallet.balance || 0) < netAmount) {
         recharge.status = "failed";
         recharge.failureReason = "Insufficient wallet balance";
         await recharge.save();
@@ -1097,12 +1072,17 @@ export const initiateRecharge = async (req, res) => {
       }
 
       // Deduct balance safely
-      const roundedAmount = Math.round(parseFloat(amount) * 100) / 100;
+      const roundedAmount = Math.round(netAmount * 100) / 100;
       wallet.balance = Math.round((wallet.balance - roundedAmount) * 100) / 100;
       wallet.transactions.push({
-        type: "debit",
+        type: "recharge_payment",
         amount: roundedAmount,
-        description: `Recharge payment for ${mobileNumber} (${operator})`,
+        description:
+          discountAmount > 0
+            ? `Recharge payment for ${mobileNumber} (${operator}) - ₹${originalAmount.toFixed(
+                2
+              )} (-₹${discountAmount.toFixed(2)} discount, ${discountPercentage}% off)`
+            : `Recharge payment for ${mobileNumber} (${operator})`,
         status: "completed",
         reference: `RECHARGE_WALLET_${recharge._id}`,
         createdAt: new Date(),
@@ -1115,20 +1095,17 @@ export const initiateRecharge = async (req, res) => {
       recharge.paymentMethod = "wallet";
       await recharge.save();
 
-      try {
-        await processRechargeWithA1Topup(recharge);
-        return res.status(200).json({
-          success: true,
-          message: "Recharge initiated successfully",
-          data: { rechargeId: recharge._id, status: recharge.status },
-        });
-      } catch (rechargeError) {
+      const rechargeResult = await processRechargeWithA1Topup(recharge);
+      
+      // Check if processRechargeWithA1Topup returned an error object
+      if (rechargeResult && rechargeResult.success === false) {
         // Refund wallet on provider failure
         const refundWallet = await Wallet.findOne({ userId });
         if (refundWallet) {
-          refundWallet.balance = Math.round((refundWallet.balance + roundedAmount) * 100) / 100;
+          refundWallet.balance =
+            Math.round((refundWallet.balance + roundedAmount) * 100) / 100;
           refundWallet.transactions.push({
-            type: "credit",
+            type: "recharge_refund",
             amount: roundedAmount,
             description: `Refund for failed recharge ${mobileNumber} (${operator})`,
             status: "completed",
@@ -1137,81 +1114,47 @@ export const initiateRecharge = async (req, res) => {
           });
           await refundWallet.save();
         }
-        await handleFailedRecharge(recharge, rechargeError.message || "Provider recharge failed");
-        return res.status(500).json({
+        
+        await handleFailedRecharge(
+          recharge,
+          rechargeResult.message || "Provider recharge failed"
+        );
+        
+        // Return 400 for vendor errors (business errors), not 500 (server errors)
+        return res.status(400).json({
           success: false,
-          message: "Recharge failed",
-          error: rechargeError.message || "Provider error",
+          message: rechargeResult.message || "Recharge failed",
+          error: rechargeResult.errorCode || "VENDOR_ERROR",
+          vendorResponse: rechargeResult.vendorResponse || null,
         });
       }
-    }
-
-    // Generate PhonePe payment request
-    const merchantTransactionId = `RECHARGE_${recharge._id}_${Date.now()}`;
-    const phonePePayload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      amount: Math.round(amount * 100), // Amount in paise
-      merchantUserId: userId,
-      redirectUrl: `${process.env.FRONTEND_URL}/recharge/callback`,
-      redirectMode: "REDIRECT",
-      callbackUrl: `${process.env.BACKEND_URL || process.env.FRONTEND_URL}/api/recharge/payment-callback`,
-      mobileNumber: mobileNumber,
-      paymentInstrument: {
-        type: "PAY_PAGE",
-      },
-    };
-
-    const { base64Payload, signature } = generatePhonePeSignature(
-      phonePePayload,
-      process.env.PHONEPE_SALT_KEY,
-      process.env.PHONEPE_SALT_INDEX
-    );
-
-    // Store PhonePe details
-    recharge.phonePeOrderId = merchantTransactionId;
-    await recharge.save();
-
-    // Make PhonePe API call
-    const phonePeResponse = await axios.post(
-      `${process.env.PHONEPE_BASE_URL}/pg/v1/pay`,
-      { request: base64Payload },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-VERIFY": signature,
-          accept: "application/json",
-        },
-      }
-    );
-
-    if (phonePeResponse.data && phonePeResponse.data.success) {
-      recharge.phonePeResponse = phonePeResponse.data;
-      recharge.phonePeTransactionId = phonePeResponse.data.data?.transactionId || "";
-      await recharge.save();
-
+      
+      // Success case
       return res.status(200).json({
         success: true,
-        message: "Payment initiated successfully",
+        message: "Recharge initiated successfully",
         data: {
           rechargeId: recharge._id,
-          paymentUrl: phonePeResponse.data.data?.instrumentResponse?.redirectInfo?.url,
-          merchantTransactionId: merchantTransactionId,
+          status: recharge.status,
+          originalAmount,
+          discountAmount,
+          netAmount: roundedAmount,
+          discountApplied,
         },
       });
-    } else {
-      recharge.status = "failed";
-      recharge.failureReason = phonePeResponse.data?.message || "Payment initiation failed";
-      await recharge.save();
+    }
 
+    // If we reach here, payment method is not wallet (shouldn't happen due to validation above)
       return res.status(400).json({
         success: false,
-        message: "Failed to initiate payment",
-        error: phonePeResponse.data?.message || "Payment gateway error",
+      message: "Only wallet payment is supported",
+      error: "INVALID_PAYMENT_METHOD",
       });
-    }
   } catch (error) {
-    console.error("Error initiating recharge:", error.response?.data || error.message);
+    console.error(
+      "Error initiating recharge:",
+      error.response?.data || error.message
+    );
     return res.status(500).json({
       success: false,
       message: "Failed to initiate recharge",
@@ -1220,84 +1163,11 @@ export const initiateRecharge = async (req, res) => {
   }
 };
 
-/**
- * PhonePe payment callback handler
- */
-export const phonePeCallback = async (req, res) => {
-  try {
-    const { transactionId, merchantTransactionId } = req.body;
-
-    // Find recharge record
-    const recharge = await Recharge.findOne({
-      phonePeOrderId: merchantTransactionId,
-    });
-
-    if (!recharge) {
-      return res.status(404).json({
-        success: false,
-        message: "Recharge transaction not found",
-      });
-    }
-
-    // Verify payment status with PhonePe
-    const statusResponse = await axios.get(
-      `${process.env.PHONEPE_BASE_URL}/pg/v1/status/${process.env.PHONEPE_MERCHANT_ID}/${merchantTransactionId}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "X-VERIFY": `${crypto
-            .createHash("sha256")
-            .update(
-              `/pg/v1/status/${process.env.PHONEPE_MERCHANT_ID}/${merchantTransactionId}${process.env.PHONEPE_SALT_KEY}`
-            )
-            .digest("hex")}###${process.env.PHONEPE_SALT_INDEX}`,
-          "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID,
-        },
-      }
-    );
-
-    if (statusResponse.data && statusResponse.data.success) {
-      const paymentStatus = statusResponse.data.data?.state;
-
-      if (paymentStatus === "COMPLETED") {
-        // Payment successful, initiate recharge with aiTopUp
-        recharge.status = "payment_success";
-        recharge.paymentCompletedAt = new Date();
-        recharge.phonePeTransactionId = transactionId || statusResponse.data.data?.transactionId || "";
-        recharge.phonePeResponse = statusResponse.data.data;
-        await recharge.save();
-
-        // Process recharge with aiTopUp (A1TopUp handles wallet internally)
-        try {
-          await processRechargeWithA1Topup(recharge);
-        } catch (rechargeError) {
-          console.error("Recharge processing error:", rechargeError);
-          // Handle failure and initiate refund
-          await handleFailedRecharge(recharge, rechargeError.message);
-        }
-      } else if (paymentStatus === "FAILED") {
-        recharge.status = "failed";
-        recharge.failureReason = statusResponse.data.data?.responseCode || "Payment failed";
-        await recharge.save();
-      }
-    }
-
-    // Redirect to frontend
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/recharge/status?rechargeId=${recharge._id}&status=${recharge.status}`
-    );
-  } catch (error) {
-    console.error("Payment callback error:", error.response?.data || error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Payment callback processing failed",
-    });
-  }
-};
 
 /**
  * Process recharge with aiTopUp API
+ * For postpaid: tries both REST API and legacy API sequentially
+ * For prepaid: uses REST API (working)
  */
 const processRechargeWithA1Topup = async (recharge) => {
   try {
@@ -1305,201 +1175,247 @@ const processRechargeWithA1Topup = async (recharge) => {
     recharge.rechargeInitiatedAt = new Date();
     await recharge.save();
 
-    const isPostpaid = recharge.rechargeType === "postpaid";
+    const operatorDirectory =
+      recharge.rechargeType === "postpaid"
+      ? POSTPAID_OPERATORS
+      : PREPAID_OPERATORS;
+    const operatorInfo = operatorDirectory[recharge.operator] || {};
+    const operatorCode = operatorInfo.code || recharge.operatorCode || null;
     const operatorApiCode =
-      recharge.operatorApiCode || getOperatorApiCode(recharge.operator, recharge.operatorCode);
+      operatorInfo.apiCode ||
+      recharge.operatorApiCode ||
+      operatorInfo.code ||
+      recharge.operatorCode ||
+      recharge.operator;
 
-    const primaryEndpoint = new URL(
-      isPostpaid ? A1TOPUP_POSTPAID_PAY_ENDPOINT : A1TOPUP_RECHARGE_ENDPOINT,
-      A1TOPUP_BASE_URL
-    ).toString();
+    if (!A1TOPUP_USERNAME || !A1TOPUP_PASSWORD) {
+      throw new Error("A1Topup credentials are not configured");
+    }
 
-    const candidateEndpoints = [
-      {
-        url: primaryEndpoint,
-        method: isPostpaid ? A1TOPUP_POSTPAID_PAY_METHOD : A1TOPUP_RECHARGE_METHOD,
-        includeAction: false,
-        format: "json",
-      },
-      {
-        url: primaryEndpoint,
-        method:
-          (isPostpaid ? A1TOPUP_POSTPAID_PAY_METHOD : A1TOPUP_RECHARGE_METHOD) === "post"
-            ? "get"
-            : "post",
-        includeAction: false,
-        format: "json",
-      },
-      {
-        url: primaryEndpoint,
-        method: isPostpaid ? A1TOPUP_POSTPAID_PAY_METHOD : A1TOPUP_RECHARGE_METHOD,
-        includeAction: false,
-        format: "form",
-      },
-      {
-        url: primaryEndpoint,
-        method:
-          (isPostpaid ? A1TOPUP_POSTPAID_PAY_METHOD : A1TOPUP_RECHARGE_METHOD) === "post"
-            ? "get"
-            : "post",
-        includeAction: false,
-        format: "form",
-      },
-    ].filter(
-      (candidate, index, self) =>
-        self.findIndex(
-          (item) =>
-            item.url === candidate.url &&
-            item.method === candidate.method &&
-            item.format === candidate.format
-        ) === index
-    );
+    if (!operatorCode) {
+      throw new Error("Operator code is required for provider recharge");
+    }
 
-    const operatorDetails = OPERATOR_CODES[recharge.operator] || {};
-    const providerOperatorCode =
-      recharge.operatorCode || operatorDetails.code || operatorDetails.apiCode || operatorApiCode;
+    if (!recharge.mobileNumber || !/^[6-9]\d{9}$/.test(recharge.mobileNumber)) {
+      throw new Error("Valid mobile number is required");
+    }
 
-    const circleKey =
-      recharge.circle && typeof recharge.circle === "string"
-        ? recharge.circle.replace(/\s+/g, "_").toUpperCase()
-        : undefined;
-    const circleNumeric =
-      circleKey && CIRCLE_NUMERIC_CODE_MAP[circleKey] ? CIRCLE_NUMERIC_CODE_MAP[circleKey] : undefined;
-    const resolvedCircle = !isPostpaid
-      ? circleNumeric || resolveCircleCode(recharge.circle)
-      : undefined;
+    const numericAmount = Number(recharge.amount);
+    if (!numericAmount || Number.isNaN(numericAmount) || numericAmount <= 0) {
+      throw new Error("Valid recharge amount is required");
+    }
 
-    const basePayload = {
-      mobile: recharge.mobileNumber,
-      operator: providerOperatorCode,
-      amount: recharge.amount,
-      circle: resolvedCircle,
-      type: isPostpaid ? "postpaid" : "prepaid",
-      orderId:
-        recharge.phonePeOrderId ||
-        recharge.aiTopUpOrderId ||
-        `ORD-${recharge._id}-${Date.now()}`,
+    const resolveCircleParam = (value) => {
+      if (!value) return undefined;
+      const numeric =
+        resolveCircleNumericCode(value) ||
+        resolveCircleNumericCode(resolveCircleCode(value));
+      if (numeric) return numeric;
+      const textCode = resolveCircleCode(value);
+      return textCode || value;
     };
 
-    let lastError;
-    let lastCandidate;
+    const circleParam =
+      resolveCircleParam(recharge.circle) ||
+      resolveCircleParam(recharge.circleCode) ||
+      resolveCircleParam(recharge.circleLabel);
 
-    for (const candidate of candidateEndpoints) {
-      try {
-        lastCandidate = candidate;
-        // Build minimal payload exactly as provider docs:
-        // username, pwd, operatorcode, number, amount, orderid, format=json, optional circlecode
-        const minimalPayload = {
-          operatorcode: providerOperatorCode,
-          number: recharge.mobileNumber,
-          amount: recharge.amount,
-          orderid:
-            recharge.phonePeOrderId ||
-            recharge.aiTopUpOrderId ||
-            `ORD-${recharge._id}-${Date.now()}`,
-          circlecode: resolvedCircle,
-          format: "json",
-        };
-        const payload = buildProviderParams(minimalPayload);
+    const orderId =
+      recharge.aiTopUpOrderId ||
+      `ORD-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    recharge.aiTopUpOrderId = orderId;
 
-        const config = {
-          headers: {},
-          timeout: 8000,
-        };
+    const params = {
+      username: A1TOPUP_USERNAME,
+      pwd: A1TOPUP_PASSWORD,
+      operatorcode: operatorCode,
+      number: recharge.mobileNumber,
+      amount: numericAmount.toString(),
+      orderid: orderId,
+      format: "json",
+    };
 
-        let providerResponse;
-        if (candidate.method === "get") {
-          config.params = payload;
-          config.headers["Content-Type"] = "application/json";
-          providerResponse = await axios.get(candidate.url, config);
-        } else {
-          if (candidate.format === "form") {
-            const formBody = new URLSearchParams();
-            Object.entries(payload).forEach(([key, value]) => {
-              if (value !== undefined && value !== null) {
-                formBody.append(key, value.toString());
-              }
-            });
-            config.headers["Content-Type"] = "application/x-www-form-urlencoded";
-            providerResponse = await axios.post(candidate.url, formBody.toString(), config);
-          } else {
-            config.headers["Content-Type"] = "application/json";
-            providerResponse = await axios.post(candidate.url, payload, config);
-          }
-        }
+    if (circleParam) {
+      params.circlecode = circleParam.toString();
+    }
 
-        let responseData = providerResponse.data;
+    if (operatorApiCode && operatorApiCode !== operatorCode) {
+      params.operator = operatorApiCode;
+    }
 
-        if (typeof responseData === "string") {
-          try {
-            responseData = JSON.parse(responseData);
-          } catch (parseError) {
-            lastError = new Error(
-              `Provider returned non-JSON response for recharge action (${candidate.method.toUpperCase()})`
-            );
-            console.error("A1Topup recharge raw response:", responseData.substring(0, 500));
-            continue;
-          }
-        }
+    const billDetails = recharge.billDetails || {};
+    const value1Candidates = [
+      billDetails.value1,
+      billDetails.stdCode,
+      billDetails.stdcode,
+      billDetails.billingUnit,
+      billDetails.billGroup,
+      billDetails.groupNumber,
+      billDetails.cycle,
+      billDetails.cycleNumber,
+      billDetails.dob,
+    ];
+    const value2Candidates = [
+      billDetails.value2,
+      billDetails.accountNumber,
+      billDetails.account_no,
+      billDetails.processingCycle,
+      billDetails.policyNumber,
+    ];
 
-        if (responseData && responseData.status?.toLowerCase() === "success") {
-          recharge.status = "success";
-          recharge.rechargeCompletedAt = new Date();
-          recharge.aiTopUpOrderId = responseData.transaction_id || recharge.aiTopUpOrderId || "";
-          recharge.aiTopUpTransactionId =
-            responseData.transaction_id || recharge.aiTopUpTransactionId || "";
-          recharge.aiTopUpResponse = responseData;
-          recharge.providerResponse = responseData;
-          recharge.providerCommission = Number(responseData.commission || 0);
-          recharge.providerBalance = Number(responseData.balance || 0);
-          recharge.providerReceiptUrl = responseData.receipt_url || recharge.providerReceiptUrl;
+    const value1 = value1Candidates.find(
+      (candidate) =>
+        candidate !== undefined && candidate !== null && candidate !== ""
+    );
+    const value2 = value2Candidates.find(
+      (candidate) =>
+        candidate !== undefined && candidate !== null && candidate !== ""
+    );
 
-          if (isPostpaid) {
-            recharge.billDetails = {
-              ...(recharge.billDetails || {}),
-              paymentConfirmation: responseData,
-            };
-          }
-
-          await recharge.save();
-
-          await distributeCommissions(recharge);
-
-          console.log(
-            `✅ ${isPostpaid ? "Bill payment" : "Recharge"} successful: ${recharge.mobileNumber}, Amount: ₹${recharge.amount}`
-          );
-
-          return true;
-        }
-
-        const errorMessage = responseData?.message || "Recharge failed";
-        const errorCode = responseData?.error_code ? ` (Code: ${responseData.error_code})` : "";
-        lastError = new Error(`${errorMessage}${errorCode}`);
-      } catch (error) {
-        lastError = error;
-        console.error(
-          "A1Topup recharge error:",
-          error.response?.data || error.message || error.toString()
-        );
+    if (value1) {
+      params.value1 = value1;
       }
+    if (value2) {
+      params.value2 = value2;
+      }
+    if (billDetails.value3) {
+      params.value3 = billDetails.value3;
     }
 
-    if (lastError?.response?.status === 404) {
-      throw new Error(
-        `Recharge endpoint not found on provider (tried ${lastCandidate?.url} with method ${lastCandidate?.method})`
+    try {
+      console.log(
+        `[A1Topup][Recharge][Legacy][Request]`,
+        JSON.stringify(
+          {
+            url: new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString(),
+            params: {
+              ...params,
+              pwd: "***",
+            },
+          },
+          null,
+          2
+        )
       );
+    } catch (_) {}
+
+    const rawProviderResponse = await callA1TopupRechargeEndpoint(params);
+    const parsedResponse = parseA1TopupLegacyResponse(rawProviderResponse);
+    const statusText = extractA1TopupStatus(parsedResponse);
+
+    if (!isA1TopupSuccessStatus(statusText)) {
+      if (isA1TopupPendingStatus(statusText)) {
+        recharge.status = "processing";
+        recharge.aiTopUpResponse = parsedResponse;
+        recharge.providerResponse = parsedResponse;
+        await recharge.save();
+        console.log(
+          `[A1Topup][Recharge] Pending status received for ${recharge.mobileNumber}: ${statusText}`
+        );
+        return true;
+      }
+
+      // Handle vendor failure responses gracefully
+      const opid = parsedResponse.opid || parsedResponse.opId || "";
+      const errorCode = opid.toString().trim();
+      
+      // Map vendor error codes to user-friendly messages
+      let errorMessage = "Recharge failed";
+      let errorType = "VENDOR_ERROR";
+      
+      if (/low\s*balance/i.test(errorCode)) {
+        errorMessage = "Service temporarily unavailable. Our recharge service is currently experiencing high demand. Please try again in a few minutes.";
+        errorType = "VENDOR_LOW_BALANCE";
+      } else if (/parameter/i.test(errorCode) || /missing/i.test(errorCode)) {
+        errorMessage = "Invalid request parameters. Please verify your recharge details and try again.";
+        errorType = "VENDOR_INVALID_PARAMS";
+      } else if (/minimum/i.test(errorCode) || /amount/i.test(errorCode)) {
+        errorMessage = `Invalid recharge amount. ${parsedResponse.message || errorCode}`;
+        errorType = "VENDOR_INVALID_AMOUNT";
+      } else if (parsedResponse.message || parsedResponse.msg) {
+        errorMessage = parsedResponse.message || parsedResponse.msg;
+      } else if (statusText) {
+        errorMessage = statusText;
+      }
+      
+      // Log vendor error for debugging
+        console.error(
+        `[A1Topup][Recharge][Vendor Failure]`,
+        JSON.stringify({
+          mobileNumber: recharge.mobileNumber,
+          amount: recharge.amount,
+          orderId: orderId,
+          status: statusText,
+          opid: errorCode,
+          parsedResponse: parsedResponse,
+        }, null, 2)
+      );
+      
+      // Return error object instead of throwing
+      return {
+        success: false,
+        errorCode: errorType,
+        message: errorMessage,
+        vendorResponse: parsedResponse,
+      };
     }
 
-    throw lastError || new Error("Recharge failed");
+    recharge.status = "success";
+    recharge.rechargeCompletedAt = new Date();
+
+    recharge.aiTopUpOrderId =
+      parsedResponse.orderid ||
+      parsedResponse.orderId ||
+      recharge.aiTopUpOrderId ||
+      orderId;
+    recharge.aiTopUpTransactionId =
+      parsedResponse.txid ||
+      parsedResponse.opid ||
+      recharge.aiTopUpTransactionId ||
+      "";
+
+    recharge.aiTopUpResponse = parsedResponse;
+    recharge.providerResponse = parsedResponse;
+    recharge.providerCommission = Number(
+      parsedResponse.commission ||
+        parsedResponse.commision ||
+        parsedResponse.providerCommission ||
+        0
+    );
+    recharge.providerBalance = Number(
+      parsedResponse.balance ||
+        parsedResponse.walletBalance ||
+        parsedResponse.wallet_balance ||
+        parsedResponse.providerBalance ||
+        0
+    );
+
+    await recharge.save();
+    await distributeCommissions(recharge);
+
+    console.log(
+      `✅ A1Topup recharge successful via legacy API: ${recharge.mobileNumber}, Amount: ₹${recharge.amount}`
+    );
+    return true;
   } catch (error) {
-    console.error("A1Topup recharge error:", error.response?.data || error.message);
+    console.error(
+      "A1Topup recharge error:",
+      error.response?.data || error.message
+    );
     const providerError = error.response?.data;
     const errorMessage =
       providerError?.message ||
       providerError?.error_code ||
       error.message ||
       "Recharge failed";
-    throw new Error(errorMessage);
+    
+    // Return error object for network/API errors
+    return {
+      success: false,
+      errorCode: "VENDOR_API_ERROR",
+      message: errorMessage,
+      vendorResponse: providerError || null,
+    };
   }
 };
 
@@ -1513,43 +1429,17 @@ const handleFailedRecharge = async (recharge, reason) => {
     recharge.rechargeCompletedAt = new Date();
     await recharge.save();
 
-    // Initiate PhonePe refund
-    const refundPayload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
-      transactionId: recharge.phonePeTransactionId,
-      amount: Math.round(recharge.amount * 100),
-    };
-
-    const refundResponse = await axios.post(
-      `${process.env.PHONEPE_BASE_URL}/pg/v1/refund`,
-      refundPayload,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "X-VERIFY": `${crypto
-            .createHash("sha256")
-            .update(
-              `/pg/v1/refund${JSON.stringify(refundPayload)}${process.env.PHONEPE_SALT_KEY}`
-            )
-            .digest("hex")}###${process.env.PHONEPE_SALT_INDEX}`,
-          "X-MERCHANT-ID": process.env.PHONEPE_MERCHANT_ID,
-        },
-      }
-    );
-
-    if (refundResponse.data && refundResponse.data.success) {
-      recharge.status = "refunded";
-      recharge.refundReason = reason;
-      recharge.refundedAt = new Date();
-      recharge.refundTransactionId = refundResponse.data.data?.refundId || "";
-      await recharge.save();
-
-      console.log(`💰 Refund processed: ₹${recharge.amount} for ${recharge.mobileNumber}`);
-    }
+    // Note: Refunds for wallet payments are handled in initiateRecharge
+    // This function just marks the recharge as failed
+      console.log(
+      `❌ Recharge failed: ₹${recharge.amount} for ${recharge.mobileNumber} - ${reason}`
+      );
   } catch (error) {
-    console.error("Refund processing error:", error.response?.data || error.message);
-    recharge.adminNotes = `Refund initiation failed: ${error.message}`;
+    console.error(
+      "Error handling failed recharge:",
+      error.response?.data || error.message
+    );
+    recharge.adminNotes = `Failed to update recharge status: ${error.message}`;
     await recharge.save();
   }
 };
@@ -1635,7 +1525,14 @@ export const getRechargeHistory = async (req, res) => {
  */
 export const getAllRecharges = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, operator, startDate, endDate } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      operator,
+      startDate,
+      endDate,
+    } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     let query = {};
@@ -1657,7 +1554,7 @@ export const getAllRecharges = async (req, res) => {
       .limit(parseInt(limit));
 
     // Get user details separately since userId is a string, not ObjectId
-    const userIds = [...new Set(recharges.map(r => r.userId))];
+    const userIds = [...new Set(recharges.map((r) => r.userId))];
     const users = await User.find({ userId: { $in: userIds } });
     const userMap = users.reduce((map, user) => {
       map[user.userId] = user;
@@ -1665,7 +1562,7 @@ export const getAllRecharges = async (req, res) => {
     }, {});
 
     // Attach user data to recharges
-    const rechargesWithUsers = recharges.map(recharge => {
+    const rechargesWithUsers = recharges.map((recharge) => {
       const rechargeObj = recharge.toObject();
       return {
         ...rechargeObj,
@@ -1747,7 +1644,13 @@ export const getRechargeStats = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Recharge.aggregate([
-        { $match: { ...dateQuery, status: "success", commissionDistributed: true } },
+        {
+          $match: {
+            ...dateQuery,
+            status: "success",
+            commissionDistributed: true,
+          },
+        },
         { $group: { _id: null, total: { $sum: "$adminCommission" } } },
       ]),
       Recharge.aggregate([
@@ -1775,7 +1678,8 @@ export const getRechargeStats = async (req, res) => {
         totalTransactions,
         successfulRecharges,
         failedRecharges,
-        pendingRecharges: totalTransactions - successfulRecharges - failedRecharges,
+        pendingRecharges:
+          totalTransactions - successfulRecharges - failedRecharges,
         totalRevenue: totalRevenue[0]?.total || 0,
         totalCommission: totalCommission[0]?.total || 0,
         providerCommission: providerCommission[0]?.total || 0,
@@ -1820,10 +1724,16 @@ export const updateRecharge = async (req, res) => {
 
       // If operator changed, update operatorCode
       if (updateData.operator) {
-        const operatorInfo = OPERATOR_CODES[updateData.operator];
+        // Get operator info based on recharge type
+        const rechargeType = updateData.rechargeType || recharge.rechargeType;
+        const operatorInfo =
+          rechargeType === "postpaid"
+          ? POSTPAID_OPERATORS[updateData.operator]
+          : PREPAID_OPERATORS[updateData.operator];
         if (operatorInfo) {
           updateData.operatorCode = operatorInfo.code;
-          updateData.operatorApiCode = operatorInfo.apiCode || operatorInfo.code;
+          updateData.operatorApiCode =
+            operatorInfo.apiCode || operatorInfo.code;
           updateData.rechargeType = operatorInfo.type || recharge.rechargeType;
         }
       }
@@ -1870,7 +1780,8 @@ export const deleteRecharge = async (req, res) => {
     if (recharge.commissionDistributed && recharge.status === "success") {
       return res.status(400).json({
         success: false,
-        message: "Cannot delete recharge record with distributed commissions. Please mark as cancelled instead.",
+        message:
+          "Cannot delete recharge record with distributed commissions. Please mark as cancelled instead.",
       });
     }
 
@@ -1889,4 +1800,3 @@ export const deleteRecharge = async (req, res) => {
     });
   }
 };
-

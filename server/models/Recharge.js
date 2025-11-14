@@ -42,6 +42,26 @@ const rechargeSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    netAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    discountPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    discountApplied: {
+      type: Boolean,
+      default: false,
+    },
     planId: {
       type: String,
       default: "",

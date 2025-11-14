@@ -62,7 +62,7 @@ const WalletTransactions = () => {
             if (response.data.success) {
                 const allTransactions = response.data.data.transactions || [];
                 const creditedTransactions = allTransactions.filter(t =>
-                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal'
+                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal' || t.type === 'recharge_payment' || t.type === 'recharge_refund'
                 );
 
                 // Client-side pagination
@@ -336,6 +336,8 @@ const WalletTransactions = () => {
             case 'fund_credit': return <Wallet className="text-blue-600" size={16} />;
             case 'special_income_credit': return <Star className="text-purple-600" size={16} />;
             case 'admin_adjust': return <Wallet className="text-green-600" size={16} />;
+            case 'recharge_payment': return <ArrowDownCircle className="text-orange-600" size={16} />;
+            case 'recharge_refund': return <ArrowUpCircle className="text-orange-600" size={16} />;
             // Coin transaction types
             case 'view': return <ArrowUpCircle className="text-blue-600" size={16} />;
             case 'like': return <ArrowUpCircle className="text-pink-600" size={16} />;
@@ -357,6 +359,8 @@ const WalletTransactions = () => {
             case 'fund_credit': return 'text-blue-700';
             case 'special_income_credit': return 'text-purple-700';
             case 'admin_adjust': return 'text-green-700';
+            case 'recharge_payment': return 'text-orange-700';
+            case 'recharge_refund': return 'text-orange-700';
             // Coin transaction types
             case 'view': return 'text-blue-700';
             case 'like': return 'text-pink-700';
@@ -372,6 +376,8 @@ const WalletTransactions = () => {
         switch (type) {
             case 'commission': return 'bg-green-50 border-green-200';
             case 'withdrawal': return 'bg-red-50 border-red-200';
+            case 'recharge_payment': return 'bg-orange-50 border-orange-200';
+            case 'recharge_refund': return 'bg-orange-50 border-orange-200';
             case 'refund': return 'bg-blue-50 border-blue-200';
             case 'bonus': return 'bg-purple-50 border-purple-200';
             case 'payout_received': return 'bg-green-50 border-green-200';
@@ -686,6 +692,29 @@ const WalletTransactions = () => {
                                                             {transaction.type === 'fund_credit' && transaction.description?.includes('Admin added') && (
                                                                 <div className="text-xs text-green-600 font-semibold">
                                                                     💰 Admin Added Money
+                                                                </div>
+                                                            )}
+                                                            {transaction.type === 'recharge_payment' && transaction.description?.includes('% off') && (
+                                                                <div className="mt-2 flex items-center gap-2">
+                                                                    <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">
+                                                                        <span>🎉</span>
+                                                                        <span>{transaction.description.match(/(\d+(?:\.\d+)?)% off/)?.[1] || '0'}% OFF</span>
+                                                                    </div>
+                                                                    {transaction.description.match(/-₹(\d+(?:\.\d+)?)\s+discount/)?.[1] && (
+                                                                        <div className="text-xs text-green-600 font-semibold">
+                                                                            Saved ₹{transaction.description.match(/-₹(\d+(?:\.\d+)?)\s+discount/)?.[1]}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {transaction.type === 'recharge_payment' && !transaction.description?.includes('% off') && (
+                                                                <div className="text-xs text-orange-600 font-semibold mt-1">
+                                                                    📱 Mobile Recharge Payment
+                                                                </div>
+                                                            )}
+                                                            {transaction.type === 'recharge_refund' && (
+                                                                <div className="text-xs text-orange-600 font-semibold">
+                                                                    🔄 Refunded - Recharge Failed
                                                                 </div>
                                                             )}
                                                             {transaction.incomeType && (

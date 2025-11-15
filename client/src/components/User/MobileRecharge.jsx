@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Smartphone, Building, Globe2, IndianRupee, Search, ArrowLeft, Headphones, Loader2, Shield, Receipt, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchRechargePlans, fetchPostpaidBill, detectCircle, initiateRecharge, getWalletBalance } from '../../services/rechargeService';
+import { fetchRechargePlans, fetchPostpaidBill, initiateRecharge, getWalletBalance } from '../../services/rechargeService';
 import useToast from '../../hooks/useToast';
 import { useAuthStore } from '../../store/useAuthStore';
 import api, { API_ENDPOINTS } from '../../config/api';
@@ -34,29 +34,31 @@ const normalizeCircleToken = (input) => {
 		.replace(/[^a-z0-9]/g, '');
 };
 
+// Circle options matching real-world A1Topup API circle names
+// Values are normalized to match backend CIRCLE_CODE_MAP keys
 const CIRCLE_OPTIONS = [
-	{ label: 'Andhra Pradesh', value: 'Andhra Pradesh', textCode: 'AP', numericCode: '13', aliases: ['Andhra Pradesh & Telangana', 'AP', '13'] },
-	{ label: 'Telangana', value: 'Telangana', textCode: 'TS', numericCode: '28', aliases: ['TS', '28'] },
+	{ label: 'Andhra Pradesh', value: 'Andhra Pradesh', textCode: 'AP', numericCode: '13', aliases: ['AP', '13'] },
 	{ label: 'Assam', value: 'Assam', textCode: 'AS', numericCode: '24', aliases: ['AS', '24'] },
-	{ label: 'Bihar & Jharkhand', value: 'Bihar Jharkhand', textCode: 'BH', numericCode: '17', aliases: ['Bihar', 'Jharkhand', 'BH', '17'] },
-	{ label: 'Chennai', value: 'Chennai', textCode: 'CH', numericCode: '7', aliases: ['CH', '7', 'Tamil Nadu Chennai'] },
+	{ label: 'Bihar & Jharkhand', value: 'Bihar & Jharkhand', textCode: 'BH', numericCode: '17', aliases: ['Bihar', 'Jharkhand', 'BH', '17'] },
+	{ label: 'Chennai', value: 'Chennai', textCode: 'CH', numericCode: '7', aliases: ['CH', '7'] },
 	{ label: 'Delhi NCR', value: 'Delhi NCR', textCode: 'DL', numericCode: '5', aliases: ['Delhi', 'NCR', 'DL', '5'] },
+	{ label: 'Goa', value: 'Goa', textCode: 'GA', numericCode: '15', aliases: ['GA', '15'] },
 	{ label: 'Gujarat', value: 'Gujarat', textCode: 'GJ', numericCode: '12', aliases: ['GJ', '12'] },
 	{ label: 'Haryana', value: 'Haryana', textCode: 'HR', numericCode: '20', aliases: ['HR', '20'] },
 	{ label: 'Himachal Pradesh', value: 'Himachal Pradesh', textCode: 'HP', numericCode: '21', aliases: ['HP', '21'] },
-	{ label: 'Jammu & Kashmir', value: 'Jammu and Kashmir', textCode: 'JK', numericCode: '25', aliases: ['Jammu', 'Kashmir', 'JK', '25'] },
+	{ label: 'Jammu & Kashmir', value: 'Jammu & Kashmir', textCode: 'JK', numericCode: '25', aliases: ['Jammu', 'Kashmir', 'JK', '25'] },
 	{ label: 'Karnataka', value: 'Karnataka', textCode: 'KA', numericCode: '9', aliases: ['KA', '9'] },
 	{ label: 'Kerala', value: 'Kerala', textCode: 'KL', numericCode: '14', aliases: ['KL', '14'] },
 	{ label: 'Kolkata', value: 'Kolkata', textCode: 'KO', numericCode: '6', aliases: ['KO', '6'] },
-	{ label: 'Madhya Pradesh & Chhattisgarh', value: 'Madhya Pradesh Chhattisgarh', textCode: 'MP', numericCode: '16', aliases: ['Madhya Pradesh', 'Chhattisgarh', 'MP', '16', 'CG', '27'] },
-	{ label: 'Maharashtra (Rest of Maharashtra)', value: 'Maharashtra', textCode: 'MH', numericCode: '4', aliases: ['Maharashtra & Goa', 'MH', '4'] },
+	{ label: 'Madhya Pradesh & Chhattisgarh', value: 'Madhya Pradesh & Chhattisgarh', textCode: 'MP', numericCode: '16', aliases: ['Madhya Pradesh', 'Chhattisgarh', 'MP', '16'] },
+	{ label: 'Maharashtra', value: 'Maharashtra', textCode: 'MH', numericCode: '4', aliases: ['MH', '4'] },
 	{ label: 'Mumbai', value: 'Mumbai', textCode: 'MB', numericCode: '3', aliases: ['MB', '3'] },
-	{ label: 'Goa', value: 'Goa', textCode: 'GA', numericCode: '15', aliases: ['GA', '15'] },
 	{ label: 'North East', value: 'North East', textCode: 'NE', numericCode: '26', aliases: ['NE', '26'] },
 	{ label: 'Odisha', value: 'Odisha', textCode: 'OR', numericCode: '23', aliases: ['Orissa', 'OR', '23'] },
-	{ label: 'Punjab', value: 'Punjab', textCode: 'PB', numericCode: '1', aliases: ['PB', '1', 'Haryana & Punjab'] },
+	{ label: 'Punjab', value: 'Punjab', textCode: 'PB', numericCode: '1', aliases: ['PB', '1'] },
 	{ label: 'Rajasthan', value: 'Rajasthan', textCode: 'RJ', numericCode: '18', aliases: ['RJ', '18'] },
 	{ label: 'Tamil Nadu', value: 'Tamil Nadu', textCode: 'TN', numericCode: '8', aliases: ['TN', '8'] },
+	{ label: 'Telangana', value: 'Telangana', textCode: 'TS', numericCode: '28', aliases: ['TS', '28'] },
 	{ label: 'Uttar Pradesh East', value: 'Uttar Pradesh East', textCode: 'UPE', numericCode: '10', aliases: ['UP East', 'UPE', '10'] },
 	{ label: 'Uttar Pradesh West', value: 'Uttar Pradesh West', textCode: 'UPW', numericCode: '11', aliases: ['UP West', 'UPW', '11'] },
 	{ label: 'Uttarakhand', value: 'Uttarakhand', textCode: 'UK', numericCode: '19', aliases: ['UK', '19'] },
@@ -119,8 +121,6 @@ const MobileRecharge = () => {
 	const [rechargeMode, setRechargeMode] = useState('prepaid');
 	const [operator, setOperator] = useState('');
 	const [circle, setCircle] = useState('');
-	const [detectedCircle, setDetectedCircle] = useState(null);
-	const [detectingCircle, setDetectingCircle] = useState(false);
 	const [amount, setAmount] = useState('');
 	const [touched, setTouched] = useState(false);
 	const [loading, setLoading] = useState(false);
@@ -166,11 +166,10 @@ const MobileRecharge = () => {
 	);
 
 	const resolveCirclePayload = useCallback(() => {
-		const primary = circle || detectedCircle;
-		if (primary === undefined || primary === null || primary === '') {
+		if (circle === undefined || circle === null || circle === '') {
 			return null;
 		}
-		const option = findCircleOption(primary);
+		const option = findCircleOption(circle);
 		if (option) {
 			return {
 				label: option.label,
@@ -180,36 +179,12 @@ const MobileRecharge = () => {
 				aliases: option.aliases || [],
 			};
 		}
-		const fallbackValue = getCircleValue(primary);
+		const fallbackValue = getCircleValue(circle);
 		return {
-			label: getCircleLabel(primary),
+			label: getCircleLabel(circle),
 			value: fallbackValue || undefined,
 		};
-	}, [circle, detectedCircle, findCircleOption, getCircleLabel, getCircleValue]);
-
-	const mapApiCircleToOption = useCallback(
-		(data) => {
-			if (!data) return null;
-			const candidates = [
-				data.circleValue,
-				data.circle,
-				data.circle_code,
-				data.circleCode,
-				data.circle_numeric,
-				data.circleNumeric,
-				data.providerVariant,
-			].filter(Boolean);
-
-			for (const candidate of candidates) {
-				const option = findCircleOption(candidate);
-				if (option) {
-					return option;
-				}
-			}
-			return null;
-		},
-		[findCircleOption]
-	);
+	}, [circle, findCircleOption, getCircleLabel, getCircleValue]);
 
 	const availableOperators = useMemo(
 		() => (rechargeMode === 'postpaid' ? postpaidOperators : prepaidOperators),
@@ -223,14 +198,13 @@ const MobileRecharge = () => {
 		return rechargeMode;
 	}, [operator, rechargeMode]);
 
-	const handleModeChange = useCallback(
+		const handleModeChange = useCallback(
 		(mode) => {
 			if (mode === rechargeMode) return;
 			setRechargeMode(mode);
 			setOperator('');
 			setSelectedOperatorData(null);
 			setCircle('');
-			setDetectedCircle(null);
 			setPlans([]);
 			allPlansRef.current = [];
 			setBillDetails(null);
@@ -249,9 +223,9 @@ const MobileRecharge = () => {
 		if (rechargeType === 'postpaid') {
 			return true;
 		}
-		// For prepaid, allow if we have circle (detected or manual) or if detection is in progress
-		return Boolean(circle || detectedCircle || detectingCircle);
-	}, [isMobileValid, operator, circle, detectedCircle, detectingCircle, rechargeType]);
+		// For prepaid, require circle to be selected
+		return Boolean(circle);
+	}, [isMobileValid, operator, circle, rechargeType]);
 
 	const discountDetails = useMemo(() => {
 		const numericAmount = parseFloat(amount);
@@ -306,10 +280,6 @@ const MobileRecharge = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [mobile, operator, rechargeType]);
 
-	const currentCircleLabel = useMemo(
-		() => getCircleLabel(circle || detectedCircle),
-		[circle, detectedCircle, getCircleLabel]
-	);
 
 	const operatorWrapperClass = useMemo(() => {
 		if (selectedOperatorData) {
@@ -358,59 +328,6 @@ const MobileRecharge = () => {
 		[]
 	);
 
-	// Auto-detect circle when mobile and operator are entered
-	useEffect(() => {
-		// Only detect for prepaid (postpaid doesn't require circle)
-		if (!isMobileValid || !operator || rechargeType !== 'prepaid' || circle) {
-			return undefined;
-		}
-
-		const timer = setTimeout(async () => {
-			try {
-				setDetectingCircle(true);
-				const response = await detectCircle(mobile, operator, rechargeType);
-				if (response.success) {
-					const option = mapApiCircleToOption(response);
-					const resolvedLabel = option ? option.label : getCircleLabel(response.circle || response.circleValue);
-					const resolvedValue = option ? option.value : getCircleValue(response.circleValue || response.circle);
-
-					if (resolvedValue) {
-						if (circle !== resolvedValue) {
-							setCircle(resolvedValue);
-						}
-						if (resolvedLabel) {
-							if (detectedCircle !== resolvedLabel) {
-								setDetectedCircle(resolvedLabel);
-								showSuccess(`Circle auto-detected: ${resolvedLabel}`);
-							} else {
-								setDetectedCircle(resolvedLabel);
-							}
-						}
-					}
-				} else {
-					setDetectedCircle(null);
-				}
-			} catch (error) {
-				setDetectedCircle(null);
-				// Silently fail - system will try all circles automatically
-			} finally {
-				setDetectingCircle(false);
-			}
-		}, 1000);
-
-		return () => clearTimeout(timer);
-	}, [
-		mobile,
-		operator,
-		rechargeType,
-		isMobileValid,
-		circle,
-		detectedCircle,
-		mapApiCircleToOption,
-		getCircleLabel,
-		getCircleValue,
-		showSuccess,
-	]);
 
 	// Check KYC status
 	const checkKycStatus = useCallback(async () => {
@@ -525,16 +442,19 @@ const MobileRecharge = () => {
 			try {
 				// Force prepaid type in the call - use detected or manual circle
 				const circleInfo = resolveCirclePayload();
+				// Prioritize numeric code for backend (as per A1Topup API requirement)
+				const circleParams = circleInfo ? {
+					circleLabel: circleInfo.label,
+					circleNumeric: circleInfo.numericCode, // Backend prioritizes numeric code
+					circleCode: circleInfo.numericCode || circleInfo.textCode, // Send numeric if available, else text
+				} : {};
+				
 				const response = await fetchRechargePlans(
 					mobile,
 					operator,
 					circleInfo?.value || undefined,
 					'prepaid',
-					{
-						circleLabel: circleInfo?.label,
-						circleCode: circleInfo?.textCode,
-						circleNumeric: circleInfo?.numericCode,
-					}
+					circleParams
 				);
 				if (response.success && Array.isArray(response.data)) {
 					const currentAmount = amountRef.current;
@@ -596,7 +516,6 @@ const MobileRecharge = () => {
 			mobile,
 			operator,
 			circle,
-			detectedCircle,
 			showError,
 			showSuccess,
 			resolveCirclePayload,
@@ -619,7 +538,7 @@ const MobileRecharge = () => {
 					operator,
 					rechargeMode,
 					rechargeType,
-					circle: circle || detectedCircle,
+					circle: circle,
 					circleInfo,
 					amount: planAmount,
 					discountDetails: {
@@ -731,14 +650,16 @@ const MobileRecharge = () => {
 
 			// Only fetch bill for postpaid - include circle (detected or manual) for different SIM cards
 			const circleInfo = resolveCirclePayload();
-			const response = await fetchPostpaidBill({ 
+			// Prioritize numeric code for backend (as per A1Topup API requirement)
+			const billParams = {
 				mobileNumber: mobile, 
 				operator,
 				circle: circleInfo?.value || undefined,
-				circleCode: circleInfo?.textCode,
-				circleNumeric: circleInfo?.numericCode,
 				circleLabel: circleInfo?.label,
-			});
+				circleNumeric: circleInfo?.numericCode, // Backend prioritizes numeric code
+				circleCode: circleInfo?.numericCode || circleInfo?.textCode, // Send numeric if available, else text
+			};
+			const response = await fetchPostpaidBill(billParams);
 
 			if (response.success) {
 				const data = response.data;
@@ -770,12 +691,11 @@ const MobileRecharge = () => {
 		} finally {
 			setFetchingBill(false);
 		}
-	}, [
+		}, [
 		isMobileValid,
 		operator,
 		mobile,
 		circle,
-		detectedCircle,
 		rechargeType,
 		showError,
 		showSuccess,
@@ -796,10 +716,44 @@ const MobileRecharge = () => {
 			return;
 		}
 
+		// Frontend validation: Mobile number
+		if (!isMobileValid) {
+			showError('Please enter a valid 10-digit mobile number starting with 6-9.');
+			return;
+		}
+
+		// Frontend validation: Operator
+		if (!operator) {
+			showError('Please select an operator before proceeding.');
+			return;
+		}
+
+		// Frontend validation: Circle (for prepaid)
+		if (rechargeType === 'prepaid') {
+			if (!circle) {
+				showError('Please select a circle before proceeding.');
+				return;
+			}
+			
+			const circleInfo = resolveCirclePayload();
+			// Warn if numeric code is not available (backend will still try, but may fail)
+			if (circleInfo && !circleInfo.numericCode) {
+				console.warn('Circle numeric code not found, backend will attempt to map');
+			}
+		}
+
 		const rechargeAmount = parseFloat(amount);
 
-		if (!amount || rechargeAmount <= 0) {
-			showError('Please enter a valid amount');
+		// Frontend validation: Amount
+		if (!amount || rechargeAmount <= 0 || isNaN(rechargeAmount)) {
+			showError('Please enter a valid recharge amount.');
+			return;
+		}
+
+		// Frontend validation: Minimum amount (₹10) as per A1Topup API
+		const MINIMUM_RECHARGE_AMOUNT = 10;
+		if (rechargeAmount < MINIMUM_RECHARGE_AMOUNT) {
+			showError(`Minimum recharge amount is ₹${MINIMUM_RECHARGE_AMOUNT}. Please enter a valid amount.`);
 			return;
 		}
 
@@ -861,21 +815,41 @@ const MobileRecharge = () => {
 				billDetails: billDetails || {},
 			};
 
-			if (circleInfo?.value) {
+			// Prioritize numeric code for backend (as per A1Topup API requirement)
+			// Backend will use numeric code if available, otherwise fallback to text code or value
+			if (circleInfo) {
+				// Send circle value (backend will normalize it)
 				rechargeData.circle = circleInfo.value;
+				
+				// Send label for display purposes
 				if (circleInfo.label) {
 					rechargeData.circleLabel = circleInfo.label;
 				}
-				if (circleInfo.textCode) {
-					rechargeData.circleCode = circleInfo.textCode;
-				}
+				
+				// CRITICAL: Send numeric code explicitly (backend prioritizes this for API call)
 				if (circleInfo.numericCode) {
 					rechargeData.circleNumeric = circleInfo.numericCode;
+					// Also send as circleCode so backend can find it easily
+					rechargeData.circleCode = circleInfo.numericCode;
+					console.log(`[Frontend] Sending circle with numeric code: ${circleInfo.numericCode} for circle: ${circleInfo.label}`);
+				} else {
+					console.warn(`[Frontend] Circle numeric code not found for: ${circleInfo.label}, using text code: ${circleInfo.textCode}`);
+				}
+				
+				// Send text code as well (for backend mapping fallback)
+				if (circleInfo.textCode) {
+					// Only set circleCode to textCode if numericCode is not available
+					if (!circleInfo.numericCode) {
+						rechargeData.circleCode = circleInfo.textCode;
+					}
 				}
 			} else if (circle) {
+				// Fallback: if we have circle but no circleInfo, send as-is
+				// Backend will try to normalize it
 				rechargeData.circle = circle;
-			} else if (detectedCircle) {
-				rechargeData.circle = detectedCircle;
+				console.warn(`[Frontend] Circle info not found, sending raw circle value: ${circle}`);
+			} else {
+				console.error('[Frontend] No circle provided for prepaid recharge!');
 			}
 
 			const response = await initiateRecharge(rechargeData);
@@ -1069,67 +1043,39 @@ const MobileRecharge = () => {
 							)}
 						</div>
 
-						{/* Circle - Auto-detected from server */}
+						{/* Circle */}
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-1">
 								Circle
-								{detectingCircle && (
-									<span className="ml-2 text-xs text-orange-600 font-normal">
-										<Loader2 className="w-3 h-3 inline animate-spin mr-1" />
-										Detecting...
-									</span>
-								)}
-								{detectedCircle && !detectingCircle && (
-									<span className="ml-2 text-xs text-green-600 font-normal">✓ Auto-detected</span>
+								{rechargeType === 'prepaid' && (
+									<span className="ml-1 text-xs text-red-500">*</span>
 								)}
 							</label>
-							{detectedCircle && !detectingCircle && rechargeType === 'prepaid' ? (
-								// Show detected circle as read-only info
-								<div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 shadow-sm">
-									<Globe2 className="w-4 h-4 text-green-600" />
-									<span className="text-sm font-medium text-green-700">{currentCircleLabel}</span>
-									<button
-										type="button"
-										onClick={() => {
-											setCircle('');
-											setDetectedCircle(null);
-										}}
-										className="ml-auto text-xs text-green-600 hover:text-green-700 underline"
-									>
-										Change
-									</button>
-								</div>
-							) : (
-								// Show dropdown for manual selection or when not detected
-								<div className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 ${circleFocusRingClass}`}>
-									<Globe2 className="w-4 h-4 text-gray-400" />
-									<select 
-										value={circle} 
-										onChange={(e) => {
-											setCircle(e.target.value);
-											if (e.target.value) {
-												setDetectedCircle(null); // Clear detected if user manually selects
-											}
-										}} 
-										className="w-full outline-none text-sm bg-transparent"
-										disabled={detectingCircle}
-									>
-										<option value="">
-											{detectingCircle ? 'Detecting circle...' : rechargeType === 'postpaid' ? 'Optional - Auto-detect' : 'Select or auto-detect'}
+							<div className={`flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm focus-within:ring-2 ${circleFocusRingClass}`}>
+								<Globe2 className="w-4 h-4 text-gray-400" />
+								<select 
+									value={circle} 
+									onChange={(e) => {
+										setCircle(e.target.value);
+									}} 
+									className="w-full outline-none text-sm bg-transparent"
+									required={rechargeType === 'prepaid'}
+								>
+									<option value="">
+										{rechargeType === 'postpaid' ? 'Optional - Select circle' : 'Select circle'}
+									</option>
+									{CIRCLE_OPTIONS.map(option => (
+										<option key={option.value} value={option.value}>
+											{option.label}
 										</option>
-										{CIRCLE_OPTIONS.map(option => (
-											<option key={option.value} value={option.value}>
-												{option.label}
-											</option>
-										))}
-									</select>
-								</div>
-							)}
+									))}
+								</select>
+							</div>
 							{rechargeType === 'postpaid' && (
-								<p className="mt-1 text-xs text-gray-400">Circle is optional - system will auto-detect if not provided.</p>
+								<p className="mt-1 text-xs text-gray-400">Circle is optional for postpaid recharges.</p>
 							)}
-							{rechargeType === 'prepaid' && !detectedCircle && !detectingCircle && (
-								<p className="mt-1 text-xs text-gray-400">Circle will be auto-detected from your mobile number, or you can select manually.</p>
+							{rechargeType === 'prepaid' && (
+								<p className="mt-1 text-xs text-gray-400">Please select your circle to proceed with prepaid recharge.</p>
 							)}
 						</div>
 

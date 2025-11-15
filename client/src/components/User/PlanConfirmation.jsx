@@ -232,18 +232,29 @@ const PlanConfirmation = () => {
 				billDetails: formData.billDetails || {},
 			};
 
-			if (formData.circleInfo?.value) {
+			// Prioritize numeric code for backend (as per A1Topup API requirement)
+			// Backend will use numeric code if available, otherwise fallback to text code or value
+			if (formData.circleInfo) {
+				// Always send the circle value (for backend mapping)
 				rechargeData.circle = formData.circleInfo.value;
+				
+				// Send label for display purposes
 				if (formData.circleInfo.label) {
 					rechargeData.circleLabel = formData.circleInfo.label;
 				}
-				if (formData.circleInfo.textCode) {
-					rechargeData.circleCode = formData.circleInfo.textCode;
-				}
+				
+				// Send numeric code (backend prioritizes this)
 				if (formData.circleInfo.numericCode) {
 					rechargeData.circleNumeric = formData.circleInfo.numericCode;
+					rechargeData.circleCode = formData.circleInfo.numericCode; // Also send as circleCode for compatibility
+				}
+				
+				// Send text code as fallback
+				if (formData.circleInfo.textCode && !formData.circleInfo.numericCode) {
+					rechargeData.circleCode = formData.circleInfo.textCode;
 				}
 			} else if (formData.circle) {
+				// Fallback: if we have circle but no circleInfo, send as-is
 				rechargeData.circle = formData.circle;
 			}
 

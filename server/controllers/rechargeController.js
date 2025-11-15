@@ -253,16 +253,16 @@ const resolveCircleNumericCode = (circleValue) => {
   if (!circleValue) return undefined;
   const normalized = circleValue.toString().trim();
   if (!normalized) return undefined;
-  
+
   // If it's already a numeric code, return it
   if (/^\d+$/.test(normalized)) {
     return normalized;
   }
-  
+
   // Try direct lookup
   const upperKey = normalized.replace(/\s+/g, "_").toUpperCase();
   let numericCode = CIRCLE_NUMERIC_CODE_MAP[upperKey];
-  
+
   // If not found, try resolving to text code first, then to numeric
   if (!numericCode) {
     const textCode = CIRCLE_CODE_MAP[upperKey];
@@ -273,7 +273,7 @@ const resolveCircleNumericCode = (circleValue) => {
         CIRCLE_NUMERIC_CODE_MAP[textCode];
     }
   }
-  
+
   return numericCode;
 };
 
@@ -415,7 +415,7 @@ const parseA1TopupLegacyResponse = (rawResponse) => {
   if (jsonLike) {
     try {
       return JSON.parse(trimmed);
-  } catch (error) {
+    } catch (error) {
       return { raw: trimmed, parseError: error.message };
     }
   }
@@ -462,7 +462,10 @@ const isA1TopupPendingStatus = (status) =>
   /(pending|inprocess|processing)/i.test(status || "");
 
 const callA1TopupRechargeEndpoint = async (params) => {
-  const legacyUrl = new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString();
+  const legacyUrl = new URL(
+    "/recharge/api",
+    A1TOPUP_LEGACY_BASE_URL
+  ).toString();
   const formBody = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
@@ -597,7 +600,6 @@ const getLocalPlansForOperator = (operator) => {
 };
 
 // ==================== Helper Functions ====================
-
 
 /**
  * Operator code mapping for aiTopUp API
@@ -780,6 +782,8 @@ const distributeCommissions = async (recharge) => {
 
 /**
  * Fetch recharge plans from aiTopUp API
+ * Note: If vendor account does not support plan-fetch endpoint, this falls back to local plans
+ * Deprecated plan-fetch endpoint calls have been removed - using local catalog instead
  */
 export const fetchRechargePlans = async (req, res) => {
   try {
@@ -790,6 +794,8 @@ export const fetchRechargePlans = async (req, res) => {
       rechargeType = "prepaid",
     } = req.query;
 
+    // Note: A1Topup plan-fetch endpoint may not be supported by all vendor accounts
+    // We use local plan catalog as fallback to ensure reliability
     if (!A1TOPUP_USERNAME || !A1TOPUP_PASSWORD) {
       return res.status(200).json({
         success: true,
@@ -811,26 +817,27 @@ export const fetchRechargePlans = async (req, res) => {
     if (!operatorInfo) {
       return res.status(400).json({
         success: false,
-        message: "Invalid prepaid operator selected. Please select a prepaid operator.",
+        message:
+          "Invalid prepaid operator selected. Please select a prepaid operator.",
       });
     }
 
     const plansFromProvider = getLocalPlansForOperator(operator);
 
     if (plansFromProvider.length > 0) {
-                    return res.status(200).json({
-                      success: true,
+      return res.status(200).json({
+        success: true,
         data: plansFromProvider,
-                      message:
+        message:
           "Plans are served from the local catalog. Please select an amount to continue.",
         source: "local_catalog",
       });
     }
 
-                  return res.status(200).json({
+    return res.status(200).json({
       success: false,
-        data: [],
-        message:
+      data: [],
+      message:
         "Plans are not available. Please enter the recharge amount manually.",
       source: "manual_entry",
     });
@@ -888,10 +895,10 @@ export const fetchPostpaidBill = async (req, res) => {
     const operatorCode = operatorInfo?.code || null;
     const operatorApiCode = operatorInfo?.apiCode || operator || null;
 
-      return res.status(200).json({
-        success: false,
-        data: {},
-        message:
+    return res.status(200).json({
+      success: false,
+      data: {},
+      message:
         "Bill fetch is not available via the A1Topup recharge API. Please enter the outstanding amount manually before proceeding with payment.",
       apiUsed: "not_supported",
       circleUsed: circle || null,
@@ -932,7 +939,8 @@ export const initiateRecharge = async (req, res) => {
     if (paymentMethod !== "wallet") {
       return res.status(400).json({
         success: false,
-        message: "Only wallet payment is supported. Please use wallet payment method.",
+        message:
+          "Only wallet payment is supported. Please use wallet payment method.",
         error: "INVALID_PAYMENT_METHOD",
       });
     }
@@ -946,18 +954,30 @@ export const initiateRecharge = async (req, res) => {
       });
     }
 
-    // Validate mobile number format
+    // Validate mobile number format (10 digits, starts with 6-9)
     if (!/^[6-9]\d{9}$/.test(mobileNumber)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid mobile number format",
+        message:
+          "Invalid mobile number format. Must be 10 digits starting with 6-9.",
+      });
+    }
+
+    // Validate minimum amount (₹10) as per A1Topup API requirements
+    const MINIMUM_RECHARGE_AMOUNT = 10;
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount < MINIMUM_RECHARGE_AMOUNT) {
+      return res.status(400).json({
+        success: false,
+        message: `Minimum recharge amount is ₹${MINIMUM_RECHARGE_AMOUNT}. Please enter a valid amount.`,
+        error: "INVALID_AMOUNT",
       });
     }
 
     // Get operator code and type
     // First determine recharge type, then validate operator
     let actualRechargeType = rechargeType;
-    
+
     // Try to determine type from operator name if not explicitly set
     if (!actualRechargeType && operator) {
       if (operator.toLowerCase().includes("postpaid")) {
@@ -966,37 +986,59 @@ export const initiateRecharge = async (req, res) => {
         actualRechargeType = "prepaid";
       }
     }
-    
+
     // Now check if circle is required (only for prepaid)
     const requiresCircle = actualRechargeType !== "postpaid";
     if (requiresCircle && !circle) {
       return res.status(400).json({
         success: false,
         message: "Circle is required for prepaid recharges",
+        error: "CIRCLE_REQUIRED",
       });
     }
-    
+
     // Validate operator based on recharge type
     let operatorInfo;
     if (actualRechargeType === "postpaid") {
       operatorInfo = POSTPAID_OPERATORS[operator];
-      if (!operatorInfo) {
+      if (!operatorInfo || !operatorInfo.code) {
         return res.status(400).json({
           success: false,
           message:
-            "Invalid postpaid operator selected. Please select a postpaid operator.",
+            "Invalid postpaid operator selected. Please select a valid postpaid operator.",
+          error: "INVALID_OPERATOR",
         });
       }
     } else {
       operatorInfo = PREPAID_OPERATORS[operator];
-      if (!operatorInfo) {
+      if (!operatorInfo || !operatorInfo.code) {
         return res.status(400).json({
           success: false,
           message:
-            "Invalid prepaid operator selected. Please select a prepaid operator.",
+            "Invalid prepaid operator selected. Please select a valid prepaid operator.",
+          error: "INVALID_OPERATOR",
         });
       }
     }
+
+    // Sanitize and log request parameters (for debugging, without sensitive data)
+    console.log(
+      `[Recharge][Initiate][Request]`,
+      JSON.stringify(
+        {
+          userId: userId.substring(0, 8) + "***", // Partially mask userId
+          mobileNumber: mobileNumber,
+          operator: operator,
+          operatorCode: operatorInfo.code,
+          amount: numericAmount,
+          rechargeType: actualRechargeType,
+          circle: circle || "not_provided",
+          paymentMethod: paymentMethod,
+        },
+        null,
+        2
+      )
+    );
 
     // Use operator type from operatorInfo if available
     actualRechargeType = operatorInfo.type || actualRechargeType;
@@ -1081,7 +1123,9 @@ export const initiateRecharge = async (req, res) => {
           discountAmount > 0
             ? `Recharge payment for ${mobileNumber} (${operator}) - ₹${originalAmount.toFixed(
                 2
-              )} (-₹${discountAmount.toFixed(2)} discount, ${discountPercentage}% off)`
+              )} (-₹${discountAmount.toFixed(
+                2
+              )} discount, ${discountPercentage}% off)`
             : `Recharge payment for ${mobileNumber} (${operator})`,
         status: "completed",
         reference: `RECHARGE_WALLET_${recharge._id}`,
@@ -1096,7 +1140,7 @@ export const initiateRecharge = async (req, res) => {
       await recharge.save();
 
       const rechargeResult = await processRechargeWithA1Topup(recharge);
-      
+
       // Check if processRechargeWithA1Topup returned an error object
       if (rechargeResult && rechargeResult.success === false) {
         // Refund wallet on provider failure
@@ -1114,12 +1158,12 @@ export const initiateRecharge = async (req, res) => {
           });
           await refundWallet.save();
         }
-        
+
         await handleFailedRecharge(
           recharge,
           rechargeResult.message || "Provider recharge failed"
         );
-        
+
         // Return 400 for vendor errors (business errors), not 500 (server errors)
         return res.status(400).json({
           success: false,
@@ -1128,7 +1172,7 @@ export const initiateRecharge = async (req, res) => {
           vendorResponse: rechargeResult.vendorResponse || null,
         });
       }
-      
+
       // Success case
       return res.status(200).json({
         success: true,
@@ -1145,11 +1189,11 @@ export const initiateRecharge = async (req, res) => {
     }
 
     // If we reach here, payment method is not wallet (shouldn't happen due to validation above)
-      return res.status(400).json({
-        success: false,
+    return res.status(400).json({
+      success: false,
       message: "Only wallet payment is supported",
       error: "INVALID_PAYMENT_METHOD",
-      });
+    });
   } catch (error) {
     console.error(
       "Error initiating recharge:",
@@ -1162,7 +1206,6 @@ export const initiateRecharge = async (req, res) => {
     });
   }
 };
-
 
 /**
  * Process recharge with aiTopUp API
@@ -1177,8 +1220,8 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     const operatorDirectory =
       recharge.rechargeType === "postpaid"
-      ? POSTPAID_OPERATORS
-      : PREPAID_OPERATORS;
+        ? POSTPAID_OPERATORS
+        : PREPAID_OPERATORS;
     const operatorInfo = operatorDirectory[recharge.operator] || {};
     const operatorCode = operatorInfo.code || recharge.operatorCode || null;
     const operatorApiCode =
@@ -1205,26 +1248,48 @@ const processRechargeWithA1Topup = async (recharge) => {
       throw new Error("Valid recharge amount is required");
     }
 
+    // Validate minimum amount (₹10) as per A1Topup API requirements
+    const MINIMUM_RECHARGE_AMOUNT = 10;
+    if (numericAmount < MINIMUM_RECHARGE_AMOUNT) {
+      throw new Error(
+        `Minimum recharge amount is ₹${MINIMUM_RECHARGE_AMOUNT}. Please enter a valid amount.`
+      );
+    }
+
+    // Resolve circle parameter - prioritize numeric code, only send if properly mapped
     const resolveCircleParam = (value) => {
       if (!value) return undefined;
+
+      // First try to get numeric code
       const numeric =
         resolveCircleNumericCode(value) ||
         resolveCircleNumericCode(resolveCircleCode(value));
-      if (numeric) return numeric;
-      const textCode = resolveCircleCode(value);
-      return textCode || value;
+
+      // Only return numeric code if found (as per API requirement)
+      if (numeric && /^\d+$/.test(numeric.toString())) {
+        return numeric;
+      }
+
+      // If numeric code not found, don't send circlecode (fallback to API auto-detection)
+      return undefined;
     };
 
+    // Prioritize circleNumeric if explicitly provided (from frontend)
+    // Then try circleCode, then circle, then circleLabel
     const circleParam =
-      resolveCircleParam(recharge.circle) ||
-      resolveCircleParam(recharge.circleCode) ||
-      resolveCircleParam(recharge.circleLabel);
+      recharge.circleNumeric && /^\d+$/.test(recharge.circleNumeric.toString())
+        ? recharge.circleNumeric.toString()
+        : resolveCircleParam(recharge.circleCode) ||
+          resolveCircleParam(recharge.circle) ||
+          resolveCircleParam(recharge.circleLabel);
 
     const orderId =
       recharge.aiTopUpOrderId ||
       `ORD-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
     recharge.aiTopUpOrderId = orderId;
 
+    // Build params as per A1Topup official API: username, pwd, operatorcode, number, amount, orderid, format
+    // circlecode only if we have a valid numeric mapping
     const params = {
       username: A1TOPUP_USERNAME,
       pwd: A1TOPUP_PASSWORD,
@@ -1235,7 +1300,8 @@ const processRechargeWithA1Topup = async (recharge) => {
       format: "json",
     };
 
-    if (circleParam) {
+    // Only add circlecode if we have a valid numeric code (as per API requirement)
+    if (circleParam && /^\d+$/.test(circleParam.toString())) {
       params.circlecode = circleParam.toString();
     }
 
@@ -1274,30 +1340,41 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     if (value1) {
       params.value1 = value1;
-      }
+    }
     if (value2) {
       params.value2 = value2;
-      }
+    }
     if (billDetails.value3) {
       params.value3 = billDetails.value3;
     }
 
-    try {
-      console.log(
-        `[A1Topup][Recharge][Legacy][Request]`,
-        JSON.stringify(
-          {
-            url: new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString(),
-            params: {
-              ...params,
-              pwd: "***",
-            },
-          },
-          null,
-          2
-        )
-      );
-    } catch (_) {}
+    // Sanitize and log all parameters (hide sensitive data)
+    const sanitizedParams = {
+      ...params,
+      pwd: "***", // Never log password
+      username: params.username
+        ? `${params.username.substring(0, 3)}***`
+        : undefined, // Partially mask username
+    };
+
+    console.log(
+      `[A1Topup][Recharge][Request]`,
+      JSON.stringify(
+        {
+          url: new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString(),
+          params: sanitizedParams,
+          mobileNumber: recharge.mobileNumber,
+          operator: recharge.operator,
+          operatorCode: operatorCode,
+          amount: numericAmount,
+          orderId: orderId,
+          circleParam: circleParam || "not_provided",
+          rechargeType: recharge.rechargeType,
+        },
+        null,
+        2
+      )
+    );
 
     const rawProviderResponse = await callA1TopupRechargeEndpoint(params);
     const parsedResponse = parseA1TopupLegacyResponse(rawProviderResponse);
@@ -1315,42 +1392,87 @@ const processRechargeWithA1Topup = async (recharge) => {
         return true;
       }
 
-      // Handle vendor failure responses gracefully
+      // Handle vendor failure responses as per A1Topup API documentation
+      // Check status=Failure and opid for specific error codes
       const opid = parsedResponse.opid || parsedResponse.opId || "";
       const errorCode = opid.toString().trim();
-      
+      const responseMessage =
+        parsedResponse.message || parsedResponse.msg || "";
+
       // Map vendor error codes to user-friendly messages
       let errorMessage = "Recharge failed";
       let errorType = "VENDOR_ERROR";
-      
-      if (/low\s*balance/i.test(errorCode)) {
-        errorMessage = "Service temporarily unavailable. Our recharge service is currently experiencing high demand. Please try again in a few minutes.";
+
+      // Handle status=Failure and opid=Low Balance → treat as vendor wallet issue
+      if (
+        /low\s*balance/i.test(errorCode) ||
+        /low\s*balance/i.test(responseMessage)
+      ) {
+        errorMessage =
+          "Service temporarily unavailable. Our recharge service is currently experiencing high demand. Please try again in a few minutes.";
         errorType = "VENDOR_LOW_BALANCE";
-      } else if (/parameter/i.test(errorCode) || /missing/i.test(errorCode)) {
-        errorMessage = "Invalid request parameters. Please verify your recharge details and try again.";
+      }
+      // Handle status=Failure and message 'Parameter is missing' → treat as param mismatch
+      else if (
+        /parameter/i.test(errorCode) ||
+        /missing/i.test(errorCode) ||
+        /parameter.*missing/i.test(responseMessage)
+      ) {
+        errorMessage =
+          "Invalid request parameters. Please verify your recharge details (operator, circle, mobile number) and try again.";
         errorType = "VENDOR_INVALID_PARAMS";
-      } else if (/minimum/i.test(errorCode) || /amount/i.test(errorCode)) {
-        errorMessage = `Invalid recharge amount. ${parsedResponse.message || errorCode}`;
+      }
+      // Handle amount-related errors
+      else if (
+        /minimum/i.test(errorCode) ||
+        /amount/i.test(errorCode) ||
+        /invalid.*amount/i.test(responseMessage)
+      ) {
+        errorMessage = `Invalid recharge amount. Minimum amount is ₹10. ${
+          parsedResponse.message || errorCode || ""
+        }`;
         errorType = "VENDOR_INVALID_AMOUNT";
-      } else if (parsedResponse.message || parsedResponse.msg) {
-        errorMessage = parsedResponse.message || parsedResponse.msg;
+      }
+      // Handle operator-related errors
+      else if (
+        /operator/i.test(errorCode) ||
+        /invalid.*operator/i.test(responseMessage)
+      ) {
+        errorMessage =
+          "Invalid operator code. Please verify your operator selection and try again.";
+        errorType = "VENDOR_INVALID_OPERATOR";
+      }
+      // Fallback to response message if available
+      else if (responseMessage) {
+        errorMessage = responseMessage;
       } else if (statusText) {
         errorMessage = statusText;
       }
-      
-      // Log vendor error for debugging
-        console.error(
+
+      // Log vendor error for debugging (sanitized)
+      console.error(
         `[A1Topup][Recharge][Vendor Failure]`,
-        JSON.stringify({
-          mobileNumber: recharge.mobileNumber,
-          amount: recharge.amount,
-          orderId: orderId,
-          status: statusText,
-          opid: errorCode,
-          parsedResponse: parsedResponse,
-        }, null, 2)
+        JSON.stringify(
+          {
+            mobileNumber: recharge.mobileNumber,
+            amount: recharge.amount,
+            orderId: orderId,
+            status: statusText,
+            opid: errorCode,
+            errorType: errorType,
+            errorMessage: errorMessage,
+            parsedResponse: {
+              ...parsedResponse,
+              // Remove any sensitive data from response logging
+              pwd: parsedResponse.pwd ? "***" : undefined,
+              password: parsedResponse.password ? "***" : undefined,
+            },
+          },
+          null,
+          2
+        )
       );
-      
+
       // Return error object instead of throwing
       return {
         success: false,
@@ -1408,7 +1530,7 @@ const processRechargeWithA1Topup = async (recharge) => {
       providerError?.error_code ||
       error.message ||
       "Recharge failed";
-    
+
     // Return error object for network/API errors
     return {
       success: false,
@@ -1431,9 +1553,9 @@ const handleFailedRecharge = async (recharge, reason) => {
 
     // Note: Refunds for wallet payments are handled in initiateRecharge
     // This function just marks the recharge as failed
-      console.log(
+    console.log(
       `❌ Recharge failed: ₹${recharge.amount} for ${recharge.mobileNumber} - ${reason}`
-      );
+    );
   } catch (error) {
     console.error(
       "Error handling failed recharge:",
@@ -1728,8 +1850,8 @@ export const updateRecharge = async (req, res) => {
         const rechargeType = updateData.rechargeType || recharge.rechargeType;
         const operatorInfo =
           rechargeType === "postpaid"
-          ? POSTPAID_OPERATORS[updateData.operator]
-          : PREPAID_OPERATORS[updateData.operator];
+            ? POSTPAID_OPERATORS[updateData.operator]
+            : PREPAID_OPERATORS[updateData.operator];
         if (operatorInfo) {
           updateData.operatorCode = operatorInfo.code;
           updateData.operatorApiCode =

@@ -506,3 +506,54 @@ export const getWalletTopUpStats = async (req, res) => {
   }
 };
 
+// Admin: Delete wallet top-up
+export const deleteWalletTopUp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.userId;
+
+    const topUp = await WalletTopUp.findById(id);
+
+    if (!topUp) {
+      return res.status(404).json({
+        success: false,
+        message: "Wallet top-up request not found",
+      });
+    }
+
+    // Prevent deletion of approved top-ups that have already credited the wallet
+    if (topUp.status === "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete an approved wallet top-up. The amount has already been credited to the user's wallet.",
+      });
+    }
+
+    // Delete payment proof from Cloudinary if it exists
+    if (topUp.paymentProofUrl) {
+      try {
+        const publicId = topUp.paymentProofUrl.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error("Error deleting payment proof from Cloudinary:", cloudinaryError);
+        // Continue with deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete the top-up record
+    await WalletTopUp.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Wallet top-up deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete wallet top-up error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete wallet top-up",
+      error: error.message,
+    });
+  }
+};
+

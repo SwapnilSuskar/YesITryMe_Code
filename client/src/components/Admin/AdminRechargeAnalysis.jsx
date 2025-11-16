@@ -1,11 +1,10 @@
-import { BarChart3, DollarSign, Smartphone, TrendingUp, Users, Wallet, RefreshCw, Calendar, Filter, Edit, Trash2, X, Save, AlertCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { BarChart3, DollarSign, Smartphone, TrendingUp, Users, Wallet, RefreshCw, Filter, Edit, Trash2, X, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
+import { toast, ToastContainer } from 'react-toastify';
 
 const AdminRechargeAnalysis = () => {
-  const location = useLocation();
   const { token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -45,6 +44,7 @@ const AdminRechargeAnalysis = () => {
       fetchStats();
       fetchRecharges();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, filters]);
 
   const fetchStats = async () => {
@@ -144,7 +144,15 @@ const AdminRechargeAnalysis = () => {
         setDeletingRecharge(null);
         fetchRecharges();
         fetchStats();
-        alert('Recharge record deleted successfully!');
+        toast.success('Recharge record deleted successfully', {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       }
     } catch (error) {
       console.error('Error deleting recharge:', error);
@@ -153,6 +161,25 @@ const AdminRechargeAnalysis = () => {
       setDeleting(false);
     }
   };
+
+  // Calculate total commission from all successful recharges
+  const calculatedTotalCommission = useMemo(() => {
+    return recharges
+      .filter((r) => r.status === 'success')
+      .reduce((sum, r) => sum + (Number(r.adminCommission) || 0), 0);
+  }, [recharges]);
+
+  // Use calculated commission if backend value is 0 or missing, otherwise use backend value
+  const displayTotalCommission = useMemo(() => {
+    // If backend has a value and it's greater than 0, use it
+    // Otherwise, use calculated value from loaded recharges
+    // Note: Calculated value only includes current page, so backend is preferred when available
+    if (stats.totalCommission && stats.totalCommission > 0) {
+      return stats.totalCommission;
+    }
+    // Fallback to calculated value if backend returns 0 or undefined
+    return calculatedTotalCommission;
+  }, [stats.totalCommission, calculatedTotalCommission]);
 
   const formatCurrency = (amount) => {
     const value = Number(amount || 0);
@@ -194,6 +221,26 @@ const AdminRechargeAnalysis = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50 pt-20 pb-12">
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+        className="toast-container"
+        toastClassName="toast"
+        bodyClassName="toast-body"
+        progressClassName="toast-progress"
+        iconClassName="toast-icon"
+        closeButtonClassName="toast-close-button"
+        closeButton={<X className="w-4 h-4" />}
+        icon={<CheckCircle className="w-5 h-5 text-green-600" />}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 p-6 rounded-2xl shadow-xl mb-6">
@@ -218,7 +265,7 @@ const AdminRechargeAnalysis = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-gray-600">Total Transactions</h3>
@@ -242,19 +289,9 @@ const AdminRechargeAnalysis = () => {
               <h3 className="text-sm font-semibold text-gray-600">Total Commission</h3>
               <Wallet className="w-5 h-5 text-purple-500" />
             </div>
-            <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.totalCommission)}</p>
+            <p className="text-2xl font-bold text-gray-800">{formatCurrency(displayTotalCommission)}</p>
             <p className="text-xs text-gray-500 mt-1">Admin commission earned</p>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-gray-600">Provider Commission</h3>
-              <Wallet className="w-5 h-5 text-blue-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.providerCommission)}</p>
-            <p className="text-xs text-gray-500 mt-1">Commission reported by provider</p>
-          </div>
-
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-gray-600">Success Rate</h3>
@@ -270,40 +307,6 @@ const AdminRechargeAnalysis = () => {
             </p>
           </div>
         </div>
-
-        {/* Operator Stats */}
-        {stats.operatorStats && stats.operatorStats.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-orange-500" />
-              Operator Performance
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stats.operatorStats.map((op, index) => (
-                <div key={index} className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-4 border border-orange-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">{op._id}</h3>
-                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
-                      {op.count} transactions
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">
-                      Revenue: <span className="font-bold text-green-600">{formatCurrency(op.revenue)}</span>
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Commission: <span className="font-bold text-purple-600">{formatCurrency(op.commission)}</span>
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Provider Commission: <span className="font-bold text-blue-600">{formatCurrency(op.providerCommission || 0)}</span>
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
           <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -416,7 +419,7 @@ const AdminRechargeAnalysis = () => {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span className="font-medium text-purple-600">
-                            {formatCurrency(recharge.adminCommission || 0)}
+                            {formatCurrency(recharge.adminCommission) || 0}
                           </span>
                           {recharge.adminCommissionPercentage > 0 && (
                             <p className="text-xs text-gray-500">
@@ -634,37 +637,37 @@ const AdminRechargeAnalysis = () => {
                   />
                 </div>
               </div>
-            {editingRecharge && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Provider Response Snapshot</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-                  <p>
-                    Provider Commission:{' '}
-                    <span className="font-semibold text-blue-600">
-                      {formatCurrency(editingRecharge.providerCommission || 0)}
-                    </span>
-                  </p>
-                  <p>
-                    Provider Wallet:{' '}
-                    <span className="font-semibold text-blue-600">
-                      {formatCurrency(editingRecharge.providerBalance || 0)}
-                    </span>
-                  </p>
-                  {editingRecharge.providerReceiptUrl && (
-                    <p className="md:col-span-2">
-                      <a
-                        href={editingRecharge.providerReceiptUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline flex items-center gap-1"
-                      >
-                        View Provider Receipt
-                      </a>
+              {editingRecharge && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Provider Response Snapshot</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
+                    <p>
+                      Provider Commission:{' '}
+                      <span className="font-semibold text-blue-600">
+                        {formatCurrency(editingRecharge.providerCommission || 0)}
+                      </span>
                     </p>
-                  )}
+                    <p>
+                      Provider Wallet:{' '}
+                      <span className="font-semibold text-blue-600">
+                        {formatCurrency(editingRecharge.providerBalance || 0)}
+                      </span>
+                    </p>
+                    {editingRecharge.providerReceiptUrl && (
+                      <p className="md:col-span-2">
+                        <a
+                          href={editingRecharge.providerReceiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline flex items-center gap-1"
+                        >
+                          View Provider Receipt
+                        </a>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Failure Reason</label>
                 <textarea

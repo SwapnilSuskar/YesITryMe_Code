@@ -283,5 +283,6 @@ export const API_ENDPOINTS = {
     adminGet: `${API_URL}/api/wallet-topup/admin/:id`,
     adminApprove: `${API_URL}/api/wallet-topup/admin/:id/approve`,
     adminReject: `${API_URL}/api/wallet-topup/admin/:id/reject`,
+    adminDelete: `${API_URL}/api/wallet-topup/admin/:id`,
   },
 };

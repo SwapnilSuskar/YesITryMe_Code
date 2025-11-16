@@ -27,19 +27,19 @@ const Navbar = () => {
   // Navigation items for authenticated users
   const authenticatedNavItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    // { name: 'My Recharge', path: '/recharge', icon: BatteryCharging },
+    { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
+    { name: 'Payout', path: '/payout', icon: Wallet },
     { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
-    { name: 'Profile', path: '/profile', icon: User },
-    { name: 'Nominees', path: '/nominee', icon: UserCheck },
     { name: 'My Team', path: '/my-team', icon: Users },
-    { name: 'AI Tools', path: '/ai-tools', icon: Brain },
     { name: 'Packages', path: '/packages', icon: BookOpen },
     { name: 'Super Packages', path: '/super-packages', icon: Zap },
+    { name: 'Profile', path: '/profile', icon: User },
+    { name: 'KYC', path: '/kyc', icon: LinkIcon },
+    { name: 'AI Tools', path: '/ai-tools', icon: Brain },
     { name: 'My Products', path: '/products', icon: Package },
     { name: 'My Ebooks', path: '/ebooks', icon: BookOpen },
-    { name: 'KYC', path: '/kyc', icon: LinkIcon },
-    // { name: 'Recharge', path: '/recharge', icon: BatteryCharging },
-    { name: 'Payout', path: '/payout', icon: Wallet },
-    { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
+    { name: 'Nominees', path: '/nominee', icon: UserCheck },
   ];
 
 

@@ -1442,6 +1442,24 @@ const processRechargeWithA1Topup = async (recharge) => {
           "Invalid operator code. Please verify your operator selection and try again.";
         errorType = "VENDOR_INVALID_OPERATOR";
       }
+      // Handle IP whitelist errors (server configuration issue)
+      else if (
+        /invalid.*ip/i.test(errorCode) ||
+        /invalid.*ip/i.test(responseMessage) ||
+        /ip.*not.*allowed/i.test(responseMessage) ||
+        /ip.*whitelist/i.test(responseMessage)
+      ) {
+        errorMessage =
+          "Service temporarily unavailable. Please contact support if this issue persists.";
+        errorType = "VENDOR_IP_NOT_ALLOWED";
+        // Extract IP address from error message for admin reference
+        const ipMatch = (errorCode + " " + responseMessage).match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+        if (ipMatch) {
+          console.error(
+            `[A1Topup][IP Whitelist] Server IP ${ipMatch[0]} needs to be added to A1Topup IP whitelist in vendor dashboard.`
+          );
+        }
+      }
       // Fallback to response message if available
       else if (responseMessage) {
         errorMessage = responseMessage;
@@ -1701,7 +1719,7 @@ export const getAllRecharges = async (req, res) => {
     ]);
 
     const totalCommission = await Recharge.aggregate([
-      { $match: { ...query, status: "success", commissionDistributed: true } },
+      { $match: { ...query, status: "success" } }, // Removed commissionDistributed: true to include all successful recharges
       { $group: { _id: null, total: { $sum: "$adminCommission" } } },
     ]);
 
@@ -1770,7 +1788,8 @@ export const getRechargeStats = async (req, res) => {
           $match: {
             ...dateQuery,
             status: "success",
-            commissionDistributed: true,
+            // Removed commissionDistributed: true to include all successful recharges
+            // Total commission should reflect all admin commissions from successful recharges
           },
         },
         { $group: { _id: null, total: { $sum: "$adminCommission" } } },

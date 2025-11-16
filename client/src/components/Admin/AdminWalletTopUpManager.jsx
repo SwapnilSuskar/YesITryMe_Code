@@ -14,6 +14,7 @@ import {
     BarChart3,
     TrendingUp,
     IndianRupee,
+    Trash2,
 } from "lucide-react";
 
 const AdminWalletTopUpManager = () => {
@@ -27,6 +28,7 @@ const AdminWalletTopUpManager = () => {
     const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0, recent: 0 });
     const [selectedTopUp, setSelectedTopUp] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [adminNotes, setAdminNotes] = useState("");
     const [rejectionReason, setRejectionReason] = useState("");
@@ -34,6 +36,7 @@ const AdminWalletTopUpManager = () => {
     useEffect(() => {
         fetchTopUps();
         fetchStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage, statusFilter]);
 
     const fetchTopUps = async () => {
@@ -140,6 +143,33 @@ const AdminWalletTopUpManager = () => {
             }
         } catch (err) {
             setError(err.response?.data?.message || "Failed to fetch top-up details");
+        }
+    };
+
+    const handleDeleteClick = (topUp) => {
+        // setSelectedTopUp(topUp);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDelete = async () => {
+        // if (!selectedTopUp) return;
+
+        setActionLoading(true);
+        try {
+            const response = await api.delete(
+                API_ENDPOINTS.walletTopUp.adminDelete.replace(":id", selectedTopUp.id)
+            );
+            if (response.data.success) {
+                setShowDeleteConfirm(false);
+                // setSelectedTopUp(null);
+                fetchTopUps();
+                fetchStats();
+                alert("Wallet top-up deleted successfully!");
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to delete wallet top-up");
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -337,20 +367,30 @@ const AdminWalletTopUpManager = () => {
                                                     {new Date(topUp.submittedAt).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <button
-                                                        onClick={() => openTopUpModal(topUp.id)}
-                                                        className="px-3 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium transition-colors flex items-center gap-1"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                        View
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => openTopUpModal(topUp.id)}
+                                                            className="px-3 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium transition-colors flex items-center gap-1"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                            View
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(topUp)}
+                                                            disabled={topUp.status === "approved"}
+                                                            className="px-3 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            title={topUp.status === "approved" ? "Cannot delete approved top-ups" : "Delete"}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-
                             {/* Pagination */}
                             {totalPages > 1 && (
                                 <div className="px-4 py-4 border-t border-gray-200 flex items-center justify-between">
@@ -574,10 +614,71 @@ const AdminWalletTopUpManager = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteConfirm && selectedTopUp && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                        <AlertCircle className="w-6 h-6 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-800">Delete Wallet Top-Up</h2>
+                                        <p className="text-sm text-gray-600">This action cannot be undone</p>
+                                    </div>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                    <p className="text-sm text-gray-700 mb-2">
+                                        Are you sure you want to delete this wallet top-up request?
+                                    </p>
+                                    <div className="mt-2 text-xs text-gray-600 space-y-1">
+                                        <p><strong>User:</strong> {selectedTopUp.user?.name || "N/A"}</p>
+                                        <p><strong>Amount:</strong> ₹{selectedTopUp.paymentAmount?.toLocaleString("en-IN", {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        }) || "0.00"}</p>
+                                        <p><strong>Status:</strong> {selectedTopUp.status || "N/A"}</p>
+                                        <p><strong>Transaction ID:</strong> {selectedTopUp.transactionId || "N/A"}</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteConfirm(false);
+                                            setSelectedTopUp(null);
+                                        }}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                                        disabled={actionLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDelete}
+                                        disabled={actionLoading}
+                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+                                    >
+                                        {actionLoading ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="w-4 h-4" />
+                                                Delete
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
 export default AdminWalletTopUpManager;
-

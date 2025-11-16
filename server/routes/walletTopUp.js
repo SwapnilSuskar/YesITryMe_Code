@@ -7,6 +7,7 @@ import {
   approveWalletTopUp,
   rejectWalletTopUp,
   getWalletTopUpStats,
+  deleteWalletTopUp,
 } from "../controllers/walletTopUpController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import fileUpload from "express-fileupload";
@@ -33,6 +34,7 @@ router.get("/admin/stats", protect, admin, getWalletTopUpStats);
 router.get("/admin/:id", protect, admin, getWalletTopUp);
 router.patch("/admin/:id/approve", protect, admin, approveWalletTopUp);
 router.patch("/admin/:id/reject", protect, admin, rejectWalletTopUp);
+router.delete("/admin/:id", protect, admin, deleteWalletTopUp);
 
 export default router;
 

@@ -27,7 +27,7 @@ const Navbar = () => {
   // Navigation items for authenticated users
   const authenticatedNavItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    // { name: 'My Recharge', path: '/recharge', icon: BatteryCharging },
+    { name: 'Recharge', path: '/recharge', icon: BatteryCharging },
     { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
     { name: 'Payout', path: '/payout', icon: Wallet },
     { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },

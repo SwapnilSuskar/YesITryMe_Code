@@ -1,7 +1,6 @@
 import express from "express";
 import {
   fetchRechargePlans,
-  fetchPostpaidBill,
   detectCircle,
   initiateRecharge,
   checkRechargeStatus,
@@ -19,7 +18,6 @@ const router = express.Router();
 // Protected user routes
 router.get("/plans", protect, fetchRechargePlans);
 router.get("/detect-circle", protect, detectCircle);
-router.post("/postpaid/fetch-bill", protect, fetchPostpaidBill);
 router.post("/initiate", protect, initiateRecharge);
 router.get("/status/:rechargeId", protect, checkRechargeStatus);
 router.get("/history", protect, getRechargeHistory);

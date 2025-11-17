@@ -253,16 +253,16 @@ const resolveCircleNumericCode = (circleValue) => {
   if (!circleValue) return undefined;
   const normalized = circleValue.toString().trim();
   if (!normalized) return undefined;
-
+  
   // If it's already a numeric code, return it
   if (/^\d+$/.test(normalized)) {
     return normalized;
   }
-
+  
   // Try direct lookup
   const upperKey = normalized.replace(/\s+/g, "_").toUpperCase();
   let numericCode = CIRCLE_NUMERIC_CODE_MAP[upperKey];
-
+  
   // If not found, try resolving to text code first, then to numeric
   if (!numericCode) {
     const textCode = CIRCLE_CODE_MAP[upperKey];
@@ -273,7 +273,7 @@ const resolveCircleNumericCode = (circleValue) => {
         CIRCLE_NUMERIC_CODE_MAP[textCode];
     }
   }
-
+  
   return numericCode;
 };
 
@@ -415,7 +415,7 @@ const parseA1TopupLegacyResponse = (rawResponse) => {
   if (jsonLike) {
     try {
       return JSON.parse(trimmed);
-    } catch (error) {
+  } catch (error) {
       return { raw: trimmed, parseError: error.message };
     }
   }
@@ -504,6 +504,127 @@ const LOCAL_PREPAID_PLAN_CATALOG = {
       validity: "28 days",
       benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
       description: "Jio 2GB/day high data pack",
+    },
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1.5GB/day high data pack",
+    },
+    {
+      amount: 666,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio long-validity combo pack",
+    },
+  ],
+  Airtel: [
+    {
+      amount: 265,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel 1.5GB/day combo plan",
+    },
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel entertainment plan",
+    },
+    {
+      amount: 719,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Airtel long-validity combo pack",
+    },
+  ],
+  Vodafone: [
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI 1.5GB/day combo pack",
+    },
+    {
+      amount: 399,
+      validity: "35 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI 35-day validity pack",
+    },
+    {
+      amount: 799,
+      validity: "56 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "VI weekend rollover plan",
+    },
+  ],
+  Idea: [
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea 1.5GB/day combo pack",
+    },
+    {
+      amount: 359,
+      validity: "28 days",
+      benefits: "3GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea high-data pack",
+    },
+    {
+      amount: 719,
+      validity: "84 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Idea long-validity combo pack",
+    },
+  ],
+  "BSNL TOPUP": [
+    {
+      amount: 247,
+      validity: "30 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL STV combo plan",
+    },
+    {
+      amount: 347,
+      validity: "56 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL data-centric pack",
+    },
+    {
+      amount: 447,
+      validity: "60 days",
+      benefits: "100GB total data, unlimited voice calls, 100 SMS/day",
+      description: "BSNL work-from-home pack",
+    },
+  ],
+};
+
+const LOCAL_POSTPAID_PLAN_CATALOG = {
+  "RELIANCE JIO": [
+    {
+      amount: 19,
+      validity: "1 day",
+      benefits: "1GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1GB/day combo plan",
+    },
+    {
+      amount: 209,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1.5GB/day combo plan",
+    },
+    {
+      amount: 239,
+      validity: "28 days",
+      benefits: "2GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 2GB/day high data pack",
+    },
+    {
+      amount: 299,
+      validity: "28 days",
+      benefits: "1.5GB/day data, unlimited voice calls, 100 SMS/day",
+      description: "Jio 1.5GB/day high data pack",
     },
     {
       amount: 666,
@@ -597,6 +718,11 @@ const LOCAL_PREPAID_PLAN_CATALOG = {
 const getLocalPlansForOperator = (operator) => {
   if (!operator) return [];
   return LOCAL_PREPAID_PLAN_CATALOG[operator.toString().trim()] || [];
+};
+
+const getLocalPostpaidPlansForOperator = (operator) => {
+  if (!operator) return [];
+  return LOCAL_POSTPAID_PLAN_CATALOG[operator.toString().trim()] || [];
 };
 
 // ==================== Helper Functions ====================
@@ -825,19 +951,19 @@ export const fetchRechargePlans = async (req, res) => {
     const plansFromProvider = getLocalPlansForOperator(operator);
 
     if (plansFromProvider.length > 0) {
-      return res.status(200).json({
-        success: true,
+                    return res.status(200).json({
+                      success: true,
         data: plansFromProvider,
-        message:
+                      message:
           "Plans are served from the local catalog. Please select an amount to continue.",
         source: "local_catalog",
       });
     }
 
-    return res.status(200).json({
+                  return res.status(200).json({
       success: false,
-      data: [],
-      message:
+        data: [],
+        message:
         "Plans are not available. Please enter the recharge amount manually.",
       source: "manual_entry",
     });
@@ -872,47 +998,6 @@ export const detectCircle = async (req, res) => {
       success: false,
       message:
         "Circle detection is disabled. Please select your circle manually before proceeding.",
-    });
-  }
-};
-
-/**
- * Fetch postpaid bill details from A1Topup
- * Tries both new REST API and legacy API sequentially
- */
-export const fetchPostpaidBill = async (req, res) => {
-  try {
-    const { mobileNumber, operator, circle } = req.body;
-
-    if (!mobileNumber) {
-      return res.status(400).json({
-        success: false,
-        message: "Mobile number is required",
-      });
-    }
-
-    const operatorInfo = operator ? POSTPAID_OPERATORS[operator] : null;
-    const operatorCode = operatorInfo?.code || null;
-    const operatorApiCode = operatorInfo?.apiCode || operator || null;
-
-    return res.status(200).json({
-      success: false,
-      data: {},
-      message:
-        "Bill fetch is not available via the A1Topup recharge API. Please enter the outstanding amount manually before proceeding with payment.",
-      apiUsed: "not_supported",
-      circleUsed: circle || null,
-      operatorUsed: operatorApiCode || operatorCode || operator || null,
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching postpaid bill:",
-      error.response?.data || error.message
-    );
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch bill details",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -977,7 +1062,7 @@ export const initiateRecharge = async (req, res) => {
     // Get operator code and type
     // First determine recharge type, then validate operator
     let actualRechargeType = rechargeType;
-
+    
     // Try to determine type from operator name if not explicitly set
     if (!actualRechargeType && operator) {
       if (operator.toLowerCase().includes("postpaid")) {
@@ -986,7 +1071,7 @@ export const initiateRecharge = async (req, res) => {
         actualRechargeType = "prepaid";
       }
     }
-
+    
     // Now check if circle is required (only for prepaid)
     const requiresCircle = actualRechargeType !== "postpaid";
     if (requiresCircle && !circle) {
@@ -996,7 +1081,7 @@ export const initiateRecharge = async (req, res) => {
         error: "CIRCLE_REQUIRED",
       });
     }
-
+    
     // Validate operator based on recharge type
     let operatorInfo;
     if (actualRechargeType === "postpaid") {
@@ -1189,11 +1274,11 @@ export const initiateRecharge = async (req, res) => {
     }
 
     // If we reach here, payment method is not wallet (shouldn't happen due to validation above)
-    return res.status(400).json({
-      success: false,
+      return res.status(400).json({
+        success: false,
       message: "Only wallet payment is supported",
       error: "INVALID_PAYMENT_METHOD",
-    });
+      });
   } catch (error) {
     console.error(
       "Error initiating recharge:",
@@ -1220,8 +1305,8 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     const operatorDirectory =
       recharge.rechargeType === "postpaid"
-        ? POSTPAID_OPERATORS
-        : PREPAID_OPERATORS;
+      ? POSTPAID_OPERATORS
+      : PREPAID_OPERATORS;
     const operatorInfo = operatorDirectory[recharge.operator] || {};
     const operatorCode = operatorInfo.code || recharge.operatorCode || null;
     const operatorApiCode =
@@ -1284,7 +1369,7 @@ const processRechargeWithA1Topup = async (recharge) => {
           resolveCircleParam(recharge.circleLabel);
 
     const orderId =
-      recharge.aiTopUpOrderId ||
+              recharge.aiTopUpOrderId ||
       `ORD-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
     recharge.aiTopUpOrderId = orderId;
 
@@ -1355,12 +1440,12 @@ const processRechargeWithA1Topup = async (recharge) => {
       username: params.username
         ? `${params.username.substring(0, 3)}***`
         : undefined, // Partially mask username
-    };
+      };
 
-    console.log(
+      console.log(
       `[A1Topup][Recharge][Request]`,
-      JSON.stringify(
-        {
+        JSON.stringify(
+          {
           url: new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString(),
           params: sanitizedParams,
           mobileNumber: recharge.mobileNumber,
@@ -1370,11 +1455,11 @@ const processRechargeWithA1Topup = async (recharge) => {
           orderId: orderId,
           circleParam: circleParam || "not_provided",
           rechargeType: recharge.rechargeType,
-        },
-        null,
-        2
-      )
-    );
+          },
+          null,
+          2
+        )
+      );
 
     const rawProviderResponse = await callA1TopupRechargeEndpoint(params);
     const parsedResponse = parseA1TopupLegacyResponse(rawProviderResponse);
@@ -1453,7 +1538,9 @@ const processRechargeWithA1Topup = async (recharge) => {
           "Service temporarily unavailable. Please contact support if this issue persists.";
         errorType = "VENDOR_IP_NOT_ALLOWED";
         // Extract IP address from error message for admin reference
-        const ipMatch = (errorCode + " " + responseMessage).match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+        const ipMatch = (errorCode + " " + responseMessage).match(
+          /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
+        );
         if (ipMatch) {
           console.error(
             `[A1Topup][IP Whitelist] Server IP ${ipMatch[0]} needs to be added to A1Topup IP whitelist in vendor dashboard.`
@@ -1470,8 +1557,8 @@ const processRechargeWithA1Topup = async (recharge) => {
       // Log vendor error for debugging (sanitized)
       console.error(
         `[A1Topup][Recharge][Vendor Failure]`,
-        JSON.stringify(
-          {
+      JSON.stringify(
+        {
             mobileNumber: recharge.mobileNumber,
             amount: recharge.amount,
             orderId: orderId,
@@ -1484,12 +1571,12 @@ const processRechargeWithA1Topup = async (recharge) => {
               // Remove any sensitive data from response logging
               pwd: parsedResponse.pwd ? "***" : undefined,
               password: parsedResponse.password ? "***" : undefined,
-            },
           },
-          null,
-          2
-        )
-      );
+        },
+        null,
+        2
+      )
+    );
 
       // Return error object instead of throwing
       return {
@@ -1571,9 +1658,9 @@ const handleFailedRecharge = async (recharge, reason) => {
 
     // Note: Refunds for wallet payments are handled in initiateRecharge
     // This function just marks the recharge as failed
-    console.log(
+      console.log(
       `❌ Recharge failed: ₹${recharge.amount} for ${recharge.mobileNumber} - ${reason}`
-    );
+      );
   } catch (error) {
     console.error(
       "Error handling failed recharge:",
@@ -1869,8 +1956,8 @@ export const updateRecharge = async (req, res) => {
         const rechargeType = updateData.rechargeType || recharge.rechargeType;
         const operatorInfo =
           rechargeType === "postpaid"
-            ? POSTPAID_OPERATORS[updateData.operator]
-            : PREPAID_OPERATORS[updateData.operator];
+          ? POSTPAID_OPERATORS[updateData.operator]
+          : PREPAID_OPERATORS[updateData.operator];
         if (operatorInfo) {
           updateData.operatorCode = operatorInfo.code;
           updateData.operatorApiCode =

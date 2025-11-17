@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, IndianRupee, Sparkles, AlertCircle, X } from 'lucide-react';
 import { initiateRecharge, getWalletBalance } from '../../services/rechargeService';
@@ -34,6 +34,7 @@ const PlanConfirmation = () => {
 	const [checkingKyc, setCheckingKyc] = useState(true);
 	const [isConfirming, setIsConfirming] = useState(false);
 	const [errorMessage, setErrorMessage] = useState(null);
+	const isFetchingBalanceRef = useRef(false); // Prevent multiple simultaneous balance fetches
 
 	// Get data from navigation state
 	const formData = location.state?.formData;
@@ -80,9 +81,12 @@ const PlanConfirmation = () => {
 		checkKycStatus();
 	}, [checkKycStatus]);
 
-	// Fetch wallet balance
+	// Fetch wallet balance - only once on mount
 	useEffect(() => {
+		if (isFetchingBalanceRef.current) return;
+
 		const fetchBalance = async () => {
+			isFetchingBalanceRef.current = true;
 			setCheckingWallet(true);
 			try {
 				const response = await getWalletBalance();
@@ -93,10 +97,32 @@ const PlanConfirmation = () => {
 				console.error('Error fetching wallet balance:', error);
 			} finally {
 				setCheckingWallet(false);
+				isFetchingBalanceRef.current = false;
 			}
 		};
 
 		fetchBalance();
+	}, []);
+
+	// Check for recharge success/failure from callback URL
+	useEffect(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const status = urlParams.get('status');
+		const rechargeId = urlParams.get('rechargeId');
+
+		if (status === 'success' && rechargeId) {
+			showSuccess(`🎉 Recharge successful! Your mobile number has been recharged successfully.`);
+			// Clear URL params
+			window.history.replaceState({}, document.title, window.location.pathname);
+			// Navigate back to mobile recharge page after showing success
+			setTimeout(() => {
+				navigate('/recharge/mobile', { replace: true });
+			}, 3000);
+		} else if (status === 'failed' || status === 'refunded') {
+			showError('Recharge failed. Your payment has been refunded.');
+			window.history.replaceState({}, document.title, window.location.pathname);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const discountDetails = useMemo(() => {
@@ -179,25 +205,13 @@ const PlanConfirmation = () => {
 				? discountDetails.net
 				: rechargeAmount;
 
-		// Check wallet balance before proceeding
+		// Check wallet balance - use already fetched balance
 		if (walletBalance === null) {
-			// Try to fetch balance first
-			setCheckingWallet(true);
-			try {
-				const response = await getWalletBalance();
-				if (response.success) {
-					setWalletBalance(response.balance || 0);
-				}
-			} catch (error) {
-				showError('Unable to verify wallet balance. Please try again.');
-				setCheckingWallet(false);
-				return;
-			} finally {
-				setCheckingWallet(false);
-			}
+			showError('Unable to verify wallet balance. Please refresh the page.');
+			return;
 		}
 
-		if (walletBalance !== null && walletBalance < netPayableAmount) {
+		if (walletBalance < netPayableAmount) {
 			showError(
 				`Insufficient wallet balance. Available: ₹${walletBalance.toFixed(2)}, Required: ₹${netPayableAmount.toFixed(2)}`
 			);
@@ -237,18 +251,18 @@ const PlanConfirmation = () => {
 			if (formData.circleInfo) {
 				// Always send the circle value (for backend mapping)
 				rechargeData.circle = formData.circleInfo.value;
-				
+
 				// Send label for display purposes
 				if (formData.circleInfo.label) {
 					rechargeData.circleLabel = formData.circleInfo.label;
 				}
-				
+
 				// Send numeric code (backend prioritizes this)
 				if (formData.circleInfo.numericCode) {
 					rechargeData.circleNumeric = formData.circleInfo.numericCode;
 					rechargeData.circleCode = formData.circleInfo.numericCode; // Also send as circleCode for compatibility
 				}
-				
+
 				// Send text code as fallback
 				if (formData.circleInfo.textCode && !formData.circleInfo.numericCode) {
 					rechargeData.circleCode = formData.circleInfo.textCode;
@@ -262,9 +276,18 @@ const PlanConfirmation = () => {
 
 			if (response.success && response.data) {
 				showSuccess('Recharge initiated from wallet! We will update you shortly.');
-				setTimeout(() => {
-					navigate('/recharge/mobile', { replace: true });
-				}, 2000);
+				if (response.data.rechargeId) {
+					// Navigate to success page with recharge data
+					navigate(`/recharge/success?rechargeId=${response.data.rechargeId}`, {
+						state: {
+							formData: formData,
+						},
+					});
+				} else {
+					setTimeout(() => {
+						navigate('/recharge/mobile', { replace: true });
+					}, 2000);
+				}
 			} else {
 				// Use the error message from backend response
 				const errorMsg = response.message || response.error || 'Failed to initiate recharge';
@@ -342,7 +365,14 @@ const PlanConfirmation = () => {
 				<div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 					<div className="p-5 space-y-4">
 						<div className="space-y-1">
-							<p className="text-xs uppercase tracking-wide text-gray-400">Plan amount</p>
+							<div className="flex items-center justify-between">
+								<p className="text-xs uppercase tracking-wide text-gray-400">Plan amount</p>
+								{discountDetails.percentage > 0 && (
+									<span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+										{discountDetails.percentage}% OFF
+									</span>
+								)}
+							</div>
 							<div className="flex items-center gap-1 text-4xl font-semibold text-gray-900">
 								<IndianRupee className="w-5 h-5" />
 								{planAmount.toFixed(2)}

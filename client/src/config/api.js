@@ -266,7 +266,6 @@ export const API_ENDPOINTS = {
   recharge: {
     plans: `${API_URL}/api/recharge/plans`,
     detectCircle: `${API_URL}/api/recharge/detect-circle`,
-    postpaidFetchBill: `${API_URL}/api/recharge/postpaid/fetch-bill`,
     initiate: `${API_URL}/api/recharge/initiate`,
     status: `${API_URL}/api/recharge/status`,
     history: `${API_URL}/api/recharge/history`,

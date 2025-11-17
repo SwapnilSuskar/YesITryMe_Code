@@ -90,7 +90,8 @@ const Recharge = () => {
         try {
             const response = await api.get(API_ENDPOINTS.payout.balance);
             if (response.data.success) {
-                setSmartWalletBalance(response.data.smartWalletBalance || 0);
+                // Use balance to match MobileRecharge.jsx since backend deducts from balance for recharges
+                setSmartWalletBalance(response.data.balance || 0);
             }
         } catch (error) {
             console.error('Error fetching wallet balance:', error);

@@ -61,44 +61,6 @@ export const detectCircle = async (mobileNumber, operator, rechargeType = 'prepa
 };
 
 /**
- * Fetch postpaid bill details (Postpaid only)
- */
-export const fetchPostpaidBill = async ({
-  mobileNumber,
-  operator,
-  circle,
-  circleCode,
-  circleNumeric,
-  circleLabel,
-}) => {
-  try {
-    const payload = {
-      mobileNumber,
-      operator,
-    };
-
-    if (circle) {
-      payload.circle = circle;
-    }
-    if (circleCode) {
-      payload.circleCode = circleCode;
-    }
-    if (circleNumeric) {
-      payload.circleNumeric = circleNumeric;
-    }
-    if (circleLabel) {
-      payload.circleLabel = circleLabel;
-    }
-
-    const response = await api.post(API_ENDPOINTS.recharge.postpaidFetchBill, payload);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Failed to fetch postpaid bill' };
-  }
-};
-
-
-/**
  * Get wallet balance
  */
 export const getWalletBalance = async () => {

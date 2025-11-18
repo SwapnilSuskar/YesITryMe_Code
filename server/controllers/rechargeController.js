@@ -2,6 +2,7 @@ import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import axios from "axios";
+import { getStaticEgressProxyConfig } from "../utils/staticEgressProxy.js";
 
 // Legacy base URL for legacy endpoints (plans, etc.)
 const A1TOPUP_LEGACY_BASE_URL =
@@ -473,8 +474,11 @@ const callA1TopupRechargeEndpoint = async (params) => {
     }
   });
 
+  const proxyConfig = getStaticEgressProxyConfig();
   const response = await axios.post(legacyUrl, formBody.toString(), {
+    ...proxyConfig,
     headers: {
+      ...(proxyConfig.headers || {}),
       "Content-Type": "application/x-www-form-urlencoded",
     },
     timeout: 10000,

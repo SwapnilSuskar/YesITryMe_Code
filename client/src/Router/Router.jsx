@@ -6,6 +6,7 @@ import Login from '../components/Auth/Login';
 import Signup from '../components/Auth/Signup';
 import AdminLogin from '../components/Auth/AdminLogin';
 import TermsAndConditions from '../components/Pages/TermsAndConditions';
+import PrivacyPolicy from '../components/Pages/PrivacyPolicy';
 import Footer from '../components/UI/Footer';
 import { Outlet } from 'react-router-dom';
 import WelcomeBanner from '../components/UI/WelcomeBanner';
@@ -143,7 +144,10 @@ const AppRouter = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/public-task" element={<PublicTask />} />
         <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/privacy" element={<TermsAndConditions />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/terms-of-service" element={<TermsAndConditions />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
         <Route path="/packages" element={<Package />} />

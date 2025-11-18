@@ -90,9 +90,15 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="text-gray-300 hover:text-orange-400 transition-colors duration-300 flex items-center group">
+                <Link to="/terms-and-conditions" className="text-gray-300 hover:text-orange-400 transition-colors duration-300 flex items-center group">
                   <FileText className="w-4 h-4 mr-3 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
                   Terms & Conditions
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" className="text-gray-300 hover:text-orange-400 transition-colors duration-300 flex items-center group">
+                  <FileText className="w-4 h-4 mr-3 text-orange-400 group-hover:scale-110 transition-transform duration-300" />
+                  Privacy Policy
                 </Link>
               </li>
             </ul>
@@ -144,10 +150,10 @@ const Footer = () => {
               © {currentYear} YesITryMe. All rights reserved.
             </div>
             <div className="flex space-x-6 text-sm">
-              <Link to="/privacy" className="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+              <Link to="/privacy-policy" className="text-gray-400 hover:text-orange-400 transition-colors duration-300">
                 Privacy Policy
               </Link>
-              <Link to="/terms" className="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+              <Link to="/terms-of-service" className="text-gray-400 hover:text-orange-400 transition-colors duration-300">
                 Terms of Service
               </Link>
               <Link to="/cookies" className="text-gray-400 hover:text-orange-400 transition-colors duration-300">

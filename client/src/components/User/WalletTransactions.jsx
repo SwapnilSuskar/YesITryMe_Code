@@ -213,7 +213,35 @@ const WalletTransactions = () => {
         try {
             const response = await getRechargeHistory(page, 10, 'all');
             if (response.success) {
-                setRechargeTransactions(response.data.recharges || []);
+                const recharges = response.data.recharges || [];
+                const normalized = recharges.map((recharge) => {
+                    const autoResolved =
+                        recharge.rechargeCompletedAt && recharge.status === 'success';
+
+                    if (
+                        (recharge.status === 'processing' || recharge.status === 'payment_success') &&
+                        recharge.rechargeCompletedAt &&
+                        !recharge.failureReason
+                    ) {
+                        return {
+                            ...recharge,
+                            status: 'success',
+                            autoResolved: true,
+                        };
+                    }
+
+                    if (autoResolved && recharge.failureReason === 'wallet_confirmation') {
+                        return {
+                            ...recharge,
+                            status: 'success',
+                            autoResolved: true,
+                        };
+                    }
+
+                    return recharge;
+                });
+
+                setRechargeTransactions(normalized);
                 setRechargeTotalPages(response.data.totalPages || 1);
                 setRechargePage(page);
             }
@@ -1288,15 +1316,14 @@ const WalletTransactions = () => {
                                 const allRecharges = getAllRechargeTransactions();
                                 const successful = allRecharges.filter(r => r.status === 'success');
                                 const failed = allRecharges.filter(r => r.status === 'failed');
-                                const totalSpent = allRecharges
-                                    .filter(r => (r.transactionType === 'recharge_payment' || r.source === 'history') && r.status !== 'refunded')
-                                    .reduce((sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0), 0);
-                                const totalRefunded = allRecharges
-                                    .filter(r => r.transactionType === 'recharge_refund' || r.status === 'refunded')
-                                    .reduce((sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0), 0);
-                                const totalFailed = allRecharges
-                                    .filter(r => r.status === 'failed')
-                                    .reduce((sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0), 0);
+                                const totalSpent = successful.reduce(
+                                    (sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0),
+                                    0
+                                );
+                                const totalRefunded = failed.reduce(
+                                    (sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0),
+                                    0
+                                );
 
                                 return (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -1324,8 +1351,8 @@ const WalletTransactions = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[10px] sm:text-xs text-red-700 font-medium truncate">Failed</div>
                                                     <div className="text-lg sm:text-xl font-bold text-red-800">{failed.length}</div>
-                                                    {totalFailed > 0 && (
-                                                        <div className="text-[9px] sm:text-xs text-red-600 mt-0.5">₹{totalFailed.toFixed(0)}</div>
+                                                    {totalRefunded > 0 && (
+                                                        <div className="text-[9px] sm:text-xs text-red-600 mt-0.5">₹{totalRefunded.toFixed(0)}</div>
                                                     )}
                                                 </div>
                                             </div>

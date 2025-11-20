@@ -44,6 +44,7 @@ const Recharge = () => {
     const [comingSoon, setComingSoon] = useState({ open: false, section: '', label: '' });
     const [showAddMoneyForm, setShowAddMoneyForm] = useState(false);
     const [smartWalletBalance, setSmartWalletBalance] = useState(0);
+    const [walletBalance, setWalletBalance] = useState(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
     const [kycStatus, setKycStatus] = useState(null);
     const [checkingKyc, setCheckingKyc] = useState(true);
@@ -90,8 +91,10 @@ const Recharge = () => {
         try {
             const response = await api.get(API_ENDPOINTS.payout.balance);
             if (response.data.success) {
-                // Use balance to match MobileRecharge.jsx since backend deducts from balance for recharges
-                setSmartWalletBalance(response.data.balance || 0);
+                const apiBalance = Number(response.data.balance ?? 0);
+                const apiSmartBalance = Number(response.data.smartWalletBalance ?? response.data.balance ?? 0);
+                setWalletBalance(apiBalance);
+                setSmartWalletBalance(apiSmartBalance);
             }
         } catch (error) {
             console.error('Error fetching wallet balance:', error);
@@ -183,7 +186,8 @@ const Recharge = () => {
     };
 
     const handleViewBalance = () => {
-        showSuccess(`Your Smart Wallet Balance (Added Money): ₹${smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+        const formattedSmart = smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        showSuccess(`Smart wallet (added money): ₹${loadingBalance ? '...' : formattedSmart}`);
     };
 
     const onSelectService = (section, service) => {
@@ -307,7 +311,7 @@ const Recharge = () => {
                                 )}
                             </button>
                         </div>
-                        {/* Smart Wallet Balance Display (Added Money) */}
+                        {/* Smart Wallet Display */}
                         <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -319,7 +323,7 @@ const Recharge = () => {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <span className="text-xl font-bold text-purple-600">
-                                        ₹{loadingBalance ? '...' : smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        ₹{walletBalance?.toFixed(2)}
                                     </span>
                                     <button
                                         onClick={fetchWalletBalance}
@@ -333,6 +337,17 @@ const Recharge = () => {
                             </div>
                         </div>
 
+                        {/* Wallet Balance Display */}
+                        {/* {walletBalance !== null && (
+                            <div className="mt-4 p-3 rounded-xl border border-blue-200 bg-blue-50/50">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">YesITryMe Smart Wallet:</span>
+                                    <span className={`text-sm font-bold ${walletBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        ₹{walletBalance.toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        )} */}
                         <h2 className="text-sm font-semibold text-gray-700 mb-3">Recharge</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
                             {rechargeServices.map(s => {

@@ -2,7 +2,55 @@ import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import axios from "axios";
-import { getStaticEgressProxyConfig } from "../utils/staticEgressProxy.js";
+// import { HttpsProxyAgent } from "https-proxy-agent";
+
+// const RECHARGE_PROXY_URL =
+//   process.env.RECHARGE_PROXY_URL ||
+//   process.env.FIXIE_URL ||
+//   process.env.FIXIE_HTTP_URL ||
+//   process.env.AXIOS_RECHARGE_PROXY ||
+//   process.env.HTTP_RECHARGE_PROXY ||
+//   process.env.HTTPS_PROXY ||
+//   process.env.HTTP_PROXY ||
+//   "";
+
+// let rechargeProxyAgent = null;
+// let proxyInitAttempted = false;
+
+// const getRechargeProxyAgent = () => {
+//   if (proxyInitAttempted) {
+//     return rechargeProxyAgent;
+//   }
+
+//   proxyInitAttempted = true;
+
+//   if (!RECHARGE_PROXY_URL) {
+//     return null;
+//   }
+
+//   try {
+//     rechargeProxyAgent = new HttpsProxyAgent(RECHARGE_PROXY_URL);
+//     const sanitizedHost = (() => {
+//       try {
+//         const parsedUrl = new URL(RECHARGE_PROXY_URL);
+//         return parsedUrl.hostname || parsedUrl.host || "configured proxy";
+//       } catch (error) {
+//         return "configured proxy";
+//       }
+//     })();
+//     console.log(
+//       `[Recharge][Proxy] Routing provider traffic through ${sanitizedHost}`
+//     );
+//   } catch (error) {
+//     console.error(
+//       "[Recharge][Proxy] Failed to initialize proxy agent:",
+//       error.message
+//     );
+//     rechargeProxyAgent = null;
+//   }
+
+//   return rechargeProxyAgent;
+// };
 
 // Legacy base URL for legacy endpoints (plans, etc.)
 const A1TOPUP_LEGACY_BASE_URL =
@@ -35,6 +83,44 @@ const A1TOPUP_PLAN_ACTION =
   process.env.AITOPUP_PLAN_ACTION ||
   process.env.AITOPUP_ACTION_FETCH_PLANS ||
   "plans";
+const A1TOPUP_STATUS_ACTION =
+  process.env.AITOPUP_STATUS_ACTION ||
+  process.env.AITOPUP_ACTION_STATUS ||
+  "status";
+
+const RECHARGE_STATUS_POLL_ATTEMPTS = parseInt(
+  process.env.RECHARGE_STATUS_POLL_ATTEMPTS || "2",
+  10
+);
+const RECHARGE_STATUS_POLL_DELAY_MS = parseInt(
+  process.env.RECHARGE_STATUS_POLL_DELAY_MS || "4000",
+  10
+);
+const RECHARGE_STATUS_POLL_WAIT_FIRST =
+  (process.env.RECHARGE_STATUS_POLL_WAIT_FIRST || "true")
+    .toString()
+    .toLowerCase() !== "false";
+const PENDING_RECHARGE_STATUSES = new Set([
+  "pending",
+  "processing",
+  "payment_success",
+]);
+const BACKGROUND_STATUS_REFRESH_INTERVAL_MS = parseInt(
+  process.env.RECHARGE_STATUS_REFRESH_INTERVAL_MS || "30000",
+  10
+);
+const BACKGROUND_STATUS_REFRESH_MIN_AGE_MS = parseInt(
+  process.env.RECHARGE_STATUS_REFRESH_MIN_AGE_MS || "60000",
+  10
+);
+const BACKGROUND_STATUS_REFRESH_BATCH_SIZE = parseInt(
+  process.env.RECHARGE_STATUS_REFRESH_BATCH_SIZE || "10",
+  10
+);
+const RECHARGE_WALLET_PROMOTE_MIN_AGE_MS = parseInt(
+  process.env.RECHARGE_WALLET_PROMOTE_MIN_AGE_MS || "120000",
+  10
+);
 
 const CIRCLE_CODE_MAP = {
   ANDHRA_PRADESH: "AP",
@@ -416,7 +502,7 @@ const parseA1TopupLegacyResponse = (rawResponse) => {
   if (jsonLike) {
     try {
       return JSON.parse(trimmed);
-  } catch (error) {
+    } catch (error) {
       return { raw: trimmed, parseError: error.message };
     }
   }
@@ -474,18 +560,474 @@ const callA1TopupRechargeEndpoint = async (params) => {
     }
   });
 
-  const proxyConfig = getStaticEgressProxyConfig();
-  const response = await axios.post(legacyUrl, formBody.toString(), {
-    ...proxyConfig,
+  const proxyAgent = getRechargeProxyAgent();
+  const axiosOptions = {
     headers: {
-      ...(proxyConfig.headers || {}),
       "Content-Type": "application/x-www-form-urlencoded",
     },
     timeout: 10000,
-  });
+  };
+
+  if (proxyAgent) {
+    axiosOptions.httpAgent = proxyAgent;
+    axiosOptions.httpsAgent = proxyAgent;
+    axiosOptions.proxy = false; // Disable axios default proxy handling
+  }
+
+  const response = await axios.post(
+    legacyUrl,
+    formBody.toString(),
+    axiosOptions
+  );
 
   return response.data;
 };
+
+const sleep = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRechargePending = (recharge) => {
+  if (!recharge) return false;
+  const status = (recharge.status || "").toString().toLowerCase();
+  return PENDING_RECHARGE_STATUSES.has(status);
+};
+
+const getRechargeAgeMs = (recharge) => {
+  if (!recharge) return 0;
+  const referenceDate =
+    recharge.rechargeInitiatedAt ||
+    recharge.paymentCompletedAt ||
+    recharge.updatedAt ||
+    recharge.createdAt;
+  if (!referenceDate) return 0;
+  return Date.now() - new Date(referenceDate).getTime();
+};
+
+const shouldPollStatusUpdates = (attemptsOverride, delayOverride) => {
+  const attempts =
+    typeof attemptsOverride === "number"
+      ? attemptsOverride
+      : RECHARGE_STATUS_POLL_ATTEMPTS;
+  const delay =
+    typeof delayOverride === "number"
+      ? delayOverride
+      : RECHARGE_STATUS_POLL_DELAY_MS;
+
+  return Boolean(
+    A1TOPUP_STATUS_ACTION &&
+      A1TOPUP_STATUS_ACTION.toLowerCase() !== "disabled" &&
+      attempts > 0 &&
+      delay > 0
+  );
+};
+
+const callA1TopupStatusEndpoint = async (orderId, mobileNumber) => {
+  if (!orderId || !A1TOPUP_STATUS_ACTION) {
+    return null;
+  }
+
+  const params = {
+    username: A1TOPUP_USERNAME,
+    pwd: A1TOPUP_PASSWORD,
+    orderid: orderId,
+    number: mobileNumber,
+    mobile: mobileNumber,
+    action: A1TOPUP_STATUS_ACTION,
+    request: A1TOPUP_STATUS_ACTION,
+    service: A1TOPUP_STATUS_ACTION,
+  };
+
+  return callA1TopupRechargeEndpoint(params);
+};
+
+const buildVendorErrorResult = (recharge, parsedResponse, statusText = "") => {
+  const opid = parsedResponse?.opid || parsedResponse?.opId || "";
+  const responseMessage = parsedResponse?.message || parsedResponse?.msg || "";
+  const combinedLookup = `${opid} ${responseMessage}`.trim();
+
+  let errorMessage = "Recharge failed";
+  let errorType = "VENDOR_ERROR";
+
+  if (/low\s*balance/i.test(combinedLookup)) {
+    errorMessage =
+      "Service temporarily unavailable. Our recharge service is currently experiencing high demand. Please try again in a few minutes.";
+    errorType = "VENDOR_LOW_BALANCE";
+  } else if (
+    /parameter.*missing/i.test(combinedLookup) ||
+    (/parameter/i.test(combinedLookup) && /missing/i.test(combinedLookup))
+  ) {
+    errorMessage =
+      "Invalid request parameters. Please verify your recharge details (operator, circle, mobile number) and try again.";
+    errorType = "VENDOR_INVALID_PARAMS";
+  } else if (
+    /minimum/i.test(combinedLookup) ||
+    /amount/i.test(combinedLookup) ||
+    /invalid.*amount/i.test(combinedLookup)
+  ) {
+    errorMessage = `Invalid recharge amount. Minimum amount is ₹10. ${
+      responseMessage || opid || ""
+    }`;
+    errorType = "VENDOR_INVALID_AMOUNT";
+  } else if (
+    /operator/i.test(combinedLookup) ||
+    /invalid.*operator/i.test(combinedLookup)
+  ) {
+    errorMessage =
+      "Invalid operator code. Please verify your operator selection and try again.";
+    errorType = "VENDOR_INVALID_OPERATOR";
+  } else if (
+    /invalid.*ip/i.test(combinedLookup) ||
+    /ip.*not.*allowed/i.test(combinedLookup) ||
+    /ip.*whitelist/i.test(combinedLookup)
+  ) {
+    errorMessage =
+      "Service temporarily unavailable. Please contact support if this issue persists.";
+    errorType = "VENDOR_IP_NOT_ALLOWED";
+    const ipMatch = combinedLookup.match(
+      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
+    );
+    if (ipMatch) {
+      console.error(
+        `[A1Topup][IP Whitelist] Server IP ${ipMatch[0]} needs to be added to A1Topup IP whitelist in vendor dashboard.`
+      );
+    }
+  } else if (responseMessage) {
+    errorMessage = responseMessage;
+  } else if (statusText) {
+    errorMessage = statusText;
+  }
+
+  console.error(
+    `[A1Topup][Recharge][Vendor Failure]`,
+    JSON.stringify(
+      {
+        mobileNumber: recharge?.mobileNumber,
+        amount: recharge?.amount,
+        orderId: recharge?.aiTopUpOrderId,
+        status: statusText,
+        opid,
+        errorType,
+        errorMessage,
+        parsedResponse: {
+          ...parsedResponse,
+          pwd: parsedResponse?.pwd ? "***" : undefined,
+          password: parsedResponse?.password ? "***" : undefined,
+        },
+      },
+      null,
+      2
+    )
+  );
+
+  return {
+    success: false,
+    errorCode: errorType,
+    message: errorMessage,
+    vendorResponse: parsedResponse,
+    statusText,
+  };
+};
+
+const markRechargeSuccess = async (recharge, context = {}) => {
+  const now = new Date();
+  const reason = context.reason || "provider_success";
+  recharge.status = "success";
+  recharge.rechargeCompletedAt =
+    recharge.rechargeCompletedAt || context.completedAt || now;
+  if (context.orderId && !recharge.aiTopUpOrderId) {
+    recharge.aiTopUpOrderId = context.orderId;
+  }
+  if (context.transactionId && !recharge.aiTopUpTransactionId) {
+    recharge.aiTopUpTransactionId = context.transactionId;
+  }
+  if (context.providerResponse) {
+    recharge.aiTopUpResponse = context.providerResponse;
+    recharge.providerResponse = context.providerResponse;
+  }
+  if (typeof context.providerCommission === "number") {
+    recharge.providerCommission = context.providerCommission;
+  }
+  if (typeof context.providerBalance === "number") {
+    recharge.providerBalance = context.providerBalance;
+  }
+
+  await recharge.save();
+
+  if (!recharge.commissionDistributed) {
+    await distributeCommissions(recharge);
+  }
+
+  console.log(
+    `[Recharge][AutoSuccess] ${reason} for ${recharge.mobileNumber} (₹${recharge.amount})`
+  );
+  return { outcome: "success", autoResolved: true };
+};
+
+const applyProviderResponse = async (
+  recharge,
+  parsedResponse,
+  context = {}
+) => {
+  const statusText = extractA1TopupStatus(parsedResponse);
+  const sourceLabel = context.source || "recharge";
+  const contextOrderId = context.orderId;
+
+  if (isA1TopupSuccessStatus(statusText)) {
+    const providerCommission = Number(
+      parsedResponse.commission ||
+        parsedResponse.commision ||
+        parsedResponse.providerCommission ||
+        0
+    );
+    const providerBalance = Number(
+      parsedResponse.balance ||
+        parsedResponse.walletBalance ||
+        parsedResponse.wallet_balance ||
+        parsedResponse.providerBalance ||
+        0
+    );
+    await markRechargeSuccess(recharge, {
+      reason: `provider_${sourceLabel}`,
+      orderId:
+        parsedResponse.orderid ||
+        parsedResponse.orderId ||
+        contextOrderId ||
+        recharge.aiTopUpOrderId ||
+        recharge._id?.toString(),
+      transactionId:
+        parsedResponse.txid ||
+        parsedResponse.opid ||
+        recharge.aiTopUpTransactionId ||
+        "",
+      providerResponse: parsedResponse,
+      providerCommission,
+      providerBalance,
+    });
+    return { outcome: "success" };
+  }
+
+  if (isA1TopupPendingStatus(statusText)) {
+    recharge.status = "processing";
+    recharge.aiTopUpResponse = parsedResponse;
+    recharge.providerResponse = parsedResponse;
+    await recharge.save();
+    console.log(
+      `[A1Topup][Recharge] Pending status (${sourceLabel}) for ${recharge.mobileNumber}: ${statusText}`
+    );
+    return {
+      outcome: "pending",
+      vendorResponse: parsedResponse,
+      statusText,
+    };
+  }
+
+  return {
+    outcome: "error",
+    ...buildVendorErrorResult(recharge, parsedResponse, statusText),
+  };
+};
+
+const pollPendingRechargeStatus = async (recharge, options = {}) => {
+  const attempts =
+    typeof options.attempts === "number"
+      ? options.attempts
+      : RECHARGE_STATUS_POLL_ATTEMPTS;
+  const delay =
+    typeof options.delay === "number"
+      ? options.delay
+      : RECHARGE_STATUS_POLL_DELAY_MS;
+  const waitBeforeFirstAttempt =
+    options.waitBeforeFirstAttempt ?? RECHARGE_STATUS_POLL_WAIT_FIRST;
+
+  if (!shouldPollStatusUpdates(attempts, delay)) {
+    return { outcome: "pending" };
+  }
+
+  const orderId =
+    recharge.aiTopUpOrderId || recharge.orderId || recharge._id?.toString();
+  if (!orderId) {
+    return { outcome: "pending" };
+  }
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    if (attempt === 1) {
+      if (waitBeforeFirstAttempt) {
+        await sleep(delay);
+      }
+    } else {
+      await sleep(delay);
+    }
+
+    try {
+      const rawStatusResponse = await callA1TopupStatusEndpoint(
+        orderId,
+        recharge.mobileNumber
+      );
+      if (!rawStatusResponse) {
+        continue;
+      }
+      const parsedStatusResponse =
+        parseA1TopupLegacyResponse(rawStatusResponse);
+      const outcome = await applyProviderResponse(
+        recharge,
+        parsedStatusResponse,
+        { source: `status_poll#${attempt}`, orderId }
+      );
+      if (outcome.outcome === "success" || outcome.outcome === "error") {
+        return outcome;
+      }
+    } catch (error) {
+      console.error(
+        `[A1Topup][Status] Poll attempt ${attempt} failed for ${recharge.mobileNumber}:`,
+        error.response?.data || error.message
+      );
+    }
+  }
+
+  const walletFallback = await tryPromoteRechargeUsingWallet(recharge, {
+    minAgeMs: Math.max(
+      options.minAgeMs || 0,
+      RECHARGE_WALLET_PROMOTE_MIN_AGE_MS
+    ),
+  });
+  if (
+    walletFallback.outcome === "success" ||
+    walletFallback.outcome === "error"
+  ) {
+    return walletFallback;
+  }
+
+  return { outcome: "pending" };
+};
+
+const maybeRefreshRechargeStatus = async (recharge, options = {}) => {
+  if (!isRechargePending(recharge)) {
+    return;
+  }
+
+  const minAgeMs = options.minAgeMs ?? 2000;
+  if (getRechargeAgeMs(recharge) < minAgeMs) {
+    return;
+  }
+
+  const pollOptions = {
+    attempts: options.attempts ?? 1,
+    delay: options.delay ?? 2000,
+    waitBeforeFirstAttempt: options.waitBeforeFirstAttempt ?? false,
+    minAgeMs: options.minAgeMs,
+  };
+
+  await pollPendingRechargeStatus(recharge, pollOptions);
+};
+
+const tryPromoteRechargeUsingWallet = async (recharge, options = {}) => {
+  const minAge =
+    typeof options.minAgeMs === "number" && options.minAgeMs > 0
+      ? options.minAgeMs
+      : RECHARGE_WALLET_PROMOTE_MIN_AGE_MS;
+
+  if (!isRechargePending(recharge)) {
+    return { outcome: recharge.status === "success" ? "success" : "pending" };
+  }
+
+  if (getRechargeAgeMs(recharge) < minAge) {
+    return { outcome: "pending" };
+  }
+
+  try {
+    const wallet = await Wallet.findOne({ userId: recharge.userId });
+    if (!wallet || !Array.isArray(wallet.transactions)) {
+      return { outcome: "pending" };
+    }
+
+    const debitRef = `RECHARGE_WALLET_${recharge._id}`;
+    const refundRef = `RECHARGE_WALLET_REFUND_${recharge._id}`;
+    const debitTxn = wallet.transactions.find(
+      (txn) => txn?.reference === debitRef
+    );
+    if (!debitTxn) {
+      return { outcome: "pending" };
+    }
+    const refundTxn = wallet.transactions.find(
+      (txn) => txn?.reference === refundRef
+    );
+    if (refundTxn) {
+      return { outcome: "pending" };
+    }
+
+    await markRechargeSuccess(recharge, {
+      reason: "wallet_confirmation",
+      completedAt: debitTxn.createdAt || new Date(),
+    });
+    return { outcome: "success", autoResolved: true };
+  } catch (error) {
+    console.error(
+      "[Recharge][WalletPromotion] Failed to promote via wallet evidence:",
+      error.message
+    );
+    return { outcome: "pending" };
+  }
+};
+
+const refreshOldPendingRecharges = async () => {
+  try {
+    if (!shouldPollStatusUpdates(1, RECHARGE_STATUS_POLL_DELAY_MS)) {
+      return;
+    }
+
+    const oldestPending = await Recharge.find({
+      status: { $in: Array.from(PENDING_RECHARGE_STATUSES) },
+      updatedAt: {
+        $lt: new Date(
+          Date.now() - Math.max(BACKGROUND_STATUS_REFRESH_MIN_AGE_MS, 10000)
+        ),
+      },
+    })
+      .sort({ updatedAt: 1 })
+      .limit(Math.max(BACKGROUND_STATUS_REFRESH_BATCH_SIZE, 1));
+
+    if (oldestPending.length === 0) {
+      return;
+    }
+
+    await Promise.allSettled(
+      oldestPending.map((recharge) =>
+        pollPendingRechargeStatus(recharge, {
+          attempts: 1,
+          delay: RECHARGE_STATUS_POLL_DELAY_MS,
+          waitBeforeFirstAttempt: false,
+        })
+      )
+    );
+  } catch (error) {
+    console.error(
+      "[A1Topup][Status] Background refresh failed:",
+      error.message
+    );
+  }
+};
+
+let backgroundStatusIntervalStarted = false;
+const startBackgroundStatusRefresh = () => {
+  if (
+    backgroundStatusIntervalStarted ||
+    BACKGROUND_STATUS_REFRESH_INTERVAL_MS <= 0 ||
+    !shouldPollStatusUpdates(1, RECHARGE_STATUS_POLL_DELAY_MS)
+  ) {
+    return;
+  }
+
+  backgroundStatusIntervalStarted = true;
+  const intervalRef = setInterval(
+    refreshOldPendingRecharges,
+    BACKGROUND_STATUS_REFRESH_INTERVAL_MS
+  );
+
+  if (typeof intervalRef.unref === "function") {
+    intervalRef.unref();
+  }
+};
+
+startBackgroundStatusRefresh();
 
 const MINIMUM_PLAN_REQUEST_AMOUNT = "10";
 
@@ -1000,7 +1542,7 @@ export const detectCircle = async (req, res) => {
     console.error("Circle detection disabled. Request details:", error.message);
     return res.status(500).json({
       success: false,
-      message:
+        message:
         "Circle detection is disabled. Please select your circle manually before proceeding.",
     });
   }
@@ -1373,21 +1915,21 @@ const processRechargeWithA1Topup = async (recharge) => {
           resolveCircleParam(recharge.circleLabel);
 
     const orderId =
-              recharge.aiTopUpOrderId ||
+      recharge.aiTopUpOrderId ||
       `ORD-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
     recharge.aiTopUpOrderId = orderId;
 
     // Build params as per A1Topup official API: username, pwd, operatorcode, number, amount, orderid, format
     // circlecode only if we have a valid numeric mapping
-    const params = {
-      username: A1TOPUP_USERNAME,
-      pwd: A1TOPUP_PASSWORD,
+      const params = {
+        username: A1TOPUP_USERNAME,
+        pwd: A1TOPUP_PASSWORD,
       operatorcode: operatorCode,
-      number: recharge.mobileNumber,
+        number: recharge.mobileNumber,
       amount: numericAmount.toString(),
-      orderid: orderId,
-      format: "json",
-    };
+        orderid: orderId,
+        format: "json",
+      };
 
     // Only add circlecode if we have a valid numeric code (as per API requirement)
     if (circleParam && /^\d+$/.test(circleParam.toString())) {
@@ -1444,12 +1986,12 @@ const processRechargeWithA1Topup = async (recharge) => {
       username: params.username
         ? `${params.username.substring(0, 3)}***`
         : undefined, // Partially mask username
-      };
+    };
 
-      console.log(
+    console.log(
       `[A1Topup][Recharge][Request]`,
-        JSON.stringify(
-          {
+      JSON.stringify(
+        {
           url: new URL("/recharge/api", A1TOPUP_LEGACY_BASE_URL).toString(),
           params: sanitizedParams,
           mobileNumber: recharge.mobileNumber,
@@ -1459,174 +2001,45 @@ const processRechargeWithA1Topup = async (recharge) => {
           orderId: orderId,
           circleParam: circleParam || "not_provided",
           rechargeType: recharge.rechargeType,
-          },
-          null,
-          2
-        )
-      );
-
-    const rawProviderResponse = await callA1TopupRechargeEndpoint(params);
-    const parsedResponse = parseA1TopupLegacyResponse(rawProviderResponse);
-    const statusText = extractA1TopupStatus(parsedResponse);
-
-    if (!isA1TopupSuccessStatus(statusText)) {
-      if (isA1TopupPendingStatus(statusText)) {
-        recharge.status = "processing";
-        recharge.aiTopUpResponse = parsedResponse;
-        recharge.providerResponse = parsedResponse;
-        await recharge.save();
-        console.log(
-          `[A1Topup][Recharge] Pending status received for ${recharge.mobileNumber}: ${statusText}`
-        );
-        return true;
-      }
-
-      // Handle vendor failure responses as per A1Topup API documentation
-      // Check status=Failure and opid for specific error codes
-      const opid = parsedResponse.opid || parsedResponse.opId || "";
-      const errorCode = opid.toString().trim();
-      const responseMessage =
-        parsedResponse.message || parsedResponse.msg || "";
-
-      // Map vendor error codes to user-friendly messages
-      let errorMessage = "Recharge failed";
-      let errorType = "VENDOR_ERROR";
-
-      // Handle status=Failure and opid=Low Balance → treat as vendor wallet issue
-      if (
-        /low\s*balance/i.test(errorCode) ||
-        /low\s*balance/i.test(responseMessage)
-      ) {
-        errorMessage =
-          "Service temporarily unavailable. Our recharge service is currently experiencing high demand. Please try again in a few minutes.";
-        errorType = "VENDOR_LOW_BALANCE";
-      }
-      // Handle status=Failure and message 'Parameter is missing' → treat as param mismatch
-      else if (
-        /parameter/i.test(errorCode) ||
-        /missing/i.test(errorCode) ||
-        /parameter.*missing/i.test(responseMessage)
-      ) {
-        errorMessage =
-          "Invalid request parameters. Please verify your recharge details (operator, circle, mobile number) and try again.";
-        errorType = "VENDOR_INVALID_PARAMS";
-      }
-      // Handle amount-related errors
-      else if (
-        /minimum/i.test(errorCode) ||
-        /amount/i.test(errorCode) ||
-        /invalid.*amount/i.test(responseMessage)
-      ) {
-        errorMessage = `Invalid recharge amount. Minimum amount is ₹10. ${
-          parsedResponse.message || errorCode || ""
-        }`;
-        errorType = "VENDOR_INVALID_AMOUNT";
-      }
-      // Handle operator-related errors
-      else if (
-        /operator/i.test(errorCode) ||
-        /invalid.*operator/i.test(responseMessage)
-      ) {
-        errorMessage =
-          "Invalid operator code. Please verify your operator selection and try again.";
-        errorType = "VENDOR_INVALID_OPERATOR";
-      }
-      // Handle IP whitelist errors (server configuration issue)
-      else if (
-        /invalid.*ip/i.test(errorCode) ||
-        /invalid.*ip/i.test(responseMessage) ||
-        /ip.*not.*allowed/i.test(responseMessage) ||
-        /ip.*whitelist/i.test(responseMessage)
-      ) {
-        errorMessage =
-          "Service temporarily unavailable. Please contact support if this issue persists.";
-        errorType = "VENDOR_IP_NOT_ALLOWED";
-        // Extract IP address from error message for admin reference
-        const ipMatch = (errorCode + " " + responseMessage).match(
-          /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/
-        );
-        if (ipMatch) {
-          console.error(
-            `[A1Topup][IP Whitelist] Server IP ${ipMatch[0]} needs to be added to A1Topup IP whitelist in vendor dashboard.`
-          );
-        }
-      }
-      // Fallback to response message if available
-      else if (responseMessage) {
-        errorMessage = responseMessage;
-      } else if (statusText) {
-        errorMessage = statusText;
-      }
-
-      // Log vendor error for debugging (sanitized)
-      console.error(
-        `[A1Topup][Recharge][Vendor Failure]`,
-      JSON.stringify(
-        {
-            mobileNumber: recharge.mobileNumber,
-            amount: recharge.amount,
-            orderId: orderId,
-            status: statusText,
-            opid: errorCode,
-            errorType: errorType,
-            errorMessage: errorMessage,
-            parsedResponse: {
-              ...parsedResponse,
-              // Remove any sensitive data from response logging
-              pwd: parsedResponse.pwd ? "***" : undefined,
-              password: parsedResponse.password ? "***" : undefined,
-          },
         },
         null,
         2
       )
     );
 
-      // Return error object instead of throwing
+    const rawProviderResponse = await callA1TopupRechargeEndpoint(params);
+    const parsedResponse = parseA1TopupLegacyResponse(rawProviderResponse);
+    const outcome = await applyProviderResponse(recharge, parsedResponse, {
+      source: "initial",
+      orderId,
+    });
+
+    if (outcome.outcome === "success") {
+      return true;
+    }
+
+    if (outcome.outcome === "error") {
       return {
         success: false,
-        errorCode: errorType,
-        message: errorMessage,
-        vendorResponse: parsedResponse,
+        errorCode: outcome.errorCode,
+        message: outcome.message,
+        vendorResponse: outcome.vendorResponse,
       };
     }
 
-    recharge.status = "success";
-    recharge.rechargeCompletedAt = new Date();
+    const pollOutcome = await pollPendingRechargeStatus(recharge);
+    if (pollOutcome.outcome === "success") {
+      return true;
+    }
+    if (pollOutcome.outcome === "error") {
+      return {
+        success: false,
+        errorCode: pollOutcome.errorCode,
+        message: pollOutcome.message,
+        vendorResponse: pollOutcome.vendorResponse,
+      };
+    }
 
-    recharge.aiTopUpOrderId =
-      parsedResponse.orderid ||
-      parsedResponse.orderId ||
-      recharge.aiTopUpOrderId ||
-      orderId;
-    recharge.aiTopUpTransactionId =
-      parsedResponse.txid ||
-      parsedResponse.opid ||
-      recharge.aiTopUpTransactionId ||
-      "";
-
-    recharge.aiTopUpResponse = parsedResponse;
-    recharge.providerResponse = parsedResponse;
-    recharge.providerCommission = Number(
-      parsedResponse.commission ||
-        parsedResponse.commision ||
-        parsedResponse.providerCommission ||
-        0
-    );
-    recharge.providerBalance = Number(
-      parsedResponse.balance ||
-        parsedResponse.walletBalance ||
-        parsedResponse.wallet_balance ||
-        parsedResponse.providerBalance ||
-        0
-    );
-
-    await recharge.save();
-    await distributeCommissions(recharge);
-
-    console.log(
-      `✅ A1Topup recharge successful via legacy API: ${recharge.mobileNumber}, Amount: ₹${recharge.amount}`
-    );
     return true;
   } catch (error) {
     console.error(
@@ -1695,6 +2108,20 @@ export const checkRechargeStatus = async (req, res) => {
       });
     }
 
+    try {
+      await maybeRefreshRechargeStatus(recharge, {
+        minAgeMs: 3000,
+        attempts: 1,
+        delay: 1500,
+        waitBeforeFirstAttempt: false,
+      });
+    } catch (statusError) {
+      console.error(
+        "[Recharge][Status Check] Failed to refresh status:",
+        statusError.message
+      );
+    }
+
     return res.status(200).json({
       success: true,
       data: recharge,
@@ -1726,6 +2153,24 @@ export const getRechargeHistory = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    const pendingRefreshTargets = recharges
+      .filter((recharge) => isRechargePending(recharge))
+      .filter((recharge) => getRechargeAgeMs(recharge) > 5000)
+      .slice(0, 3);
+
+    if (pendingRefreshTargets.length > 0) {
+      await Promise.allSettled(
+        pendingRefreshTargets.map((recharge) =>
+          maybeRefreshRechargeStatus(recharge, {
+            minAgeMs: 5000,
+            attempts: 1,
+            delay: 1500,
+            waitBeforeFirstAttempt: false,
+          })
+        )
+      );
+    }
 
     const total = await Recharge.countDocuments(query);
 
@@ -1783,6 +2228,24 @@ export const getAllRecharges = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    const adminRefreshTargets = recharges
+      .filter((recharge) => isRechargePending(recharge))
+      .filter((recharge) => getRechargeAgeMs(recharge) > 7000)
+      .slice(0, 5);
+
+    if (adminRefreshTargets.length > 0) {
+      await Promise.allSettled(
+        adminRefreshTargets.map((recharge) =>
+          maybeRefreshRechargeStatus(recharge, {
+            minAgeMs: 7000,
+            attempts: 1,
+            delay: 2000,
+            waitBeforeFirstAttempt: false,
+          })
+        )
+      );
+    }
 
     // Get user details separately since userId is a string, not ObjectId
     const userIds = [...new Set(recharges.map((r) => r.userId))];

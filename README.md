@@ -163,6 +163,13 @@ CLOUDINARY_API_SECRET=your-api-secret
 # YouTube API (Google OAuth - yesitrymeofficial@gmail.com)
 YOUTUBE_CLIENT_ID=your-youtube-client-id
 YOUTUBE_CLIENT_SECRET=your-youtube-client-secret
+
+# Recharge Provider HTTP proxy (Fixie or any static IP proxy)
+# Route all outbound calls to A1Topup through a proxy that exposes the
+# vendor-whitelisted egress IPs. Example Fixie credentials:
+RECHARGE_PROXY_URL=http://fixie:password@ventoux.usefixie.com:80
+# The Fixie "tricycle" plan currently advertises 54.217.142.99 and 54.195.3.54
+# as the outbound IPs; share these with the vendor for whitelisting.
 ```
 
 ### Admin Access

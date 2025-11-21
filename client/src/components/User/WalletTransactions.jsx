@@ -1324,17 +1324,15 @@ const WalletTransactions = () => {
                                     </div>
                                 );
                             })()}
-
-                            <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
+                            <div className="bg-white/95 backdrop-blur rounded-2xl shadow-sm border border-gray-200">
                                 {(() => {
                                     const allRecharges = getAllRechargeTransactions();
-
                                     if (allRecharges.length === 0) {
                                         return (
-                                            <div className="text-center py-8">
-                                                <Smartphone className="text-gray-400 mx-auto mb-4" size={48} />
-                                                <p className="text-gray-500 text-lg">No recharge transactions yet</p>
-                                                <p className="text-gray-400 text-sm mt-2">Your mobile recharge history will appear here</p>
+                                            <div className="text-center py-10">
+                                                <Smartphone className="text-gray-400 mx-auto mb-3" size={48} />
+                                                <p className="text-gray-600 font-semibold text-lg">No mobile recharges yet</p>
+                                                <p className="text-gray-400 text-sm mt-1">Your recharge history will appear here once you initiate a payment.</p>
                                             </div>
                                         );
                                     }
@@ -1343,77 +1341,73 @@ const WalletTransactions = () => {
                                     const startIndex = (rechargePage - 1) * itemsPerPage;
                                     const endIndex = startIndex + itemsPerPage;
                                     const paginatedRecharges = allRecharges.slice(startIndex, endIndex);
-
                                     return (
-                                        <div className="space-y-2 sm:space-y-3">
-                                            {paginatedRecharges.map((recharge) => {
-                                                const isSuccess = recharge.status === 'success';
-                                                const isFailed = recharge.status === 'failed';
-                                                const isProcessing = recharge.status === 'processing' || recharge.status === 'payment_success';
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full text-sm">
+                                                <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wide">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left font-semibold">Amount</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Mobile & Operator</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Cashback</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Date & Time</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 text-gray-700">
+                                                    {paginatedRecharges.map((recharge) => {
+                                                        const date = new Date(recharge.date || recharge.rechargeCompletedAt || recharge.paymentCompletedAt || recharge.createdAt);
+                                                        const amount = parseFloat(recharge.netAmount || recharge.amount || 0).toFixed(2);
+                                                        const cashback = recharge.discountAmount > 0 ? `₹${recharge.discountAmount.toFixed(2)}` : null;
 
-                                                return (
-                                                    <div key={recharge._id} className={`rounded-lg p-3 sm:p-4 border transition-shadow hover:shadow-md ${isSuccess ? 'bg-gradient-to-r from-green-50 to-green-100/50 border-green-300' : isFailed ? 'bg-gradient-to-r from-red-50 to-red-100/50 border-red-300' : isProcessing ? 'bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-yellow-300' : 'bg-gradient-to-r from-orange-50 to-orange-100/50 border-orange-300'}`}>
-                                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                                                            <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                                                                <div className={`flex-shrink-0 mt-0.5 ${isSuccess ? 'text-green-600' : isFailed ? 'text-red-600' : 'text-orange-600'}`}>
-                                                                    <Smartphone size={18} className="sm:w-5 sm:h-5" />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                                                                        <span className={`font-bold text-base sm:text-lg ${isSuccess ? 'text-green-700' : isFailed ? 'text-red-700' : 'text-orange-700'}`}>
-                                                                            ₹{parseFloat(recharge.netAmount || recharge.amount || 0).toFixed(2)}
+                                                        return (
+                                                            <tr key={recharge._id} className="hover:bg-gray-50 transition-colors">
+                                                                <td className="px-4 py-4 align-top">
+                                                                    <div className="font-semibold text-gray-900 text-base">₹{amount}</div>
+                                                                    <p className="text-xs text-gray-500 mt-0.5 capitalize">{recharge.rechargeType || 'prepaid'}</p>
+                                                                </td>
+                                                                <td className="px-4 py-4 align-top">
+                                                                    <p className="font-medium text-gray-900">+91 {recharge.mobileNumber}</p>
+                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                        {recharge.operator || 'Unknown'} {recharge.circle && recharge.circle !== 'NA' ? `• ${recharge.circle}` : ''}
+                                                                    </p>
+                                                                </td>
+                                                                <td className="px-4 py-4 align-top">
+                                                                    {cashback ? (
+                                                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold">
+                                                                            {recharge.discountPercentage}% • {cashback}
                                                                         </span>
-                                                                        {recharge.discountPercentage > 0 && (
-                                                                            <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs font-bold">
-                                                                                {recharge.discountPercentage}% OFF
-                                                                            </span>
-                                                                        )}
-                                                                        <div className={`inline-block text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full ${getStatusColor(recharge.status)}`}>
-                                                                            {recharge.status === 'success' && '✅ Success'}
-                                                                            {recharge.status === 'failed' && '❌ Failed'}
-                                                                            {recharge.status === 'processing' && '⏳ Processing'}
-                                                                            {recharge.status === 'payment_success' && '💳 Paid'}
-                                                                            {recharge.status === 'pending' && '⏳ Pending'}
-                                                                            {recharge.status === 'cancelled' && '🚫 Cancelled'}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="text-xs sm:text-sm text-gray-700 font-medium mb-1.5">
-                                                                        📱 +91 {recharge.mobileNumber}
-                                                                    </div>
-                                                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] sm:text-xs text-gray-600">
-                                                                        <span><span className="font-medium">Op:</span> {recharge.operator || 'N/A'}</span>
-                                                                        {recharge.circle && recharge.circle !== 'NA' && (
-                                                                            <span><span className="font-medium">Circle:</span> {recharge.circle}</span>
-                                                                        )}
-                                                                        <span><span className="font-medium">Type:</span> <span className="capitalize">{recharge.rechargeType || 'Prepaid'}</span></span>
-                                                                        {recharge.discountAmount > 0 && (
-                                                                            <span className="text-emerald-600"><span className="font-medium">Cashback:</span> ₹{recharge.discountAmount.toFixed(2)}</span>
-                                                                        )}
-                                                                    </div>
-                                                                    {isFailed && (recharge.failureReason || recharge.aiTopUpMessage) && (
-                                                                        <div className="mt-2 text-[10px] sm:text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
-                                                                            ⚠️ {recharge.failureReason || recharge.aiTopUpMessage}
-                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-xs text-gray-400">No cashback</span>
                                                                     )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-shrink-0 text-left sm:text-right">
-                                                                <div className="text-[10px] sm:text-xs text-gray-500 mb-1">
-                                                                    {new Date(recharge.date || recharge.rechargeCompletedAt || recharge.paymentCompletedAt || recharge.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                                                </div>
-                                                                <div className="text-[10px] sm:text-xs text-gray-400">
-                                                                    {new Date(recharge.date || recharge.rechargeCompletedAt || recharge.paymentCompletedAt || recharge.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                                                </div>
-                                                                {recharge.aiTopUpOrderId && (
-                                                                    <div className="mt-1.5 text-[9px] sm:text-xs text-gray-400 font-mono truncate max-w-[80px] sm:max-w-none" title={recharge.aiTopUpOrderId}>
-                                                                        {recharge.aiTopUpOrderId.slice(0, 8)}...
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                                </td>
+                                                                <td className="px-4 py-4 align-top">
+                                                                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(recharge.status)}`}>
+                                                                        {recharge.status.replace('_', ' ')}
+                                                                    </span>
+                                                                    {recharge.status === 'failed' && (recharge.failureReason || recharge.aiTopUpMessage) && (
+                                                                        <p className="text-[11px] text-red-600 mt-1">
+                                                                            {recharge.failureReason || recharge.aiTopUpMessage}
+                                                                        </p>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-4 align-top">
+                                                                    <p className="text-sm font-medium text-gray-900">
+                                                                        {date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500">
+                                                                        {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                                    </p>
+                                                                    {recharge.aiTopUpOrderId && (
+                                                                        <p className="mt-1 text-[10px] text-gray-400 font-mono truncate max-w-[140px]" title={recharge.aiTopUpOrderId}>
+                                                                            {recharge.aiTopUpOrderId}
+                                                                        </p>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     );
                                 })()}

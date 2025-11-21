@@ -13,7 +13,7 @@ const SocialLinks = ({
       id: 'youtube',
       name: 'YouTube Channel',
       description: 'Subscribe for updates, tutorials, and more!',
-      url: 'https://youtube.com/@swapnilsuskar?si=StUp1DtoCfnXpIMc',
+      url: 'https://www.youtube.com/@yesitryme',
       icon: Youtube,
       iconColor: 'text-white drop-shadow',
       bgGradient: 'from-red-500 to-red-400',

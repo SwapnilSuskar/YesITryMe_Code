@@ -32,17 +32,31 @@ export const checkActiveMemberStatus = async (userId) => {
 // Get direct active members count
 export const getDirectActiveMembers = async (userId) => {
   try {
-    const directReferrals = await User.find({ sponsorId: userId });
-    let activeCount = 0;
+    const activeStatuses = ["active", "kyc_verified"];
 
-    for (const referral of directReferrals) {
-      const isActive = await checkActiveMemberStatus(referral.userId);
-      if (isActive) {
-        activeCount++;
-      }
+    // Count referrals already marked active/kyc_verified
+    const statusActiveCount = await User.countDocuments({
+      sponsorId: userId,
+      status: { $in: activeStatuses },
+    });
+
+    // Some legacy users might have valid purchases but status not updated
+    const remainingReferrals = await User.find({
+      sponsorId: userId,
+      status: { $nin: activeStatuses },
+    }).select("userId");
+
+    let purchaseActiveCount = 0;
+    if (remainingReferrals.length > 0) {
+      const activityChecks = await Promise.all(
+        remainingReferrals.map((referral) =>
+          checkActiveMemberStatus(referral.userId)
+        )
+      );
+      purchaseActiveCount = activityChecks.filter(Boolean).length;
     }
 
-    return activeCount;
+    return statusActiveCount + purchaseActiveCount;
   } catch (error) {
     console.error("Error getting direct active members:", error);
     return 0;

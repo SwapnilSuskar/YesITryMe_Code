@@ -136,12 +136,16 @@ const Recharge = () => {
 
     useEffect(() => {
         fetchWalletBalance();
-        // Auto-refresh balance every 30 seconds to check for admin approvals
-        const interval = setInterval(() => {
-            fetchWalletBalance();
-        }, 30000); // 30 seconds
 
-        return () => clearInterval(interval);
+        const handleWindowFocus = () => {
+            fetchWalletBalance();
+        };
+
+        window.addEventListener('focus', handleWindowFocus);
+
+        return () => {
+            window.removeEventListener('focus', handleWindowFocus);
+        };
     }, [fetchWalletBalance]);
 
     const ensureKycVerified = useCallback(() => {

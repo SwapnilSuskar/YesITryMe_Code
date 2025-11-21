@@ -1281,10 +1281,6 @@ const WalletTransactions = () => {
                                     (sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0),
                                     0
                                 );
-                                const failedAmount = failed.reduce(
-                                    (sum, r) => sum + (parseFloat(r.netAmount || r.amount) || 0),
-                                    0
-                                );
                                 return (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
                                         <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 sm:p-4 shadow-sm">
@@ -1311,9 +1307,6 @@ const WalletTransactions = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[10px] sm:text-xs text-red-700 font-medium truncate">Failed</div>
                                                     <div className="text-lg sm:text-xl font-bold text-red-800">{failed.length}</div>
-                                                    {failedAmount > 0 && (
-                                                        <div className="text-[9px] sm:text-xs text-red-600 mt-0.5">₹{failedAmount.toFixed(0)}</div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1322,7 +1315,9 @@ const WalletTransactions = () => {
                                                 <IndianRupee className="text-blue-600 flex-shrink-0" size={24} />
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[10px] sm:text-xs text-blue-700 font-medium truncate">Spent</div>
-                                                    <div className="text-lg sm:text-xl font-bold text-blue-800">₹{totalSpent >= 1000 ? (totalSpent / 1000).toFixed(1) + 'k' : totalSpent.toFixed(0)}</div>
+                                                    <div className="text-lg sm:text-xl font-bold text-blue-800">
+                                                        ₹{totalSpent.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1330,42 +1325,6 @@ const WalletTransactions = () => {
                                 );
                             })()}
 
-                            {(() => {
-                                const allRecharges = getAllRechargeTransactions();
-                                const successful = allRecharges.filter(r => r.status === 'success');
-                                if (successful.length === 0) return null;
-
-                                const recentSuccessful = successful
-                                    .sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt))
-                                    .slice(0, 4);
-
-                                return (
-                                    <div className="mb-4 sm:mb-6">
-                                        <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                                            Recent Successful Recharges (count towards Spent)
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                            {recentSuccessful.map((txn) => (
-                                                <div key={`recent_success_${txn._id}`} className="border border-green-100 rounded-lg px-3 py-2 bg-green-50/60">
-                                                    <div className="flex items-center justify-between text-sm font-semibold text-green-800">
-                                                        <span>₹{parseFloat(txn.netAmount || txn.amount || 0).toFixed(2)}</span>
-                                                        <span className="text-xs text-gray-500">
-                                                            {new Date(txn.date || txn.rechargeCompletedAt || txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-xs text-gray-600 flex items-center gap-1 mt-1">
-                                                        <Smartphone size={12} />
-                                                        +91 {txn.mobileNumber}
-                                                    </div>
-                                                    <div className="text-[10px] text-gray-500">
-                                                        {txn.operator || 'Unknown Operator'}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })()}
                             <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
                                 {(() => {
                                     const allRecharges = getAllRechargeTransactions();

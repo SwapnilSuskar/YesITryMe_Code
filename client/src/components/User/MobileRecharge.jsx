@@ -128,6 +128,7 @@ const MobileRecharge = () => {
 	const [kycStatus, setKycStatus] = useState(null);
 	const [checkingKyc, setCheckingKyc] = useState(true);
 	const [walletBalance, setWalletBalance] = useState(null);
+	const [isActiveMember, setIsActiveMember] = useState(user?.status === 'active');
 	const isFetchingBalanceRef = useRef(false); // Prevent multiple simultaneous balance fetches
 
 	const findCircleOption = useCallback((input) => {
@@ -223,6 +224,14 @@ const MobileRecharge = () => {
 			};
 		}
 
+		if (!isActiveMember) {
+			return {
+				amount: 0,
+				percentage: 0,
+				net: Math.round(numericAmount * 100) / 100,
+			};
+		}
+
 		const rate = operatorDiscountRates[operator] ?? 0;
 		const rawDiscount = (numericAmount * rate) / 100;
 		const discountAmount = Math.round(rawDiscount * 100) / 100;
@@ -233,7 +242,7 @@ const MobileRecharge = () => {
 			percentage: rate,
 			net: netAmount,
 		};
-	}, [operator, amount]);
+	}, [operator, amount, isActiveMember]);
 
 	useEffect(() => {
 		if (!canShowAmount) {
@@ -347,6 +356,9 @@ const MobileRecharge = () => {
 			if (response.success) {
 				// Use smartWalletBalance for recharge (added money only, not mixed with active/passive income)
 				setWalletBalance(response.smartWalletBalance ?? response.balance ?? 0);
+				if (typeof response.isActiveMember === 'boolean') {
+					setIsActiveMember(response.isActiveMember);
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching wallet balance:', error);
@@ -361,17 +373,25 @@ const MobileRecharge = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []); // Only run once on mount
 
+	useEffect(() => {
+		const handleFocus = () => {
+			fetchWalletBalance();
+		};
+		window.addEventListener('focus', handleFocus);
+		return () => window.removeEventListener('focus', handleFocus);
+	}, [fetchWalletBalance]);
+
 	const navigateToPlanConfirmation = (selectedPlan = null, manualAmount = null) => {
 		const planAmount = selectedPlan
 			? parseFloat(selectedPlan?.amount ?? selectedPlan?.price ?? selectedPlan?.rechargeAmount ?? '0') || 0
 			: parseFloat(manualAmount ?? amount ?? '0') || 0;
 
 		const circleInfo = resolveCirclePayload();
-		const discountRate = operatorDiscountRates[operator] ?? 0;
-		const discountAmount =
-			selectedPlan?.discountDetails?.amount ?? Math.round(((planAmount * discountRate) / 100) * 100) / 100;
-		const netAmount =
-			selectedPlan?.discountDetails?.net ?? Math.max(Math.round((planAmount - discountAmount) * 100) / 100, 0);
+		const baseRate = operatorDiscountRates[operator] ?? 0;
+		const effectiveRate = isActiveMember ? baseRate : 0;
+		const computedDiscountAmount = Math.round(((planAmount * effectiveRate) / 100) * 100) / 100;
+		const derivedDiscountAmount = selectedPlan?.discountDetails?.amount ?? computedDiscountAmount;
+		const derivedNetAmount = selectedPlan?.discountDetails?.net ?? Math.max(Math.round((planAmount - derivedDiscountAmount) * 100) / 100, 0);
 
 		const planPayload = selectedPlan
 			? selectedPlan
@@ -386,11 +406,17 @@ const MobileRecharge = () => {
 				benefits: '',
 			};
 
-		const discountPayload = selectedPlan?.discountDetails ?? {
-			amount: discountAmount,
-			percentage: selectedPlan?.discountDetails?.percentage ?? discountRate,
-			net: netAmount,
-		};
+		const discountPayload = isActiveMember
+			? {
+				amount: derivedDiscountAmount,
+				percentage: selectedPlan?.discountDetails?.percentage ?? effectiveRate,
+				net: derivedNetAmount,
+			}
+			: {
+				amount: 0,
+				percentage: 0,
+				net: planAmount,
+			};
 
 		navigate('/recharge/plan-confirmation', {
 			state: {
@@ -403,6 +429,7 @@ const MobileRecharge = () => {
 					circle,
 					circleInfo,
 					amount: planAmount,
+					isActiveMember,
 					discountDetails: discountPayload,
 				},
 			},
@@ -709,6 +736,15 @@ const MobileRecharge = () => {
 										<span>Insufficient balance. Please add money to your wallet.</span>
 									</div>
 								)}
+							</div>
+						)}
+						{!isActiveMember && (
+							<div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800">
+								<AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+								<div className="space-y-1">
+									<p className="text-sm font-semibold text-amber-900">Cashback reserved for active members</p>
+									<p>Purchase any Package or Super Package to unlock the % cashback on recharges. Free users still skip the platform fee, so you only pay the plan amount.</p>
+								</div>
 							</div>
 						)}
 

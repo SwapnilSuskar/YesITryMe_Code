@@ -40,6 +40,7 @@ const PlanConfirmation = () => {
 	// Get data from navigation state
 	const formData = location.state?.formData;
 	const plan = location.state?.plan;
+	const isActiveMember = Boolean(formData?.isActiveMember ?? (user?.status === 'active'));
 
 	// Redirect if no data
 	useEffect(() => {
@@ -128,29 +129,42 @@ const PlanConfirmation = () => {
 	}, []);
 
 	const discountDetails = useMemo(() => {
-		// Always ensure we have discountDetails, even if not passed
-		const planAmt = parseFloat(formData?.amount || plan?.amount || plan?.price || 0);
+		const planAmt = parseFloat(formData?.amount || plan?.amount || plan?.price || 0) || 0;
 
-		// Get discount rate from formData or calculate from operator
-		let discountRate = 0;
-		if (formData?.discountDetails?.percentage !== undefined) {
-			discountRate = typeof formData.discountDetails.percentage === 'number'
-				? formData.discountDetails.percentage
-				: (formData.discountDetails.percentage ?? 0);
-		} else if (formData?.operator) {
-			// Fallback: calculate from operator if discountDetails not provided
-			discountRate = operatorDiscountRates[formData.operator] ?? 0;
+		if (!planAmt) {
+			return {
+				amount: 0,
+				percentage: 0,
+				net: 0,
+			};
 		}
 
+		if (!isActiveMember) {
+			return {
+				amount: 0,
+				percentage: 0,
+				net: planAmt,
+			};
+		}
+
+		if (formData?.discountDetails) {
+			return {
+				amount: formData.discountDetails.amount ?? 0,
+				percentage: formData.discountDetails.percentage ?? 0,
+				net: formData.discountDetails.net ?? planAmt,
+			};
+		}
+
+		const discountRate = operatorDiscountRates[formData?.operator] ?? 0;
 		const discountAmt = Math.round(((planAmt * discountRate) / 100) * 100) / 100;
 		const netAmt = Math.max(Math.round((planAmt - discountAmt) * 100) / 100, 0);
 
 		return {
-			amount: formData?.discountDetails?.amount ?? discountAmt,
+			amount: discountAmt,
 			percentage: discountRate,
-			net: formData?.discountDetails?.net ?? netAmt,
+			net: netAmt,
 		};
-	}, [formData, plan]);
+	}, [formData, plan, isActiveMember]);
 
 	const planAmount = useMemo(() => {
 		const parsed = parseFloat(plan?.amount ?? plan?.price ?? plan?.rechargeAmount ?? formData?.amount ?? 0);
@@ -375,7 +389,7 @@ const PlanConfirmation = () => {
 						<div className="space-y-1">
 							<div className="flex items-center justify-between">
 								<p className="text-xs uppercase tracking-wide text-gray-400">Plan amount</p>
-								{discountDetails.percentage > 0 && (
+								{isActiveMember && discountDetails.percentage > 0 && (
 									<span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
 										{discountDetails.percentage}% OFF
 									</span>
@@ -407,9 +421,9 @@ const PlanConfirmation = () => {
 								<span>₹{planAmount.toFixed(2)}</span>
 							</div>
 							<div className="flex justify-between">
-								<span>Discount ({discountDetails.percentage || 0}%)</span>
-								<span className="text-green-600">
-									-{discountDetails.amount ? `₹${discountDetails.amount.toFixed(2)}` : '₹0.00'}
+								<span>Discount ({isActiveMember ? discountDetails.percentage || 0 : 0}%)</span>
+								<span className={isActiveMember && discountDetails.amount > 0 ? 'text-green-600' : 'text-gray-500'}>
+									{isActiveMember && discountDetails.amount > 0 ? `-₹${discountDetails.amount.toFixed(2)}` : '₹0.00'}
 								</span>
 							</div>
 							<div className="flex justify-between">
@@ -423,7 +437,9 @@ const PlanConfirmation = () => {
 							<div className="flex justify-between">
 								<span>Estimated cashback</span>
 								<span className="text-gray-500">
-									≈ {discountDetails.percentage || 0}% ({discountDetails.amount ? `₹${discountDetails.amount.toFixed(2)}` : '₹0.00'})
+									{isActiveMember && discountDetails.amount > 0
+										? `≈ ${discountDetails.percentage || 0}% (${discountDetails.amount ? `₹${discountDetails.amount.toFixed(2)}` : '₹0.00'})`
+										: 'Active members only'}
 								</span>
 							</div>
 						</div>
@@ -432,6 +448,16 @@ const PlanConfirmation = () => {
 							<span className="text-sm font-semibold text-gray-700">You pay</span>
 							<span className="text-2xl font-semibold text-gray-900">₹{netPayable.toFixed(2)}</span>
 						</div>
+
+						{!isActiveMember && (
+							<div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800">
+								<AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+								<div className="space-y-1">
+									<p className="text-sm font-semibold text-amber-900">Cashback locked for free users</p>
+									<p>Buy any Package or Super Package to unlock % cashback on every recharge. Until then, platform fees stay waived and you simply pay the plan price.</p>
+								</div>
+							</div>
+						)}
 
 						<ul className="mt-3 text-xs text-gray-500 space-y-1">
 							<li>• Instant status updates after payment</li>

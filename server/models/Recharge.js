@@ -62,6 +62,10 @@ const rechargeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    activeMemberSnapshot: {
+      type: Boolean,
+      default: false,
+    },
     planId: {
       type: String,
       default: "",

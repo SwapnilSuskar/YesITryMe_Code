@@ -14,6 +14,7 @@ const RechargeSuccess = () => {
     const [rechargeData, setRechargeData] = useState(null);
     const rechargeId = searchParams.get('rechargeId') || location.state?.rechargeId;
     const formData = location.state?.formData;
+    const showUpgradeNotice = formData?.isActiveMember === false;
 
     // Fetch recharge details
     useEffect(() => {
@@ -215,6 +216,11 @@ const RechargeSuccess = () => {
                                     <span className="text-lg font-bold text-gray-900">₹{(amount + platformFee).toFixed(2)}</span>
                                 </div>
                             </div>
+                            {showUpgradeNotice && (
+                                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800">
+                                    Upgrade by purchasing any Package or Super Package to unlock % cashback on future recharges.
+                                </div>
+                            )}
                         </div>
 
                         {/* Transaction ID */}

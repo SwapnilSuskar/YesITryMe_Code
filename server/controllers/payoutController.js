@@ -4,7 +4,10 @@ import Purchase from "../models/Purchase.js";
 import SuperPackagePurchase from "../models/SuperPackagePurchase.js";
 import Wallet from "../models/Wallet.js";
 import RechargeWallet from "../models/RechargeWallet.js";
-import { calculateWithdrawalCharges } from "../services/mlmService.js";
+import {
+  calculateWithdrawalCharges,
+  checkActiveMemberStatus,
+} from "../services/mlmService.js";
 
 // Check payout eligibility
 export const checkPayoutEligibility = async (req, res) => {
@@ -340,11 +343,13 @@ export const getWalletBalance = async (req, res) => {
     // Get recharge wallet balance (separate from main wallet - no active/passive income)
     const rechargeWallet = await RechargeWallet.getOrCreateWallet(userId);
     const smartWalletBalance = rechargeWallet ? (rechargeWallet.balance || 0) : 0;
+    const isActiveMember = await checkActiveMemberStatus(userId);
 
     res.json({
       success: true,
       balance,
       smartWalletBalance,
+      isActiveMember,
     });
   } catch (error) {
     console.error("Error getting wallet balance:", error);

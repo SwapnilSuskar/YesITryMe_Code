@@ -1,56 +1,57 @@
 import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
+import RechargeWallet from "../models/RechargeWallet.js";
 import axios from "axios";
-// import { HttpsProxyAgent } from "https-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
-// const RECHARGE_PROXY_URL =
-//   process.env.RECHARGE_PROXY_URL ||
-//   process.env.FIXIE_URL ||
-//   process.env.FIXIE_HTTP_URL ||
-//   process.env.AXIOS_RECHARGE_PROXY ||
-//   process.env.HTTP_RECHARGE_PROXY ||
-//   process.env.HTTPS_PROXY ||
-//   process.env.HTTP_PROXY ||
-//   "";
+const RECHARGE_PROXY_URL =
+  process.env.RECHARGE_PROXY_URL ||
+  process.env.FIXIE_URL ||
+  process.env.FIXIE_HTTP_URL ||
+  process.env.AXIOS_RECHARGE_PROXY ||
+  process.env.HTTP_RECHARGE_PROXY ||
+  process.env.HTTPS_PROXY ||
+  process.env.HTTP_PROXY ||
+  "";
 
-// let rechargeProxyAgent = null;
-// let proxyInitAttempted = false;
+let rechargeProxyAgent = null;
+let proxyInitAttempted = false;
 
-// const getRechargeProxyAgent = () => {
-//   if (proxyInitAttempted) {
-//     return rechargeProxyAgent;
-//   }
+const getRechargeProxyAgent = () => {
+  if (proxyInitAttempted) {
+    return rechargeProxyAgent;
+  }
 
-//   proxyInitAttempted = true;
+  proxyInitAttempted = true;
 
-//   if (!RECHARGE_PROXY_URL) {
-//     return null;
-//   }
+  if (!RECHARGE_PROXY_URL) {
+    return null;
+  }
 
-//   try {
-//     rechargeProxyAgent = new HttpsProxyAgent(RECHARGE_PROXY_URL);
-//     const sanitizedHost = (() => {
-//       try {
-//         const parsedUrl = new URL(RECHARGE_PROXY_URL);
-//         return parsedUrl.hostname || parsedUrl.host || "configured proxy";
-//       } catch (error) {
-//         return "configured proxy";
-//       }
-//     })();
-//     console.log(
-//       `[Recharge][Proxy] Routing provider traffic through ${sanitizedHost}`
-//     );
-//   } catch (error) {
-//     console.error(
-//       "[Recharge][Proxy] Failed to initialize proxy agent:",
-//       error.message
-//     );
-//     rechargeProxyAgent = null;
-//   }
+  try {
+    rechargeProxyAgent = new HttpsProxyAgent(RECHARGE_PROXY_URL);
+    const sanitizedHost = (() => {
+      try {
+        const parsedUrl = new URL(RECHARGE_PROXY_URL);
+        return parsedUrl.hostname || parsedUrl.host || "configured proxy";
+      } catch (error) {
+        return "configured proxy";
+      }
+    })();
+    console.log(
+      `[Recharge][Proxy] Routing provider traffic through ${sanitizedHost}`
+    );
+  } catch (error) {
+    console.error(
+      "[Recharge][Proxy] Failed to initialize proxy agent:",
+      error.message
+    );
+    rechargeProxyAgent = null;
+  }
 
-//   return rechargeProxyAgent;
-// };
+  return rechargeProxyAgent;
+};
 
 // Legacy base URL for legacy endpoints (plans, etc.)
 const A1TOPUP_LEGACY_BASE_URL =
@@ -67,6 +68,10 @@ const buildA1TopupUrl = (path) => {
 const A1TOPUP_RECHARGE_ENDPOINT = normalizePath(
   process.env.AITOPUP_RECHARGE_ENDPOINT || "recharge"
 );
+const A1TOPUP_RECHARGE_ACTION =
+  process.env.AITOPUP_RECHARGE_ACTION ||
+  process.env.AITOPUP_ACTION_RECHARGE ||
+  "recharge";
 const A1TOPUP_POSTPAID_FETCH_ENDPOINT = normalizePath(
   process.env.AITOPUP_POSTPAID_FETCH_ENDPOINT || "postpaid/fetch-bill"
 );
@@ -340,16 +345,16 @@ const resolveCircleNumericCode = (circleValue) => {
   if (!circleValue) return undefined;
   const normalized = circleValue.toString().trim();
   if (!normalized) return undefined;
-  
+
   // If it's already a numeric code, return it
   if (/^\d+$/.test(normalized)) {
     return normalized;
   }
-  
+
   // Try direct lookup
   const upperKey = normalized.replace(/\s+/g, "_").toUpperCase();
   let numericCode = CIRCLE_NUMERIC_CODE_MAP[upperKey];
-  
+
   // If not found, try resolving to text code first, then to numeric
   if (!numericCode) {
     const textCode = CIRCLE_CODE_MAP[upperKey];
@@ -360,7 +365,7 @@ const resolveCircleNumericCode = (circleValue) => {
         CIRCLE_NUMERIC_CODE_MAP[textCode];
     }
   }
-  
+
   return numericCode;
 };
 
@@ -934,20 +939,22 @@ const tryPromoteRechargeUsingWallet = async (recharge, options = {}) => {
   }
 
   try {
-    const wallet = await Wallet.findOne({ userId: recharge.userId });
-    if (!wallet || !Array.isArray(wallet.transactions)) {
+    const rechargeWallet = await RechargeWallet.getOrCreateWallet(
+      recharge.userId
+    );
+    if (!rechargeWallet || !Array.isArray(rechargeWallet.transactions)) {
       return { outcome: "pending" };
     }
 
     const debitRef = `RECHARGE_WALLET_${recharge._id}`;
     const refundRef = `RECHARGE_WALLET_REFUND_${recharge._id}`;
-    const debitTxn = wallet.transactions.find(
+    const debitTxn = rechargeWallet.transactions.find(
       (txn) => txn?.reference === debitRef
     );
     if (!debitTxn) {
       return { outcome: "pending" };
     }
-    const refundTxn = wallet.transactions.find(
+    const refundTxn = rechargeWallet.transactions.find(
       (txn) => txn?.reference === refundRef
     );
     if (refundTxn) {
@@ -1497,19 +1504,19 @@ export const fetchRechargePlans = async (req, res) => {
     const plansFromProvider = getLocalPlansForOperator(operator);
 
     if (plansFromProvider.length > 0) {
-                    return res.status(200).json({
-                      success: true,
+      return res.status(200).json({
+        success: true,
         data: plansFromProvider,
-                      message:
+        message:
           "Plans are served from the local catalog. Please select an amount to continue.",
         source: "local_catalog",
       });
     }
 
-                  return res.status(200).json({
+    return res.status(200).json({
       success: false,
-        data: [],
-        message:
+      data: [],
+      message:
         "Plans are not available. Please enter the recharge amount manually.",
       source: "manual_entry",
     });
@@ -1542,7 +1549,7 @@ export const detectCircle = async (req, res) => {
     console.error("Circle detection disabled. Request details:", error.message);
     return res.status(500).json({
       success: false,
-        message:
+      message:
         "Circle detection is disabled. Please select your circle manually before proceeding.",
     });
   }
@@ -1608,7 +1615,7 @@ export const initiateRecharge = async (req, res) => {
     // Get operator code and type
     // First determine recharge type, then validate operator
     let actualRechargeType = rechargeType;
-    
+
     // Try to determine type from operator name if not explicitly set
     if (!actualRechargeType && operator) {
       if (operator.toLowerCase().includes("postpaid")) {
@@ -1617,7 +1624,7 @@ export const initiateRecharge = async (req, res) => {
         actualRechargeType = "prepaid";
       }
     }
-    
+
     // Now check if circle is required (only for prepaid)
     const requiresCircle = actualRechargeType !== "postpaid";
     if (requiresCircle && !circle) {
@@ -1627,7 +1634,7 @@ export const initiateRecharge = async (req, res) => {
         error: "CIRCLE_REQUIRED",
       });
     }
-    
+
     // Validate operator based on recharge type
     let operatorInfo;
     if (actualRechargeType === "postpaid") {
@@ -1732,22 +1739,27 @@ export const initiateRecharge = async (req, res) => {
     await recharge.save();
 
     // If paying from wallet (manual mode)
+    // Use RechargeWallet (separate from main wallet - no active/passive income)
     if (paymentMethod === "wallet") {
-      const wallet = await Wallet.findOne({ userId });
-      if (!wallet || (wallet.balance || 0) < netAmount) {
+      const rechargeWallet = await RechargeWallet.getOrCreateWallet(userId);
+      if (!rechargeWallet || (rechargeWallet.balance || 0) < netAmount) {
         recharge.status = "failed";
-        recharge.failureReason = "Insufficient wallet balance";
+        recharge.failureReason = "Insufficient recharge wallet balance";
         await recharge.save();
         return res.status(400).json({
           success: false,
-          message: "Insufficient wallet balance",
+          message:
+            "Insufficient recharge wallet balance. Please add money to your recharge wallet.",
         });
       }
 
-      // Deduct balance safely
+      // Deduct from recharge wallet (separate from main wallet)
       const roundedAmount = Math.round(netAmount * 100) / 100;
-      wallet.balance = Math.round((wallet.balance - roundedAmount) * 100) / 100;
-      wallet.transactions.push({
+      rechargeWallet.balance =
+        Math.round((rechargeWallet.balance - roundedAmount) * 100) / 100;
+      rechargeWallet.totalSpent =
+        Math.round((rechargeWallet.totalSpent + roundedAmount) * 100) / 100;
+      rechargeWallet.transactions.push({
         type: "recharge_payment",
         amount: roundedAmount,
         description:
@@ -1760,9 +1772,10 @@ export const initiateRecharge = async (req, res) => {
             : `Recharge payment for ${mobileNumber} (${operator})`,
         status: "completed",
         reference: `RECHARGE_WALLET_${recharge._id}`,
+        rechargeId: recharge._id,
         createdAt: new Date(),
       });
-      await wallet.save();
+      await rechargeWallet.save();
 
       // Mark as paid and process recharge with provider
       recharge.status = "payment_success";
@@ -1774,17 +1787,25 @@ export const initiateRecharge = async (req, res) => {
 
       // Check if processRechargeWithA1Topup returned an error object
       if (rechargeResult && rechargeResult.success === false) {
-        // Refund wallet on provider failure
-        const refundWallet = await Wallet.findOne({ userId });
+        // Refund recharge wallet on provider failure (separate from main wallet)
+        const refundWallet = await RechargeWallet.getOrCreateWallet(userId);
         if (refundWallet) {
           refundWallet.balance =
             Math.round((refundWallet.balance + roundedAmount) * 100) / 100;
+          refundWallet.totalRefunded =
+            Math.round((refundWallet.totalRefunded + roundedAmount) * 100) /
+            100;
+          refundWallet.totalSpent = Math.max(
+            0,
+            Math.round((refundWallet.totalSpent - roundedAmount) * 100) / 100
+          );
           refundWallet.transactions.push({
             type: "recharge_refund",
             amount: roundedAmount,
             description: `Refund for failed recharge ${mobileNumber} (${operator})`,
             status: "completed",
             reference: `RECHARGE_WALLET_REFUND_${recharge._id}`,
+            rechargeId: recharge._id,
             createdAt: new Date(),
           });
           await refundWallet.save();
@@ -1820,11 +1841,11 @@ export const initiateRecharge = async (req, res) => {
     }
 
     // If we reach here, payment method is not wallet (shouldn't happen due to validation above)
-      return res.status(400).json({
-        success: false,
+    return res.status(400).json({
+      success: false,
       message: "Only wallet payment is supported",
       error: "INVALID_PAYMENT_METHOD",
-      });
+    });
   } catch (error) {
     console.error(
       "Error initiating recharge:",
@@ -1851,8 +1872,8 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     const operatorDirectory =
       recharge.rechargeType === "postpaid"
-      ? POSTPAID_OPERATORS
-      : PREPAID_OPERATORS;
+        ? POSTPAID_OPERATORS
+        : PREPAID_OPERATORS;
     const operatorInfo = operatorDirectory[recharge.operator] || {};
     const operatorCode = operatorInfo.code || recharge.operatorCode || null;
     const operatorApiCode =
@@ -1921,15 +1942,32 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     // Build params as per A1Topup official API: username, pwd, operatorcode, number, amount, orderid, format
     // circlecode only if we have a valid numeric mapping
-      const params = {
-        username: A1TOPUP_USERNAME,
-        pwd: A1TOPUP_PASSWORD,
+    const params = {
+      username: A1TOPUP_USERNAME,
+      pwd: A1TOPUP_PASSWORD,
       operatorcode: operatorCode,
-        number: recharge.mobileNumber,
+      operator: operatorApiCode || operatorCode,
+      number: recharge.mobileNumber,
       amount: numericAmount.toString(),
-        orderid: orderId,
-        format: "json",
-      };
+      orderid: orderId,
+      format: "json",
+      type:
+        recharge.rechargeType &&
+        recharge.rechargeType.toLowerCase() === "postpaid"
+          ? "postpaid"
+          : "prepaid",
+      category:
+        recharge.rechargeType &&
+        recharge.rechargeType.toLowerCase() === "postpaid"
+          ? "postpaid"
+          : "prepaid",
+    };
+
+    if (A1TOPUP_RECHARGE_ACTION) {
+      params.action = A1TOPUP_RECHARGE_ACTION;
+      params.request = A1TOPUP_RECHARGE_ACTION;
+      params.service = A1TOPUP_RECHARGE_ACTION;
+    }
 
     // Only add circlecode if we have a valid numeric code (as per API requirement)
     if (circleParam && /^\d+$/.test(circleParam.toString())) {
@@ -2075,9 +2113,9 @@ const handleFailedRecharge = async (recharge, reason) => {
 
     // Note: Refunds for wallet payments are handled in initiateRecharge
     // This function just marks the recharge as failed
-      console.log(
+    console.log(
       `❌ Recharge failed: ₹${recharge.amount} for ${recharge.mobileNumber} - ${reason}`
-      );
+    );
   } catch (error) {
     console.error(
       "Error handling failed recharge:",
@@ -2190,6 +2228,66 @@ export const getRechargeHistory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch recharge history",
+    });
+  }
+};
+
+export const getRechargeWalletTransactions = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 200);
+    const type = (req.query.type || "all").toLowerCase();
+
+    const rechargeWallet = await RechargeWallet.getOrCreateWallet(userId);
+    const transactionsList = Array.isArray(rechargeWallet.transactions)
+      ? [...rechargeWallet.transactions]
+      : [];
+
+    transactionsList.sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
+
+    let filteredTransactions = transactionsList;
+    if (type === "payments") {
+      filteredTransactions = transactionsList.filter(
+        (txn) => txn.type === "recharge_payment"
+      );
+    } else if (type === "topups") {
+      filteredTransactions = transactionsList.filter(
+        (txn) => txn.type === "topup"
+      );
+    } else if (type === "refunds") {
+      filteredTransactions = transactionsList.filter(
+        (txn) => txn.type === "recharge_refund"
+      );
+    }
+
+    const totalTransactions = filteredTransactions.length;
+    const totalPages = Math.max(Math.ceil(totalTransactions / limit), 1);
+    const startIndex = (page - 1) * limit;
+    const paginatedTransactions = filteredTransactions.slice(
+      startIndex,
+      startIndex + limit
+    );
+
+    return res.status(200).json({
+      success: true,
+      balance: rechargeWallet.balance,
+      totalAdded: rechargeWallet.totalAdded,
+      totalSpent: rechargeWallet.totalSpent,
+      totalRefunded: rechargeWallet.totalRefunded,
+      transactions: paginatedTransactions,
+      page,
+      totalPages,
+      totalTransactions,
+    });
+  } catch (error) {
+    console.error("Error fetching recharge wallet transactions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recharge wallet transactions",
+      error: error.message,
     });
   }
 };
@@ -2423,8 +2521,8 @@ export const updateRecharge = async (req, res) => {
         const rechargeType = updateData.rechargeType || recharge.rechargeType;
         const operatorInfo =
           rechargeType === "postpaid"
-          ? POSTPAID_OPERATORS[updateData.operator]
-          : PREPAID_OPERATORS[updateData.operator];
+            ? POSTPAID_OPERATORS[updateData.operator]
+            : PREPAID_OPERATORS[updateData.operator];
         if (operatorInfo) {
           updateData.operatorCode = operatorInfo.code;
           updateData.operatorApiCode =

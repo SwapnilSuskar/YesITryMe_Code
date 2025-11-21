@@ -1,5 +1,6 @@
 import WalletTopUp from "../models/WalletTopUp.js";
 import Wallet from "../models/Wallet.js";
+import RechargeWallet from "../models/RechargeWallet.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from "cloudinary";
 import { compressPaymentProof } from "../utils/imageCompression.js";
@@ -8,7 +9,9 @@ import { compressPaymentProof } from "../utils/imageCompression.js";
 const fetchUserByUserId = async (userIdString) => {
   if (!userIdString) return null;
   try {
-    const user = await User.findOne({ userId: userIdString }).select("userId firstName lastName email mobile");
+    const user = await User.findOne({ userId: userIdString }).select(
+      "userId firstName lastName email mobile"
+    );
     return user;
   } catch (error) {
     console.error(`Error fetching user ${userIdString}:`, error);
@@ -46,7 +49,16 @@ export const submitWalletTopUp = async (req, res) => {
         message: "Payment amount must be greater than 0",
       });
     }
-    
+
+    // Validate minimum amount (₹300) for smart wallet top-up
+    const MINIMUM_TOPUP_AMOUNT = 300;
+    if (amount < MINIMUM_TOPUP_AMOUNT) {
+      return res.status(400).json({
+        success: false,
+        message: `Minimum top-up amount is ₹${MINIMUM_TOPUP_AMOUNT}. Please enter a valid amount.`,
+      });
+    }
+
     // Round to 2 decimal places to avoid floating-point precision issues
     const roundedAmount = Math.round(amount * 100) / 100;
 
@@ -60,7 +72,8 @@ export const submitWalletTopUp = async (req, res) => {
     if (existingTopUp) {
       return res.status(400).json({
         success: false,
-        message: "You already have a pending wallet top-up with this transaction ID",
+        message:
+          "You already have a pending wallet top-up with this transaction ID",
       });
     }
 
@@ -83,9 +96,7 @@ export const submitWalletTopUp = async (req, res) => {
         {
           folder: "wallet-topup-proofs",
           resource_type: "auto",
-          transformation: [
-            { quality: "auto", fetch_format: "auto" },
-          ],
+          transformation: [{ quality: "auto", fetch_format: "auto" }],
         },
         (error, result) => {
           if (error) {
@@ -118,7 +129,8 @@ export const submitWalletTopUp = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Wallet top-up request submitted successfully. We will review and credit your wallet soon.",
+      message:
+        "Wallet top-up request submitted successfully. We will review and credit your wallet soon.",
       data: {
         topUpId: walletTopUp._id,
         status: walletTopUp.status,
@@ -190,22 +202,34 @@ export const getAllWalletTopUps = async (req, res) => {
     const total = await WalletTopUp.countDocuments(query);
 
     // Get unique user IDs to fetch
-    const userIds = [...new Set(topUps.map(t => t.userId).filter(Boolean))];
-    const approvedByIds = [...new Set(topUps.map(t => t.approvedBy).filter(Boolean))];
-    const rejectedByIds = [...new Set(topUps.map(t => t.rejectedBy).filter(Boolean))];
-    const allUserIds = [...new Set([...userIds, ...approvedByIds, ...rejectedByIds])];
+    const userIds = [...new Set(topUps.map((t) => t.userId).filter(Boolean))];
+    const approvedByIds = [
+      ...new Set(topUps.map((t) => t.approvedBy).filter(Boolean)),
+    ];
+    const rejectedByIds = [
+      ...new Set(topUps.map((t) => t.rejectedBy).filter(Boolean)),
+    ];
+    const allUserIds = [
+      ...new Set([...userIds, ...approvedByIds, ...rejectedByIds]),
+    ];
 
     // Fetch all users at once
-    const users = await User.find({ userId: { $in: allUserIds } }).select("userId firstName lastName email mobile");
-    const userMap = new Map(users.map(u => [u.userId, u]));
+    const users = await User.find({ userId: { $in: allUserIds } }).select(
+      "userId firstName lastName email mobile"
+    );
+    const userMap = new Map(users.map((u) => [u.userId, u]));
 
     return res.status(200).json({
       success: true,
       data: {
         topUps: topUps.map((topUp) => {
           const user = userMap.get(topUp.userId);
-          const approvedByUser = topUp.approvedBy ? userMap.get(topUp.approvedBy) : null;
-          const rejectedByUser = topUp.rejectedBy ? userMap.get(topUp.rejectedBy) : null;
+          const approvedByUser = topUp.approvedBy
+            ? userMap.get(topUp.approvedBy)
+            : null;
+          const rejectedByUser = topUp.rejectedBy
+            ? userMap.get(topUp.rejectedBy)
+            : null;
 
           return {
             id: topUp._id,
@@ -232,14 +256,18 @@ export const getAllWalletTopUps = async (req, res) => {
             approvedBy: approvedByUser
               ? {
                   userId: approvedByUser.userId,
-                  name: `${approvedByUser.firstName || ""} ${approvedByUser.lastName || ""}`.trim(),
+                  name: `${approvedByUser.firstName || ""} ${
+                    approvedByUser.lastName || ""
+                  }`.trim(),
                 }
               : null,
             rejectedAt: topUp.rejectedAt,
             rejectedBy: rejectedByUser
               ? {
                   userId: rejectedByUser.userId,
-                  name: `${rejectedByUser.firstName || ""} ${rejectedByUser.lastName || ""}`.trim(),
+                  name: `${rejectedByUser.firstName || ""} ${
+                    rejectedByUser.lastName || ""
+                  }`.trim(),
                 }
               : null,
             rejectionReason: topUp.rejectionReason,
@@ -278,13 +306,21 @@ export const getWalletTopUp = async (req, res) => {
     }
 
     // Fetch user data manually
-    const userIds = [topUp.userId, topUp.approvedBy, topUp.rejectedBy].filter(Boolean);
-    const users = await User.find({ userId: { $in: userIds } }).select("userId firstName lastName email mobile");
-    const userMap = new Map(users.map(u => [u.userId, u]));
+    const userIds = [topUp.userId, topUp.approvedBy, topUp.rejectedBy].filter(
+      Boolean
+    );
+    const users = await User.find({ userId: { $in: userIds } }).select(
+      "userId firstName lastName email mobile"
+    );
+    const userMap = new Map(users.map((u) => [u.userId, u]));
 
     const user = userMap.get(topUp.userId);
-    const approvedByUser = topUp.approvedBy ? userMap.get(topUp.approvedBy) : null;
-    const rejectedByUser = topUp.rejectedBy ? userMap.get(topUp.rejectedBy) : null;
+    const approvedByUser = topUp.approvedBy
+      ? userMap.get(topUp.approvedBy)
+      : null;
+    const rejectedByUser = topUp.rejectedBy
+      ? userMap.get(topUp.rejectedBy)
+      : null;
 
     return res.status(200).json({
       success: true,
@@ -313,14 +349,18 @@ export const getWalletTopUp = async (req, res) => {
         approvedBy: approvedByUser
           ? {
               userId: approvedByUser.userId,
-              name: `${approvedByUser.firstName || ""} ${approvedByUser.lastName || ""}`.trim(),
+              name: `${approvedByUser.firstName || ""} ${
+                approvedByUser.lastName || ""
+              }`.trim(),
             }
           : null,
         rejectedAt: topUp.rejectedAt,
         rejectedBy: rejectedByUser
           ? {
               userId: rejectedByUser.userId,
-              name: `${rejectedByUser.firstName || ""} ${rejectedByUser.lastName || ""}`.trim(),
+              name: `${rejectedByUser.firstName || ""} ${
+                rejectedByUser.lastName || ""
+              }`.trim(),
             }
           : null,
         rejectionReason: topUp.rejectionReason,
@@ -366,31 +406,30 @@ export const approveWalletTopUp = async (req, res) => {
     topUp.adminNotes = adminNotes || "";
     await topUp.save();
 
-    // Get or create user's wallet
-    let wallet = await Wallet.findOne({ userId: topUp.userId });
-    if (!wallet) {
-      wallet = new Wallet({ userId: topUp.userId });
-    }
+    // Get or create user's recharge wallet (separate from main wallet - no active/passive income)
+    const rechargeWallet = await RechargeWallet.getOrCreateWallet(topUp.userId);
 
     // Round amount to 2 decimal places to avoid floating-point precision issues
     const amountToAdd = Math.round(topUp.paymentAmount * 100) / 100;
-    
-    // Add amount to smart wallet balance
-    wallet.smartWalletBalance = Math.round((wallet.smartWalletBalance + amountToAdd) * 100) / 100;
-    wallet.balance = Math.round((wallet.balance + amountToAdd) * 100) / 100; // Also add to main balance
-    wallet.totalEarned = Math.round((wallet.totalEarned + amountToAdd) * 100) / 100;
+
+    // Add amount to recharge wallet balance (separate from main wallet)
+    rechargeWallet.balance =
+      Math.round((rechargeWallet.balance + amountToAdd) * 100) / 100;
+    rechargeWallet.totalAdded =
+      Math.round((rechargeWallet.totalAdded + amountToAdd) * 100) / 100;
 
     // Add transaction record
-    wallet.transactions.push({
-      type: "wallet_topup",
+    rechargeWallet.transactions.push({
+      type: "topup",
       amount: amountToAdd,
-      description: `Wallet top-up approved - Transaction ID: ${topUp.transactionId}`,
+      description: `Recharge wallet top-up approved - Transaction ID: ${topUp.transactionId}`,
       status: "completed",
       reference: topUp.transactionId,
+      topUpId: topUp._id,
       adminNotes: adminNotes || "",
     });
 
-    await wallet.save();
+    await rechargeWallet.save();
 
     // Get user details for notification
     const user = await User.findOne({ userId: topUp.userId });
@@ -398,7 +437,9 @@ export const approveWalletTopUp = async (req, res) => {
       // Create notification (if notification service exists)
       try {
         // You can add notification creation here if needed
-        console.log(`Wallet top-up approved for user ${user.userId}: ₹${topUp.paymentAmount}`);
+        console.log(
+          `Wallet top-up approved for user ${user.userId}: ₹${topUp.paymentAmount}`
+        );
       } catch (error) {
         console.error("Error creating notification:", error);
         // Don't fail the approval if notification fails
@@ -411,7 +452,7 @@ export const approveWalletTopUp = async (req, res) => {
       data: {
         topUpId: topUp._id,
         amount: topUp.paymentAmount,
-        newBalance: wallet.smartWalletBalance,
+        newBalance: rechargeWallet.balance,
       },
     });
   } catch (error) {
@@ -525,7 +566,8 @@ export const deleteWalletTopUp = async (req, res) => {
     if (topUp.status === "approved") {
       return res.status(400).json({
         success: false,
-        message: "Cannot delete an approved wallet top-up. The amount has already been credited to the user's wallet.",
+        message:
+          "Cannot delete an approved wallet top-up. The amount has already been credited to the user's wallet.",
       });
     }
 
@@ -535,7 +577,10 @@ export const deleteWalletTopUp = async (req, res) => {
         const publicId = topUp.paymentProofUrl.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(publicId);
       } catch (cloudinaryError) {
-        console.error("Error deleting payment proof from Cloudinary:", cloudinaryError);
+        console.error(
+          "Error deleting payment proof from Cloudinary:",
+          cloudinaryError
+        );
         // Continue with deletion even if Cloudinary deletion fails
       }
     }
@@ -556,4 +601,3 @@ export const deleteWalletTopUp = async (req, res) => {
     });
   }
 };
-

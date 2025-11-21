@@ -337,7 +337,7 @@ const MobileRecharge = () => {
 		checkKycStatus();
 	}, [checkKycStatus]);
 
-	// Fetch wallet balance - only once on mount
+	// Fetch smart wallet balance (for recharge) - only once on mount
 	const fetchWalletBalance = useCallback(async () => {
 		if (!user || isFetchingBalanceRef.current) return;
 
@@ -345,7 +345,8 @@ const MobileRecharge = () => {
 		try {
 			const response = await getWalletBalance();
 			if (response.success) {
-				setWalletBalance(response.balance || 0);
+				// Use smartWalletBalance for recharge (added money only, not mixed with active/passive income)
+				setWalletBalance(response.smartWalletBalance ?? response.balance ?? 0);
 			}
 		} catch (error) {
 			console.error('Error fetching wallet balance:', error);

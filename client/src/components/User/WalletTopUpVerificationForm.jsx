@@ -1,9 +1,6 @@
 import {
     AlertCircle,
-    CheckCircle,
-    Clock,
-    CreditCard,
-    FileText,
+    CheckCircle, FileText,
     Loader2,
     Mail,
     Phone,
@@ -72,8 +69,16 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
             return;
         }
 
-        if (!formData.paymentAmount || parseFloat(formData.paymentAmount) <= 0) {
+        const amount = parseFloat(formData.paymentAmount);
+        if (!formData.paymentAmount || amount <= 0 || isNaN(amount)) {
             setError("Please enter a valid amount");
+            return;
+        }
+
+        // Validate minimum amount (₹300)
+        const MINIMUM_TOPUP_AMOUNT = 300;
+        if (amount < MINIMUM_TOPUP_AMOUNT) {
+            setError(`Minimum top-up amount is ₹${MINIMUM_TOPUP_AMOUNT}. Please enter a valid amount.`);
             return;
         }
 
@@ -170,7 +175,7 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
                             <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                            Add Money to Wallet
+                            Add Money to Smart Wallet
                         </h2>
                         <button
                             onClick={onClose}
@@ -191,8 +196,8 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                             {[1, 2, 3, 4].map((step) => (
                                 <div key={step} className="flex items-center">
                                     <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold ${currentStep >= step
-                                            ? "bg-orange-500 text-white"
-                                            : "bg-gray-200 text-gray-600"
+                                        ? "bg-orange-500 text-white"
+                                        : "bg-gray-200 text-gray-600"
                                         }`}>
                                         {step}
                                     </div>
@@ -298,12 +303,24 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                                             name="paymentAmount"
                                             value={formData.paymentAmount}
                                             onChange={handleInputChange}
-                                            className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-                                            placeholder="Enter amount"
-                                            min="1"
+                                            className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base ${formData.paymentAmount && parseFloat(formData.paymentAmount) < 300
+                                                ? 'border-red-300 bg-red-50'
+                                                : 'border-gray-300'
+                                                }`}
+                                            placeholder="Enter amount (minimum ₹300)"
+                                            min="300"
                                             step="0.01"
                                             required
                                         />
+                                        <p className="mt-1.5 text-xs text-gray-600">
+                                            <span className="font-semibold text-orange-600">Minimum amount: ₹300</span>
+                                        </p>
+                                        {formData.paymentAmount && parseFloat(formData.paymentAmount) < 300 && (
+                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                <AlertCircle className="w-3 h-3" />
+                                                Please enter at least ₹300 to proceed
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Payment Method */}
@@ -438,7 +455,7 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                                         </label>
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-8 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-all"
+                                            className="border-2 border-dashed  rounded-xl p-4 sm:p-8 text-center cursor-pointer border-orange-400 bg-orange-50 transition-all"
                                         >
                                             {paymentProof ? (
                                                 <div className="space-y-3">

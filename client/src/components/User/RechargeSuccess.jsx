@@ -3,14 +3,12 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Smartphone, IndianRupee, Clock, ArrowLeft, Sparkles, Loader2 } from 'lucide-react';
 import { checkRechargeStatus } from '../../services/rechargeService';
 import useToast from '../../hooks/useToast';
-import { useAuthStore } from '../../store/useAuthStore';
 
 const RechargeSuccess = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const { showError } = useToast();
-    const { user } = useAuthStore();
 
     const [loading, setLoading] = useState(true);
     const [rechargeData, setRechargeData] = useState(null);
@@ -49,11 +47,21 @@ const RechargeSuccess = () => {
     }, [rechargeId]);
 
     // Calculate cashback from discount or commission
+    const amount = rechargeData?.amount || formData?.amount || 0;
+    const basePlanAmount =
+        rechargeData?.originalAmount ||
+        rechargeData?.amountBeforeDiscount ||
+        formData?.amountBeforeDiscount ||
+        formData?.planAmount ||
+        formData?.amount ||
+        amount ||
+        0;
     const cashbackPercentage = formData?.discountDetails?.percentage || rechargeData?.discountPercentage || 0;
     const cashbackAmount = formData?.discountDetails?.amount || rechargeData?.discountAmount || 0;
+    const platformFee = rechargeData?.platformFee || rechargeData?.convenienceFee || 0;
+    const totalSavings = cashbackAmount > 0 ? cashbackAmount : Math.max(basePlanAmount - amount, 0);
     const mobileNumber = rechargeData?.mobileNumber || formData?.mobileNumber || '';
     const operator = rechargeData?.operator || formData?.operator || '';
-    const amount = rechargeData?.amount || formData?.amount || 0;
     const rechargeTime = rechargeData?.rechargeCompletedAt || rechargeData?.createdAt || new Date();
 
     // Format date and time
@@ -172,6 +180,42 @@ const RechargeSuccess = () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Savings Summary */}
+                        <div className="bg-white rounded-xl p-6 border border-orange-100 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs uppercase tracking-wide text-gray-400">You saved</p>
+                                    <p className="text-2xl font-extrabold text-emerald-600 flex items-center gap-1">
+                                        <IndianRupee className="w-5 h-5" />
+                                        {totalSavings.toFixed(2)}
+                                    </p>
+                                </div>
+                                <div className="text-right text-sm text-gray-500">
+                                    <p>Platform discount applied</p>
+                                    {cashbackPercentage > 0 && <p className="font-semibold text-gray-800">{cashbackPercentage}% rate</p>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <div className="flex justify-between">
+                                    <span>Plan price</span>
+                                    <span className="font-semibold text-gray-900">₹{basePlanAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Platform savings</span>
+                                    <span className="font-semibold text-emerald-600">- ₹{totalSavings.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Platform fees</span>
+                                    <span className="font-semibold text-gray-900">₹{platformFee.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between border-t border-dashed border-gray-200 pt-2">
+                                    <span className="text-gray-800 font-semibold">Net paid</span>
+                                    <span className="text-lg font-bold text-gray-900">₹{(amount + platformFee).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Transaction ID */}
                         {rechargeData?.aiTopUpOrderId && (

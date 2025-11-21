@@ -34,6 +34,7 @@ const PlanConfirmation = () => {
 	const [checkingKyc, setCheckingKyc] = useState(true);
 	const [isConfirming, setIsConfirming] = useState(false);
 	const [errorMessage, setErrorMessage] = useState(null);
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const isFetchingBalanceRef = useRef(false); // Prevent multiple simultaneous balance fetches
 
 	// Get data from navigation state
@@ -81,7 +82,7 @@ const PlanConfirmation = () => {
 		checkKycStatus();
 	}, [checkKycStatus]);
 
-	// Fetch wallet balance - only once on mount
+	// Fetch smart wallet balance (for recharge) - only once on mount
 	useEffect(() => {
 		if (isFetchingBalanceRef.current) return;
 
@@ -91,7 +92,8 @@ const PlanConfirmation = () => {
 			try {
 				const response = await getWalletBalance();
 				if (response.success) {
-					setWalletBalance(response.balance || 0);
+					// Use smartWalletBalance for recharge (added money only, not mixed with active/passive income)
+					setWalletBalance(response.smartWalletBalance ?? response.balance ?? 0);
 				}
 			} catch (error) {
 				console.error('Error fetching wallet balance:', error);
@@ -182,6 +184,12 @@ const PlanConfirmation = () => {
 			return;
 		}
 
+		// Show confirmation modal
+		setShowConfirmModal(true);
+	};
+
+	const handleConfirmPayment = () => {
+		setShowConfirmModal(false);
 		// Show confirmation state briefly, then process payment
 		setIsConfirming(true);
 		setTimeout(() => {
@@ -445,10 +453,10 @@ const PlanConfirmation = () => {
 						<button
 							onClick={handlePayClick}
 							disabled={isProcessing || !isWalletSufficient || checkingKyc}
-							className={`w-full rounded-xl py-3 font-semibold ${isProcessing || isConfirming
+							className={`w-full rounded-xl py-3 font-semibold transition-all ${isProcessing || isConfirming
 								? 'bg-orange-400 text-white'
 								: isWalletSufficient && !checkingKyc
-									? 'bg-orange-500 text-white hover:bg-orange-600'
+									? 'bg-orange-500 text-white hover:bg-orange-600 shadow-md hover:shadow-lg'
 									: 'bg-gray-200 text-gray-500 cursor-not-allowed'
 								}`}
 						>
@@ -486,6 +494,70 @@ const PlanConfirmation = () => {
 					</div>
 				</div>
 			</div>
+
+			{/* Confirmation Modal Popup */}
+			{showConfirmModal && (
+				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+					<div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-200">
+						<div className="p-6">
+							<div className="flex items-center gap-3 mb-4">
+								<div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+									<AlertCircle className="w-6 h-6 text-red-600" />
+								</div>
+								<h3 className="text-xl font-bold text-gray-800">Confirm Your Recharge</h3>
+							</div>
+
+							<div className="space-y-3 mb-6">
+								<p className="text-sm text-gray-600">
+									Please verify the details before proceeding with payment:
+								</p>
+								
+								<div className="bg-gray-50 rounded-xl p-4 space-y-2">
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-gray-600">Mobile Number:</span>
+										<span className="text-sm font-semibold text-gray-800">{formData.mobileNumber}</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-sm text-gray-600">Operator:</span>
+										<span className="text-sm font-semibold text-gray-800">{formData.operator}</span>
+									</div>
+									{formData.circleInfo?.label && (
+										<div className="flex justify-between items-center">
+											<span className="text-sm text-gray-600">Circle:</span>
+											<span className="text-sm font-semibold text-gray-800">{formData.circleInfo.label}</span>
+										</div>
+									)}
+									<div className="flex justify-between items-center pt-2 border-t border-gray-200">
+										<span className="text-sm font-medium text-gray-700">Amount to Pay:</span>
+										<span className="text-lg font-bold text-orange-600">₹{netPayable.toFixed(2)}</span>
+									</div>
+								</div>
+
+								<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+									<p className="text-xs text-blue-800">
+										<strong>Note:</strong> Once confirmed, the amount will be deducted from your wallet balance.
+									</p>
+								</div>
+							</div>
+
+							<div className="flex gap-3">
+								<button
+									onClick={() => setShowConfirmModal(false)}
+									className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={handleConfirmPayment}
+									className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF4E00] to-orange-500 text-white font-semibold hover:shadow-lg transition-all"
+								>
+									Confirm & Pay
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

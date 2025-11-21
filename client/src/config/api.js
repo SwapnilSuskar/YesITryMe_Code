@@ -269,6 +269,7 @@ export const API_ENDPOINTS = {
     initiate: `${API_URL}/api/recharge/initiate`,
     status: `${API_URL}/api/recharge/status`,
     history: `${API_URL}/api/recharge/history`,
+    walletTransactions: `${API_URL}/api/recharge/wallet/transactions`,
     adminAll: `${API_URL}/api/recharge/admin/all`,
     adminStats: `${API_URL}/api/recharge/admin/stats`,
     adminUpdate: `${API_URL}/api/recharge/admin/:rechargeId`,

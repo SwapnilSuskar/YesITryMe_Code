@@ -107,7 +107,6 @@ const RechargeSuccess = () => {
                     <ArrowLeft className="w-4 h-4" />
                     Back to Recharge
                 </button>
-
                 <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
                     {/* Success Header */}
                     <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 p-8 text-center">
@@ -116,8 +115,14 @@ const RechargeSuccess = () => {
                         </div>
                         <h1 className="text-3xl font-extrabold text-white mb-2">🎉 Congratulations!</h1>
                         <p className="text-white/90 text-lg">Your recharge was successful</p>
+                        <div className="mt-4 inline-block">
+                            <div className="bg-white/20 backdrop-blur-md rounded-full px-6 py-2 border-2 border-white/30 shadow-lg">
+                                <p className="text-white font-bold text-lg tracking-wide animate-pulse">
+                                    🇮🇳 YesITryMe Try Krega India 🇮🇳
+                                </p>
+                            </div>
+                        </div>
                     </div>
-
                     {/* Recharge Details */}
                     <div className="p-6 space-y-6">
                         {/* Recharge Info Card */}

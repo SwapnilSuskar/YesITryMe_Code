@@ -4,6 +4,7 @@ import RechargeWallet from "../models/RechargeWallet.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from "cloudinary";
 import { compressPaymentProof } from "../utils/imageCompression.js";
+import { sendWalletTopUpReceipt } from "../services/emailReceiptService.js";
 
 // Helper function to fetch user by userId string
 const fetchUserByUserId = async (userIdString) => {
@@ -431,7 +432,7 @@ export const approveWalletTopUp = async (req, res) => {
 
     await rechargeWallet.save();
 
-    // Get user details for notification
+    // Get user details for notification and email receipt
     const user = await User.findOne({ userId: topUp.userId });
     if (user) {
       // Create notification (if notification service exists)
@@ -443,6 +444,24 @@ export const approveWalletTopUp = async (req, res) => {
       } catch (error) {
         console.error("Error creating notification:", error);
         // Don't fail the approval if notification fails
+      }
+
+      // Send email receipt
+      try {
+        await sendWalletTopUpReceipt(
+          topUp.toObject(),
+          {
+            userId: user.userId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            mobile: user.mobile,
+          },
+          rechargeWallet.balance
+        );
+      } catch (emailError) {
+        console.error("Error sending wallet top-up receipt email:", emailError);
+        // Don't fail the approval if email fails
       }
     }
 

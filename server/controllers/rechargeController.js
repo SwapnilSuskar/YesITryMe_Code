@@ -5,6 +5,7 @@ import RechargeWallet from "../models/RechargeWallet.js";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { checkActiveMemberStatus } from "../services/mlmService.js";
+import { sendMobileRechargeReceipt } from "../services/emailReceiptService.js";
 
 const RECHARGE_PROXY_URL =
   process.env.RECHARGE_PROXY_URL ||
@@ -806,6 +807,26 @@ const markRechargeSuccess = async (recharge, context = {}) => {
 
   if (!recharge.commissionDistributed) {
     await distributeCommissions(recharge);
+  }
+
+  // Send email receipt
+  try {
+    const user = await User.findOne({ userId: recharge.userId });
+    if (user && user.email) {
+      await sendMobileRechargeReceipt(
+        recharge.toObject(),
+        {
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          mobile: user.mobile,
+        }
+      );
+    }
+  } catch (emailError) {
+    console.error("Error sending mobile recharge receipt email:", emailError);
+    // Don't fail the recharge if email fails
   }
 
   console.log(

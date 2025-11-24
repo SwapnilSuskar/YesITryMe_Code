@@ -4,6 +4,7 @@ import Package from "../models/Package.js";
 import Purchase from "../models/Purchase.js";
 import referralService from "../services/referralService.js";
 import notificationService from "../services/notificationService.js";
+import { sendPackagePurchaseReceipt } from "../services/emailReceiptService.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 import { compressPaymentProof } from "../utils/imageCompression.js";
@@ -375,6 +376,28 @@ export const verifyPayment = async (req, res) => {
       verification.purchaseId = result.purchaseId;
       verification.purchaseRecord = result.purchaseObjectId; // Use the actual Purchase ObjectId
       await verification.save();
+
+      // Get purchase record for email receipt
+      const purchase = await Purchase.findOne({ purchaseId: result.purchaseId });
+      if (purchase && user) {
+        // Send email receipt
+        try {
+          await sendPackagePurchaseReceipt(
+            purchase.toObject(),
+            verification.toObject(),
+            {
+              userId: user.userId,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              mobile: user.mobile,
+            }
+          );
+        } catch (emailError) {
+          console.error("Error sending package purchase receipt email:", emailError);
+          // Don't fail the verification if email fails
+        }
+      }
     } catch (purchaseError) {
       console.error(
         "❌ Error processing purchase and commission distribution:",

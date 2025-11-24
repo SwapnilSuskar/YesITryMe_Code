@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, Crown, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Crown, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -100,10 +100,12 @@ const groupCommissionStructure = (commissionStructure) => {
 };
 
 const SuperPackages = () => {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const location = useLocation();
   const productInfo = location.state?.productInfo;
   const [superPackages, setSuperPackages] = useState([]);
+  const [userPurchases, setUserPurchases] = useState([]);
+  const [paymentVerifications, setPaymentVerifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -111,7 +113,11 @@ const SuperPackages = () => {
 
   useEffect(() => {
     fetchSuperPackages();
-  }, []);
+    if (user && token) {
+      fetchUserPurchases();
+      fetchPaymentVerifications();
+    }
+  }, [user, token]);
 
   const fetchSuperPackages = async () => {
     try {
@@ -125,14 +131,96 @@ const SuperPackages = () => {
     }
   };
 
+  const fetchUserPurchases = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.superPackages.purchases);
+      if (response.data.success) {
+        setUserPurchases(response.data.data.purchases || []);
+      }
+    } catch (error) {
+      console.error('Error fetching user super package purchases:', error);
+    }
+  };
+
+  const fetchPaymentVerifications = async () => {
+    try {
+      const response = await api.get(API_ENDPOINTS.superPackages.paymentVerifications);
+      if (response.data.success) {
+        setPaymentVerifications(response.data.data.verifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching super package payment verifications:', error);
+    }
+  };
+
   const handlePurchase = (pkg) => {
     setSelectedPackage(pkg);
     setShowPaymentForm(true);
     setShowDetails(false); // Close details modal if open
   };
 
+  const getSuperPackagePurchaseCount = (superPackageId) => {
+    // Convert to string for comparison (handles ObjectId)
+    const packageIdStr = String(superPackageId);
+
+    // Count verified payment verifications for this super package
+    const verifiedPayments = paymentVerifications.filter(verification => {
+      const verificationId = String(verification.superPackageId || verification.superPackageId?._id || '');
+      return verificationId === packageIdStr && verification.status === 'verified';
+    });
+
+    // Also count active purchase records (fallback)
+    const activePurchases = userPurchases.filter(purchase => {
+      const purchaseId = String(purchase.superPackageId || purchase.superPackageId?._id || '');
+      return purchaseId === packageIdStr && purchase.status === 'active';
+    });
+
+    // Return the higher count between verified payments and active purchases
+    return Math.max(verifiedPayments.length, activePurchases.length);
+  };
+
+  const getSuperPackagePurchaseDetails = (superPackageId) => {
+    // Convert to string for comparison (handles ObjectId)
+    const packageIdStr = String(superPackageId);
+
+    // Get all verified payment verifications for this super package
+    const verifiedPayments = paymentVerifications.filter(verification => {
+      const verificationId = String(verification.superPackageId || verification.superPackageId?._id || '');
+      return verificationId === packageIdStr && verification.status === 'verified';
+    });
+
+    // Get all active purchase records (fallback)
+    const activePurchases = userPurchases.filter(purchase => {
+      const purchaseId = String(purchase.superPackageId || purchase.superPackageId?._id || '');
+      return purchaseId === packageIdStr && purchase.status === 'active';
+    });
+
+    return {
+      verifiedPayments,
+      activePurchases,
+      totalPurchases: Math.max(verifiedPayments.length, activePurchases.length),
+      lastPurchaseDate: verifiedPayments.length > 0
+        ? new Date(Math.max(...verifiedPayments.map(p => new Date(p.verifiedAt || p.createdAt))))
+        : activePurchases.length > 0
+          ? new Date(Math.max(...activePurchases.map(p => new Date(p.purchaseDate || p.createdAt))))
+          : null
+    };
+  };
+
+  const hasPendingPayment = (superPackageId) => {
+    // Convert to string for comparison (handles ObjectId)
+    const packageIdStr = String(superPackageId);
+
+    return paymentVerifications.some(verification => {
+      const verificationId = String(verification.superPackageId || verification.superPackageId?._id || '');
+      return verificationId === packageIdStr && verification.status === 'pending';
+    });
+  };
+
   const handlePaymentSuccess = async (verificationData) => {
-    // Refresh data if needed
+    // Refresh purchase list and payment verifications to update UI
+    await fetchUserPurchases();
+    await fetchPaymentVerifications();
     setShowPaymentForm(false);
     setSelectedPackage(null);
     toast.success('Payment verification submitted successfully!');
@@ -218,13 +306,28 @@ const SuperPackages = () => {
           {superPackages.map((pkg, index) => {
             const commissionStructure = groupCommissionStructure(pkg.commissionStructure);
             const isBooster = pkg.name.toLowerCase().includes('booster');
+            const purchaseCount = getSuperPackagePurchaseCount(pkg._id);
+            const purchaseDetails = getSuperPackagePurchaseDetails(pkg._id);
+            const hasPending = hasPendingPayment(pkg._id);
             return (
-              <div key={pkg._id} className={`relative bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-gray-100`}>
+              <div key={pkg._id} className={`relative bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 ${purchaseCount > 0 ? 'border-green-500' : hasPending ? 'border-yellow-500' : 'border-gray-100'}`}>
                 {/* Badge Container */}
                 <div className="absolute -top-4 left-0 right-0 flex justify-center items-center gap-2 px-4">
                   {isBooster && (
                     <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
                       NO DISTRIBUTION
+                    </span>
+                  )}
+                  {purchaseCount > 0 && (
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
+                      <CheckCircle size={12} className="sm:w-3.5 sm:h-3.5" />
+                      PURCHASED {purchaseCount > 1 ? `(${purchaseCount}x)` : ''}
+                    </span>
+                  )}
+                  {hasPending && purchaseCount === 0 && (
+                    <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
+                      <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
+                      PENDING
                     </span>
                   )}
                 </div>
@@ -236,6 +339,26 @@ const SuperPackages = () => {
                     </h3>
                     <div className="text-5xl font-bold text-orange-600 mb-2">₹{pkg.price}</div>
                     <p className="text-gray-600">{pkg.description}</p>
+                    {purchaseCount > 0 && (
+                      <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-green-700 text-sm font-medium">
+                          ✅ You own this package {purchaseCount > 1 ? `(${purchaseCount} times)` : ''}
+                        </p>
+                        {purchaseDetails.lastPurchaseDate && (
+                          <p className="text-green-600 text-xs mt-1">
+                            Last purchased on {purchaseDetails.lastPurchaseDate.toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {hasPending && purchaseCount === 0 && (
+                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-yellow-700 text-sm font-medium">⏳ Payment verification pending</p>
+                        <p className="text-yellow-600 text-xs mt-1">
+                          Your payment is being reviewed by admin
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="mb-8">
                     <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -257,10 +380,23 @@ const SuperPackages = () => {
                   </div>
                   <button
                     onClick={() => handlePurchase(pkg)}
-                    className="w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105"
+                    disabled={hasPending}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center ${hasPending
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white cursor-not-allowed'
+                        : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105'
+                      }`}
                   >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    Purchase Now
+                    {hasPending ? (
+                      <>
+                        <Clock className="w-5 h-5 mr-2" />
+                        Payment Pending
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                        {purchaseCount > 0 ? `Buy Again (${purchaseCount} owned)` : 'Purchase Now'}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

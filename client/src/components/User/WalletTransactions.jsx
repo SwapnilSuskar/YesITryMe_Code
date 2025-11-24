@@ -249,6 +249,26 @@ const WalletTransactions = () => {
         }
     };
 
+    // Get wallet top-up transactions separately
+    const getWalletTopUps = () => {
+        return rechargeWalletTransactions
+            .filter(txn => txn.type === 'topup')
+            .map(txn => ({
+                _id: txn._id || `topup_${txn.createdAt}`,
+                source: 'wallet',
+                transactionType: 'topup',
+                amount: Math.abs(txn.amount || 0),
+                netAmount: Math.abs(txn.amount || 0),
+                status: txn.status || 'completed',
+                createdAt: txn.createdAt,
+                date: txn.createdAt,
+                description: txn.description || 'Wallet Top-Up',
+                reference: txn.reference,
+                isTopUp: true,
+            }))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+    };
+
     // Combine recharge history with wallet transactions
     const getAllRechargeTransactions = () => {
         // Map all recharge history transactions with all fields from server
@@ -272,7 +292,7 @@ const WalletTransactions = () => {
         });
 
         const walletTxns = rechargeWalletTransactions
-            .filter(txn => txn.type !== 'recharge_refund')
+            .filter(txn => txn.type !== 'recharge_refund' && txn.type !== 'topup') // Exclude topup transactions from recharge display
             .map(txn => {
                 // Try to extract recharge details from description
                 const description = txn.description || '';
@@ -355,6 +375,11 @@ const WalletTransactions = () => {
 
         // Then add wallet transactions that don't have matches in history
         walletTxns.forEach(txn => {
+            // Skip transactions with invalid mobile numbers (like "N/A") - these are likely topups or other non-recharge transactions
+            if (!txn.mobileNumber || txn.mobileNumber === 'N/A' || !/^\d{10}$/.test(txn.mobileNumber.replace(/\D/g, ''))) {
+                return; // Skip this transaction
+            }
+
             // Check if we already have this in history (within 2 minutes)
             // Check if there's a matching history entry by mobile, amount (original or net), and time
             const hasMatch = historyTransactions.some(ht => {
@@ -1275,6 +1300,7 @@ const WalletTransactions = () => {
                             {/* Summary Cards for Recharge */}
                             {(() => {
                                 const allRecharges = getAllRechargeTransactions();
+                                const walletTopUps = getWalletTopUps();
                                 const successful = allRecharges.filter(r => r.status === 'success');
                                 const failed = allRecharges.filter(r => r.status === 'failed');
                                 const totalSpent = successful.reduce(
@@ -1287,8 +1313,17 @@ const WalletTransactions = () => {
                                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                                                 <Smartphone className="text-orange-600 flex-shrink-0" size={24} />
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-[10px] sm:text-xs text-orange-700 font-medium truncate">Total</div>
+                                                    <div className="text-[10px] sm:text-xs text-orange-700 font-medium truncate">Recharges</div>
                                                     <div className="text-lg sm:text-xl font-bold text-orange-800">{allRecharges.filter(r => r.transactionType === 'recharge_payment' || r.source === 'history').length}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3 sm:p-4 shadow-sm">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                                <Wallet className="text-blue-600 flex-shrink-0" size={24} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-[10px] sm:text-xs text-blue-700 font-medium truncate">Top-Ups</div>
+                                                    <div className="text-lg sm:text-xl font-bold text-blue-800">{walletTopUps.length}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1327,12 +1362,19 @@ const WalletTransactions = () => {
                             <div className="bg-white/95 backdrop-blur rounded-2xl shadow-sm border border-gray-200">
                                 {(() => {
                                     const allRecharges = getAllRechargeTransactions();
-                                    if (allRecharges.length === 0) {
+                                    const walletTopUps = getWalletTopUps();
+                                    const allTransactions = [...allRecharges, ...walletTopUps].sort((a, b) => {
+                                        const dateA = new Date(a.date || a.createdAt);
+                                        const dateB = new Date(b.date || b.createdAt);
+                                        return dateB - dateA;
+                                    });
+
+                                    if (allTransactions.length === 0) {
                                         return (
                                             <div className="text-center py-10">
                                                 <Smartphone className="text-gray-400 mx-auto mb-3" size={48} />
-                                                <p className="text-gray-600 font-semibold text-lg">No mobile recharges yet</p>
-                                                <p className="text-gray-400 text-sm mt-1">Your recharge history will appear here once you initiate a payment.</p>
+                                                <p className="text-gray-600 font-semibold text-lg">No mobile recharges or wallet top-ups yet</p>
+                                                <p className="text-gray-400 text-sm mt-1">Your recharge history and wallet top-ups will appear here.</p>
                                             </div>
                                         );
                                     }
@@ -1340,53 +1382,77 @@ const WalletTransactions = () => {
                                     const itemsPerPage = 10;
                                     const startIndex = (rechargePage - 1) * itemsPerPage;
                                     const endIndex = startIndex + itemsPerPage;
-                                    const paginatedRecharges = allRecharges.slice(startIndex, endIndex);
+                                    const paginatedTransactions = allTransactions.slice(startIndex, endIndex);
                                     return (
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
                                                 <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wide">
                                                     <tr>
                                                         <th className="px-4 py-3 text-left font-semibold">Amount</th>
-                                                        <th className="px-4 py-3 text-left font-semibold">Mobile & Operator</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Type & Details</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Cashback</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Status</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Date & Time</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100 text-gray-700">
-                                                    {paginatedRecharges.map((recharge) => {
-                                                        const date = new Date(recharge.date || recharge.rechargeCompletedAt || recharge.paymentCompletedAt || recharge.createdAt);
-                                                        const amount = parseFloat(recharge.netAmount || recharge.amount || 0).toFixed(2);
-                                                        const cashback = recharge.discountAmount > 0 ? `₹${recharge.discountAmount.toFixed(2)}` : null;
+                                                    {paginatedTransactions.map((transaction) => {
+                                                        const date = new Date(transaction.date || transaction.rechargeCompletedAt || transaction.paymentCompletedAt || transaction.createdAt);
+                                                        const amount = parseFloat(transaction.netAmount || transaction.amount || 0).toFixed(2);
+                                                        const cashback = transaction.discountAmount > 0 ? `₹${transaction.discountAmount.toFixed(2)}` : null;
+                                                        const isTopUp = transaction.isTopUp || transaction.transactionType === 'topup';
 
                                                         return (
-                                                            <tr key={recharge._id} className="hover:bg-gray-50 transition-colors">
+                                                            <tr key={transaction._id} className="hover:bg-gray-50 transition-colors">
                                                                 <td className="px-4 py-4 align-top">
                                                                     <div className="font-semibold text-gray-900 text-base">₹{amount}</div>
-                                                                    <p className="text-xs text-gray-500 mt-0.5 capitalize">{recharge.rechargeType || 'prepaid'}</p>
+                                                                    {!isTopUp && (
+                                                                        <p className="text-xs text-gray-500 mt-0.5 capitalize">{transaction.rechargeType || 'prepaid'}</p>
+                                                                    )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">
-                                                                    <p className="font-medium text-gray-900">+91 {recharge.mobileNumber}</p>
+                                                                    {isTopUp ? (
+                                                                        <>
+                                                                            <p className="font-medium text-gray-900 flex items-center gap-2">
+                                                                                <Wallet className="text-blue-600" size={16} />
+                                                                                Wallet Top-Up
+                                                                            </p>
+                                                                            <p className="text-xs text-blue-600 mt-0.5 font-medium">
+                                                                                💰 Smart Wallet Credit
+                                                                            </p>
+                                                                            {transaction.reference && (
+                                                                                <p className="text-[10px] text-gray-400 font-mono mt-1 truncate max-w-[200px]" title={transaction.reference}>
+                                                                                    Ref: {transaction.reference}
+                                                                                </p>
+                                                                            )}
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <p className="font-medium text-gray-900">+91 {transaction.mobileNumber}</p>
                                                                     <p className="text-xs text-gray-500 mt-0.5">
-                                                                        {recharge.operator || 'Unknown'} {recharge.circle && recharge.circle !== 'NA' ? `• ${recharge.circle}` : ''}
+                                                                                {transaction.operator || 'Unknown'} {transaction.circle && transaction.circle !== 'NA' ? `• ${transaction.circle}` : ''}
                                                                     </p>
+                                                                        </>
+                                                                    )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">
-                                                                    {cashback ? (
+                                                                    {isTopUp ? (
+                                                                        <span className="text-xs text-gray-400">N/A</span>
+                                                                    ) : cashback ? (
                                                                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold">
-                                                                            {recharge.discountPercentage}% • {cashback}
+                                                                            {transaction.discountPercentage}% • {cashback}
                                                                         </span>
                                                                     ) : (
                                                                         <span className="text-xs text-gray-400">No cashback</span>
                                                                     )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">
-                                                                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(recharge.status)}`}>
-                                                                        {recharge.status.replace('_', ' ')}
+                                                                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(transaction.status)}`}>
+                                                                        {transaction.status.replace('_', ' ')}
                                                                     </span>
-                                                                    {recharge.status === 'failed' && (recharge.failureReason || recharge.aiTopUpMessage) && (
+                                                                    {transaction.status === 'failed' && (transaction.failureReason || transaction.aiTopUpMessage) && (
                                                                         <p className="text-[11px] text-red-600 mt-1">
-                                                                            {recharge.failureReason || recharge.aiTopUpMessage}
+                                                                            {transaction.failureReason || transaction.aiTopUpMessage}
                                                                         </p>
                                                                     )}
                                                                 </td>
@@ -1397,9 +1463,9 @@ const WalletTransactions = () => {
                                                                     <p className="text-xs text-gray-500">
                                                                         {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                                                     </p>
-                                                                    {recharge.aiTopUpOrderId && (
-                                                                        <p className="mt-1 text-[10px] text-gray-400 font-mono truncate max-w-[140px]" title={recharge.aiTopUpOrderId}>
-                                                                            {recharge.aiTopUpOrderId}
+                                                                    {!isTopUp && transaction.aiTopUpOrderId && (
+                                                                        <p className="mt-1 text-[10px] text-gray-400 font-mono truncate max-w-[140px]" title={transaction.aiTopUpOrderId}>
+                                                                            {transaction.aiTopUpOrderId}
                                                                         </p>
                                                                     )}
                                                                 </td>
@@ -1416,7 +1482,9 @@ const WalletTransactions = () => {
                             {/* Pagination for Recharge History */}
                             {(() => {
                                 const allRecharges = getAllRechargeTransactions();
-                                const totalPages = Math.ceil(allRecharges.length / 10);
+                                const walletTopUps = getWalletTopUps();
+                                const allTransactions = [...allRecharges, ...walletTopUps];
+                                const totalPages = Math.ceil(allTransactions.length / 10);
                                 return (
                                     <PaginationComponent
                                         currentPage={rechargePage}

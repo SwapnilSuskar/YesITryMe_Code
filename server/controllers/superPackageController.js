@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import referralService from "../services/referralService.js";
 import notificationService from "../services/notificationService.js";
+import { sendSuperPackagePurchaseReceipt } from "../services/emailReceiptService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -912,6 +913,24 @@ const updateSuperPackagePaymentVerificationStatus = asyncHandler(
             error
           );
           // Don't fail the payment verification if notification fails
+        }
+
+        // Send email receipt
+        try {
+          await sendSuperPackagePurchaseReceipt(
+            purchase.toObject(),
+            verification.toObject(),
+            {
+              userId: user.userId,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+              mobile: user.mobile,
+            }
+          );
+        } catch (emailError) {
+          console.error("Error sending super package purchase receipt email:", emailError);
+          // Don't fail the verification if email fails
         }
       } catch (error) {
         console.error("Error processing verified payment:", error);

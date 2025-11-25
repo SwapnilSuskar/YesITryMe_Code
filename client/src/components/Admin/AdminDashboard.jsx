@@ -10,7 +10,12 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [kycStats, setKycStats] = useState({ pending: 0 });
+  const [kycStats, setKycStats] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -133,24 +138,24 @@ const AdminDashboard = () => {
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-gradient-to-r from-pink-400 to-red-400 rounded-full blur-3xl opacity-20 z-0" />
       <div className="w-full max-w-6xl relative z-10">
         {/* Header with stats */}
-        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
           <div>
             <h1 className="text-4xl font-extrabold text-gray-800 drop-shadow-lg flex items-center gap-3">
               <ShieldCheck className="w-10 h-10 text-orange-500" /> Admin Dashboard
             </h1>
             <p className="text-gray-600 mt-2 text-sm">Manage users, activation, and KYC approvals easily.</p>
           </div>
-          <div className="flex gap-4">
-            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100">
+          <div className="flex flex-wrap justify-center xl:justify-end gap-4">
+            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100 min-w-[140px]">
               <span className="text-lg font-bold text-[#FF4E00]">{total}</span>
               <span className="text-xs text-gray-600">Total Users</span>
             </div>
-            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100">
+            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100 min-w-[140px]">
               <span className="text-lg font-bold text-green-500">{activated}</span>
               <span className="text-xs text-gray-600">Activated</span>
             </div>
-            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100">
-              <span className="text-lg font-bold text-blue-500">{kyc}</span>
+            <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100 min-w-[140px]">
+              <span className="text-lg font-bold text-blue-500">{kycStats?.approved ?? kyc}</span>
               <span className="text-xs text-gray-600">KYC Approved</span>
             </div>
           </div>
@@ -162,7 +167,7 @@ const AdminDashboard = () => {
             <ShieldCheck className="w-6 h-6 text-orange-500" />
             Admin Tools
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             <Link
               to="/admin"
               className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin"
@@ -233,7 +238,23 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </Link>
-
+            {/* <Link
+              to="/admin/activations"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/activations"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/activations" ? "bg-white/20" : "bg-amber-100 group-hover:bg-amber-200"}`}>
+                  <Zap className={`w-8 h-8 ${location.pathname === "/admin/activations" ? "text-white" : "text-amber-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Activation Tracker</h3>
+                  <p className="text-xs opacity-75 mt-1">Filter activations</p>
+                </div>
+              </div>
+            </Link> */}
             <Link
               to="/admin/quotes"
               className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/quotes"
@@ -559,7 +580,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Search and Create User */}
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 w-full">
           <div className="relative w-full max-w-xs">
             <input
               type="text"
@@ -601,7 +622,7 @@ const AdminDashboard = () => {
                 ) : currentUsers.map((u, i) => (
                   <tr key={u._id} className={i % 2 === 0 ? "bg-white/90" : "bg-white/70"}>
                     <td className="py-3 px-4 flex items-center gap-3 text-gray-800 font-semibold">
-                      <span className="inline-block w-10 h-10 rounded-full bg-gradient-to-br from-[#FF4E00] to-orange-500 flex items-center justify-center text-lg font-bold text-white shadow">
+                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF4E00] to-orange-500 flex items-center justify-center text-lg font-bold text-white shadow">
                         {u.firstName?.[0] || "U"}{u.lastName?.[0] || ""}
                       </span>
                       <span>{u.firstName} {u.lastName}</span>

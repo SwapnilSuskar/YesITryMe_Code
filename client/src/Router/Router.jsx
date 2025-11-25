@@ -17,6 +17,7 @@ import Dashboard from '../components/User/Dashboard';
 import ContactUs from '../components/Pages/ContactUs';
 import FAQ from '../components/Pages/FAQ';
 import AdminDashboard from '../components/Admin/AdminDashboard';
+import AdminActivationTracker from '../components/Admin/AdminActivationTracker';
 import AdminAnalytics from '../components/Admin/AdminAnalytics';
 import AdminPurchaseManager from '../components/Admin/AdminPurchaseManager';
 import AdminRechargeAnalysis from '../components/Admin/AdminRechargeAnalysis';
@@ -186,6 +187,7 @@ const AppRouter = () => {
       }>
         <Route index element={<AdminDashboard />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="activations" element={<AdminActivationTracker />} />
         <Route path="purchases" element={<AdminPurchaseManager />} />
         <Route path="quotes" element={<MotivationQuotes />} />
         <Route path="gallery" element={<GalleryManager />} />

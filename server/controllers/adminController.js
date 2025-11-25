@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Purchase from "../models/Purchase.js";
 import Wallet from "../models/Wallet.js";
+import RechargeWallet from "../models/RechargeWallet.js";
 import SuperPackagePurchase from "../models/SuperPackagePurchase.js";
 import MotivationQuote from "../models/MotivationQuote.js";
 import GalleryImage from "../models/GalleryImage.js";
@@ -9,6 +10,7 @@ import Payout from "../models/Payout.js";
 import SpecialIncome from "../models/SpecialIncome.js";
 import Kyc from "../models/Kyc.js";
 import PaymentVerification from "../models/PaymentVerification.js";
+import SuperPackagePaymentVerification from "../models/SuperPackagePaymentVerification.js";
 import referralService from "../services/referralService.js";
 // Removed referralService import - using aggregation queries instead
 import multer from "multer";
@@ -31,23 +33,76 @@ export const uploadMotivationQuoteImage = multer({
 // Get comprehensive analytics data
 export const getAnalytics = async (req, res) => {
   try {
-    const { timeRange = "all" } = req.query;
+    const { timeRange = "all", startDate: customStart, endDate: customEnd } =
+      req.query;
 
-    // Calculate date range
     const now = new Date();
-    let startDate = new Date(0); // Beginning of time
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    let rangeStart = new Date(0); // default to beginning of time
+    let rangeEnd = new Date(endOfToday);
 
     switch (timeRange) {
       case "today":
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        rangeStart = new Date(
+          rangeEnd.getFullYear(),
+          rangeEnd.getMonth(),
+          rangeEnd.getDate()
+        );
         break;
       case "week":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        rangeStart = new Date(rangeEnd.getTime() - 6 * 24 * 60 * 60 * 1000);
+        rangeStart.setHours(0, 0, 0, 0);
         break;
       case "month":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        rangeStart = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+        break;
+      default:
+        rangeStart = new Date(0);
         break;
     }
+
+    const parseDateInput = (value) => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    if (customStart) {
+      const parsedStart = parseDateInput(customStart);
+      if (!parsedStart) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid start date",
+        });
+      }
+      rangeStart = parsedStart;
+    }
+
+    if (customEnd) {
+      const parsedEnd = parseDateInput(customEnd);
+      if (!parsedEnd) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid end date",
+        });
+      }
+      rangeEnd = parsedEnd;
+    }
+
+    rangeStart.setHours(0, 0, 0, 0);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    if (rangeStart > rangeEnd) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date cannot be after end date",
+      });
+    }
+
+    const shouldFilter = timeRange !== "all" || customStart || customEnd;
+    const dateFilter = { $gte: rangeStart, $lte: rangeEnd };
 
     // User analytics
     const totalUsers = await User.countDocuments();
@@ -55,8 +110,11 @@ export const getAnalytics = async (req, res) => {
     const kycApprovedUsers = await User.countDocuments({
       kycApprovedDate: { $exists: true, $ne: null },
     });
-    const newUsersThisMonth = await User.countDocuments({
-      createdAt: { $gte: startDate },
+    const newUsersInRange = await User.countDocuments({
+      createdAt: dateFilter,
+    });
+    const activatedUsersInRange = await User.countDocuments({
+      activationDate: dateFilter,
     });
 
     // Referral analytics - Use simple database queries instead of recursive referral service
@@ -117,9 +175,12 @@ export const getAnalytics = async (req, res) => {
       totalUsers > 0 ? totalReferrals / totalUsers : 0;
 
     // Purchase analytics
-    const purchaseQuery =
-      timeRange !== "all" ? { purchaseDate: { $gte: startDate } } : {};
-    const purchases = await Purchase.find(purchaseQuery);
+    const purchaseQuery = shouldFilter
+      ? { purchaseDate: dateFilter }
+      : {};
+    const purchases = await Purchase.find(purchaseQuery).sort({
+      purchaseDate: 1,
+    });
 
     const totalPurchases = purchases.length;
     const totalRevenue = purchases.reduce(
@@ -135,6 +196,25 @@ export const getAnalytics = async (req, res) => {
       packagesSold[purchase.packageName] =
         (packagesSold[purchase.packageName] || 0) + 1;
     });
+
+    const purchaseTrendMap = {};
+    purchases.forEach((purchase) => {
+      if (!purchase.purchaseDate) return;
+      const dayKey = purchase.purchaseDate.toISOString().split("T")[0];
+      if (!purchaseTrendMap[dayKey]) {
+        purchaseTrendMap[dayKey] = {
+          date: dayKey,
+          revenue: 0,
+          orders: 0,
+        };
+      }
+      purchaseTrendMap[dayKey].revenue += Number(purchase.packagePrice || 0);
+      purchaseTrendMap[dayKey].orders += 1;
+    });
+
+    const purchaseTrend = Object.values(purchaseTrendMap).sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
 
     // Commission analytics
     const wallets = await Wallet.find();
@@ -191,14 +271,28 @@ export const getAnalytics = async (req, res) => {
           }
         : null;
 
+    const rangeDiffMs = Math.max(
+      0,
+      rangeEnd.getTime() - rangeStart.getTime()
+    );
+    const rangeDays = Math.max(1, Math.floor(rangeDiffMs / 86400000) + 1);
+
     res.status(200).json({
       success: true,
       data: {
+        period: {
+          timeRange,
+          customRange: Boolean(customStart || customEnd),
+          start: rangeStart.toISOString(),
+          end: rangeEnd.toISOString(),
+          days: rangeDays,
+        },
         users: {
           total: Number(totalUsers),
           active: Number(activeUsers),
           kycApproved: Number(kycApprovedUsers),
-          newThisMonth: Number(newUsersThisMonth),
+          newInRange: Number(newUsersInRange),
+          activatedInRange: Number(activatedUsersInRange),
         },
         referrals: {
           totalReferrals: Number(totalReferrals),
@@ -211,6 +305,7 @@ export const getAnalytics = async (req, res) => {
           totalRevenue: Number(totalRevenue),
           avgPurchaseValue: Number(avgPurchaseValue),
           packagesSold,
+          trend: purchaseTrend,
         },
         commissions: {
           totalDistributed: Number(totalDistributed),
@@ -466,6 +561,221 @@ export const getPurchaseStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch purchase statistics",
+    });
+  }
+};
+
+// Activation overview for packages, super packages, and registrations
+export const getActivationReport = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const now = new Date();
+    const defaultEnd = new Date(now);
+    defaultEnd.setHours(23, 59, 59, 999);
+    const defaultStart = new Date(defaultEnd);
+    defaultStart.setDate(defaultStart.getDate() - 6);
+    defaultStart.setHours(0, 0, 0, 0);
+
+    const parseDateInput = (value) => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const parsedStart = parseDateInput(startDate) || new Date(defaultStart);
+    const parsedEnd = parseDateInput(endDate) || new Date(defaultEnd);
+
+    parsedStart.setHours(0, 0, 0, 0);
+    parsedEnd.setHours(23, 59, 59, 999);
+
+    if (parsedStart > parsedEnd) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date cannot be after end date",
+      });
+    }
+
+    const dateFilter = { $gte: parsedStart, $lte: parsedEnd };
+
+    const [packagePurchases, superPackagePurchases, registrations] =
+      await Promise.all([
+        Purchase.find({ purchaseDate: dateFilter })
+          .sort({ purchaseDate: -1 })
+          .select(
+            "purchaseId purchaserId purchaserName packageName packagePrice paymentMethod paymentStatus status purchaseDate totalCommissionDistributed"
+          )
+          .lean(),
+        SuperPackagePurchase.find({ purchaseDate: dateFilter })
+          .sort({ purchaseDate: -1 })
+          .select(
+            "purchaseId purchaserId purchaserName superPackageName superPackagePrice paymentMethod paymentStatus status purchaseDate"
+          )
+          .lean(),
+        User.find({ createdAt: dateFilter })
+          .sort({ createdAt: -1 })
+          .select(
+            "userId firstName lastName email mobile sponsorId sponsorName status createdAt activationDate"
+          )
+          .lean(),
+      ]);
+
+    const packagePurchaseIds = packagePurchases
+      .map((purchase) => purchase.purchaseId)
+      .filter(Boolean);
+    const superPackagePurchaseIds = superPackagePurchases
+      .map((purchase) => purchase.purchaseId)
+      .filter(Boolean);
+
+    const [packageVerifications, superPackageVerifications] =
+      await Promise.all([
+        packagePurchaseIds.length
+          ? PaymentVerification.find({
+              purchaseId: { $in: packagePurchaseIds },
+            })
+              .select(
+                "purchaseId transactionId payerName payerMobile payerEmail paymentMethod verifiedAt submittedAt"
+              )
+              .lean()
+          : [],
+        superPackagePurchaseIds.length
+          ? SuperPackagePaymentVerification.find({
+              purchaseId: { $in: superPackagePurchaseIds },
+            })
+              .select(
+                "purchaseId transactionId payerName payerMobile payerEmail paymentMethod verifiedAt submittedAt"
+              )
+              .lean()
+          : [],
+      ]);
+
+    const verificationMap = packageVerifications.reduce((map, verification) => {
+      map[verification.purchaseId] = verification;
+      return map;
+    }, {});
+
+    const superVerificationMap = superPackageVerifications.reduce(
+      (map, verification) => {
+        map[verification.purchaseId] = verification;
+        return map;
+      },
+      {}
+    );
+
+    const userIds = [
+      ...new Set(
+        [
+          ...packagePurchases.map((p) => p.purchaserId),
+          ...superPackagePurchases.map((p) => p.purchaserId),
+        ].filter(Boolean)
+      ),
+    ];
+
+    const purchasers =
+      userIds.length > 0
+        ? await User.find({ userId: { $in: userIds } })
+            .select(
+              "userId firstName lastName email mobile sponsorId sponsorName status activationDate createdAt"
+            )
+            .lean()
+        : [];
+
+    const userMap = purchasers.reduce((map, purchaser) => {
+      map[purchaser.userId] = purchaser;
+      return map;
+    }, {});
+
+    registrations.forEach((registration) => {
+      userMap[registration.userId] = registration;
+    });
+
+    const packageActivations = packagePurchases.map((purchase) => {
+      const verification = verificationMap[purchase.purchaseId];
+      const purchaser = userMap[purchase.purchaserId];
+
+      return {
+        purchaseId: purchase.purchaseId,
+        purchaserId: purchase.purchaserId,
+        purchaserName: purchase.purchaserName,
+        packageName: purchase.packageName,
+        amount: Number(purchase.packagePrice),
+        paymentMethod: purchase.paymentMethod,
+        paymentStatus: purchase.paymentStatus,
+        status: purchase.status,
+        purchaseDate: purchase.purchaseDate,
+        transactionId: verification?.transactionId || null,
+        payerName: verification?.payerName || purchase.purchaserName,
+        sponsorId: purchaser?.sponsorId || null,
+        sponsorName: purchaser?.sponsorName || null,
+        contact: {
+          email: purchaser?.email || verification?.payerEmail || null,
+          mobile: purchaser?.mobile || verification?.payerMobile || null,
+        },
+        activationDate: purchaser?.activationDate || null,
+      };
+    });
+
+    const superPackageActivations = superPackagePurchases.map((purchase) => {
+      const verification = superVerificationMap[purchase.purchaseId];
+      const purchaser = userMap[purchase.purchaserId];
+
+      return {
+        purchaseId: purchase.purchaseId,
+        purchaserId: purchase.purchaserId,
+        purchaserName: purchase.purchaserName,
+        packageName: purchase.superPackageName,
+        amount: Number(purchase.superPackagePrice),
+        paymentMethod: purchase.paymentMethod,
+        paymentStatus: purchase.paymentStatus,
+        status: purchase.status,
+        purchaseDate: purchase.purchaseDate,
+        transactionId: verification?.transactionId || null,
+        payerName: verification?.payerName || purchase.purchaserName,
+        sponsorId: purchaser?.sponsorId || null,
+        sponsorName: purchaser?.sponsorName || null,
+        contact: {
+          email: purchaser?.email || verification?.payerEmail || null,
+          mobile: purchaser?.mobile || verification?.payerMobile || null,
+        },
+        activationDate: purchaser?.activationDate || null,
+      };
+    });
+
+    const registrationDetails = registrations.map((registration) => ({
+      userId: registration.userId,
+      firstName: registration.firstName,
+      lastName: registration.lastName,
+      email: registration.email,
+      mobile: registration.mobile,
+      sponsorId: registration.sponsorId,
+      sponsorName: registration.sponsorName,
+      status: registration.status,
+      createdAt: registration.createdAt,
+      activationDate: registration.activationDate,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        range: {
+          start: parsedStart.toISOString(),
+          end: parsedEnd.toISOString(),
+        },
+        counts: {
+          packages: packageActivations.length,
+          superPackages: superPackageActivations.length,
+          registrations: registrationDetails.length,
+        },
+        packages: packageActivations,
+        superPackages: superPackageActivations,
+        registrations: registrationDetails,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching activation report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch activation report",
     });
   }
 };
@@ -1314,6 +1624,7 @@ export const getUserWallet = async (req, res) => {
 
     // Get wallet information
     const wallet = await Wallet.findOne({ userId });
+    const smartWallet = await RechargeWallet.findOne({ userId });
 
     res.json({
       success: true,
@@ -1334,6 +1645,15 @@ export const getUserWallet = async (req, res) => {
           isActive: wallet.isActive,
           createdAt: wallet.createdAt,
           updatedAt: wallet.updatedAt,
+        } : null,
+        smartWallet: smartWallet ? {
+          balance: smartWallet.balance,
+          totalAdded: smartWallet.totalAdded,
+          totalSpent: smartWallet.totalSpent,
+          totalRefunded: smartWallet.totalRefunded,
+          isActive: smartWallet.isActive,
+          createdAt: smartWallet.createdAt,
+          updatedAt: smartWallet.updatedAt,
         } : null,
       },
     });
@@ -1370,6 +1690,7 @@ export const getUserWalletByMobile = async (req, res) => {
 
     // Get wallet information using the found userId
     const wallet = await Wallet.findOne({ userId: user.userId });
+    const smartWallet = await RechargeWallet.findOne({ userId: user.userId });
 
     res.json({
       success: true,
@@ -1390,6 +1711,15 @@ export const getUserWalletByMobile = async (req, res) => {
           isActive: wallet.isActive,
           createdAt: wallet.createdAt,
           updatedAt: wallet.updatedAt,
+        } : null,
+        smartWallet: smartWallet ? {
+          balance: smartWallet.balance,
+          totalAdded: smartWallet.totalAdded,
+          totalSpent: smartWallet.totalSpent,
+          totalRefunded: smartWallet.totalRefunded,
+          isActive: smartWallet.isActive,
+          createdAt: smartWallet.createdAt,
+          updatedAt: smartWallet.updatedAt,
         } : null,
       },
     });
@@ -1563,11 +1893,150 @@ export const deductMoneyFromWallet = async (req, res) => {
   }
 };
 
+// Add money to Smart Wallet (Recharge Wallet)
+export const addMoneyToSmartWallet = async (req, res) => {
+  try {
+    const { userId, amount, description, adminNotes } = req.body;
+    const adminId = req.user.userId;
+
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and positive amount are required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    
+    // Get or create Smart Wallet (RechargeWallet)
+    const smartWallet = await RechargeWallet.getOrCreateWallet(userId);
+
+    // Add to balance
+    smartWallet.balance = Math.round((smartWallet.balance + numericAmount) * 100) / 100;
+    smartWallet.totalAdded = Math.round((smartWallet.totalAdded + numericAmount) * 100) / 100;
+
+    // Add transaction
+    smartWallet.transactions.push({
+      type: "admin_adjustment",
+      amount: numericAmount,
+      description: description || `Admin added ₹${numericAmount} to Smart Wallet`,
+      adminNotes: adminNotes || `Admin adjustment by ${adminId}`,
+      status: "completed",
+      reference: `ADMIN_SMART_ADD_${adminId}_${Date.now()}`,
+      createdAt: new Date(),
+    });
+
+    await smartWallet.save();
+
+    res.json({
+      success: true,
+      message: `Successfully added ₹${numericAmount} to user's Smart Wallet`,
+      data: {
+        userId,
+        walletType: "smartWallet",
+        amount: numericAmount,
+        newBalance: smartWallet.balance,
+        transactionId: `ADMIN_SMART_ADD_${adminId}_${Date.now()}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error adding money to Smart Wallet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to add money to Smart Wallet",
+      error: error.message,
+    });
+  }
+};
+
+// Deduct money from Smart Wallet (Recharge Wallet)
+export const deductMoneyFromSmartWallet = async (req, res) => {
+  try {
+    const { userId, amount, description, adminNotes } = req.body;
+    const adminId = req.user.userId;
+
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and positive amount are required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    
+    // Get Smart Wallet (RechargeWallet)
+    const smartWallet = await RechargeWallet.getOrCreateWallet(userId);
+
+    if (smartWallet.balance < numericAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient Smart Wallet balance",
+        currentBalance: smartWallet.balance,
+        requestedAmount: numericAmount,
+      });
+    }
+
+    // Deduct from balance
+    smartWallet.balance = Math.round((smartWallet.balance - numericAmount) * 100) / 100;
+    smartWallet.totalSpent = Math.round((smartWallet.totalSpent + numericAmount) * 100) / 100;
+
+    // Add transaction
+    smartWallet.transactions.push({
+      type: "admin_adjustment",
+      amount: -numericAmount,
+      description: description || `Admin deducted ₹${numericAmount} from Smart Wallet`,
+      adminNotes: adminNotes || `Admin adjustment by ${adminId}`,
+      status: "completed",
+      reference: `ADMIN_SMART_DEDUCT_${adminId}_${Date.now()}`,
+      createdAt: new Date(),
+    });
+
+    await smartWallet.save();
+
+    res.json({
+      success: true,
+      message: `Successfully deducted ₹${numericAmount} from user's Smart Wallet`,
+      data: {
+        userId,
+        walletType: "smartWallet",
+        amount: numericAmount,
+        newBalance: smartWallet.balance,
+        transactionId: `ADMIN_SMART_DEDUCT_${adminId}_${Date.now()}`,
+      },
+    });
+  } catch (error) {
+    console.error("Error deducting money from Smart Wallet:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to deduct money from Smart Wallet",
+      error: error.message,
+    });
+  }
+};
+
 // Get user transaction history
 export const getUserTransactionHistory = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { walletType = "wallet", page = 1, limit = 20 } = req.query;
+    const { walletType = "all", page = 1, limit = 50 } = req.query;
 
     if (!userId) {
       return res.status(400).json({
@@ -1585,18 +2054,45 @@ export const getUserTransactionHistory = async (req, res) => {
       });
     }
 
-    const skip = (page - 1) * limit;
-    let transactions = [];
-    let totalTransactions = 0;
+    let allTransactions = [];
 
-    // Get regular wallet transactions only
-    const wallet = await Wallet.findOne({ userId });
-    if (wallet) {
-      transactions = wallet.transactions
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(skip, skip + parseInt(limit));
-      totalTransactions = wallet.transactions.length;
+    // Get regular wallet transactions
+    if (walletType === "all" || walletType === "wallet") {
+      const wallet = await Wallet.findOne({ userId });
+      if (wallet && Array.isArray(wallet.transactions)) {
+        const regularTransactions = wallet.transactions.map((t) => ({
+          ...t.toObject ? t.toObject() : t,
+          walletType: "wallet",
+          walletName: "Regular Wallet",
+        }));
+        allTransactions = [...allTransactions, ...regularTransactions];
+      }
     }
+
+    // Get Smart Wallet (RechargeWallet) transactions
+    if (walletType === "all" || walletType === "smartWallet") {
+      const smartWallet = await RechargeWallet.findOne({ userId });
+      if (smartWallet && Array.isArray(smartWallet.transactions)) {
+        const smartTransactions = smartWallet.transactions.map((t) => ({
+          ...t.toObject ? t.toObject() : t,
+          walletType: "smartWallet",
+          walletName: "Smart Wallet",
+        }));
+        allTransactions = [...allTransactions, ...smartTransactions];
+      }
+    }
+
+    // Sort all transactions by date (newest first)
+    allTransactions.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date || 0);
+      const dateB = new Date(b.createdAt || b.date || 0);
+      return dateB - dateA;
+    });
+
+    // Apply pagination
+    const skip = (page - 1) * limit;
+    const totalTransactions = allTransactions.length;
+    const paginatedTransactions = allTransactions.slice(skip, skip + parseInt(limit));
 
     res.json({
       success: true,
@@ -1606,7 +2102,7 @@ export const getUserTransactionHistory = async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
         },
-        transactions,
+        transactions: paginatedTransactions,
         pagination: {
           current: parseInt(page),
           total: Math.ceil(totalTransactions / limit),

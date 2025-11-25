@@ -95,6 +95,7 @@ export const API_ENDPOINTS = {
     analytics: `${API_URL}/api/admin/analytics`,
     referrals: `${API_URL}/api/admin/referrals`,
     purchases: `${API_URL}/api/admin/purchases`,
+    activationReport: `${API_URL}/api/admin/activations/report`,
     userActivate: `${API_URL}/api/admin/users/:id/activate`,
     userDeactivate: `${API_URL}/api/admin/users/:id/deactivate`,
     userKycApprove: `${API_URL}/api/admin/users/:id/kyc-approve`,
@@ -184,6 +185,8 @@ export const API_ENDPOINTS = {
     userWalletByMobile: `${API_URL}/api/admin/users/mobile/:mobile/wallet`,
     addMoney: `${API_URL}/api/admin/users/:userId/wallet/add`,
     deductMoney: `${API_URL}/api/admin/users/:userId/wallet/deduct`,
+    addMoneyToSmartWallet: `${API_URL}/api/admin/users/:userId/smart-wallet/add`,
+    deductMoneyFromSmartWallet: `${API_URL}/api/admin/users/:userId/smart-wallet/deduct`,
     transactions: `${API_URL}/api/admin/users/:userId/transactions`,
   },
   mlm: {

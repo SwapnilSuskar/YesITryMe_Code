@@ -1,180 +1,339 @@
 import {
+  Activity,
   AlertCircle,
-  ArrowDownRight,
-  ArrowUpRight,
+  Calendar,
+  CalendarRange,
+  CheckCircle,
   DollarSign,
-  Info,
   Loader2,
+  PieChart,
   ShoppingCart,
-  UserCheck,
+  TrendingUp,
   Users,
-  Wallet
+  Wallet,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CountUp from "react-countup";
-import { API_ENDPOINTS } from "../../config/api";
+import api, { API_ENDPOINTS } from "../../config/api";
 import { useAuthStore } from "../../store/useAuthStore";
 
-const StatCard = ({ title, value, subtitle, icon, color, trend, trendValue }) => {
-  const getColorClasses = (color) => {
-    switch (color) {
-      case "green":
-        return {
-          bg: "bg-gradient-to-br from-green-50 to-green-100",
-          border: "border-green-200",
-          iconBg: "bg-green-500",
-          text: "text-green-700",
-          trend: "text-green-600"
-        };
-      case "blue":
-        return {
-          bg: "bg-gradient-to-br from-blue-50 to-blue-100",
-          border: "border-blue-200",
-          iconBg: "bg-blue-500",
-          text: "text-blue-700",
-          trend: "text-blue-600"
-        };
-      case "orange":
-        return {
-          bg: "bg-gradient-to-br from-orange-50 to-orange-100",
-          border: "border-orange-200",
-          iconBg: "bg-orange-500",
-          text: "text-orange-700",
-          trend: "text-orange-600"
-        };
-      case "purple":
-        return {
-          bg: "bg-gradient-to-br from-purple-50 to-purple-100",
-          border: "border-purple-200",
-          iconBg: "bg-purple-500",
-          text: "text-purple-700",
-          trend: "text-purple-600"
-        };
-      default:
-        return {
-          bg: "bg-gradient-to-br from-gray-50 to-gray-100",
-          border: "border-gray-200",
-          iconBg: "bg-gray-500",
-          text: "text-gray-700",
-          trend: "text-gray-600"
-        };
-    }
+const formatDateInput = (date) => date.toISOString().split("T")[0];
+
+const getDateNDaysAgo = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+};
+
+const presetConfig = {
+  today: {
+    label: "Today",
+    range: () => {
+      const today = new Date();
+      return {
+        startDate: formatDateInput(today),
+        endDate: formatDateInput(today),
+      };
+    },
+    timeRange: "today",
+  },
+  last7: {
+    label: "Last 7 Days",
+    range: () => {
+      const end = new Date();
+      const start = getDateNDaysAgo(6);
+      return {
+        startDate: formatDateInput(start),
+        endDate: formatDateInput(end),
+      };
+    },
+    timeRange: "week",
+  },
+  last30: {
+    label: "Last 30 Days",
+    range: () => {
+      const end = new Date();
+      const start = getDateNDaysAgo(29);
+      return {
+        startDate: formatDateInput(start),
+        endDate: formatDateInput(end),
+      };
+    },
+    timeRange: "all",
+  },
+  thisMonth: {
+    label: "This Month",
+    range: () => {
+      const end = new Date();
+      const start = new Date(end.getFullYear(), end.getMonth(), 1);
+      return {
+        startDate: formatDateInput(start),
+        endDate: formatDateInput(end),
+      };
+    },
+    timeRange: "month",
+  },
+  allTime: {
+    label: "All Time",
+    range: () => ({
+      startDate: "",
+      endDate: "",
+    }),
+    timeRange: "all",
+  },
+  custom: {
+    label: "Custom",
+    range: null,
+    timeRange: "all",
+  },
+};
+
+const formatNumber = (value, options = {}) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return "0";
+  return Number(value).toLocaleString("en-IN", options);
+};
+
+const formatCurrency = (value, options = { maximumFractionDigits: 0 }) =>
+  `₹${formatNumber(Number(value) || 0, options)}`;
+
+const StatCard = ({ title, value, subtitle, icon, color }) => {
+  const palettes = {
+    blue: {
+      bg: "bg-gradient-to-br from-blue-50 to-blue-100",
+      border: "border-blue-200",
+      iconBg: "bg-blue-500",
+      text: "text-blue-700",
+    },
+    green: {
+      bg: "bg-gradient-to-br from-green-50 to-green-100",
+      border: "border-green-200",
+      iconBg: "bg-green-500",
+      text: "text-green-700",
+    },
+    orange: {
+      bg: "bg-gradient-to-br from-orange-50 to-orange-100",
+      border: "border-orange-200",
+      iconBg: "bg-orange-500",
+      text: "text-orange-700",
+    },
+    purple: {
+      bg: "bg-gradient-to-br from-purple-50 to-purple-100",
+      border: "border-purple-200",
+      iconBg: "bg-purple-500",
+      text: "text-purple-700",
+    },
+    gray: {
+      bg: "bg-gradient-to-br from-gray-50 to-gray-100",
+      border: "border-gray-200",
+      iconBg: "bg-gray-500",
+      text: "text-gray-700",
+    },
   };
 
-  const colors = getColorClasses(color);
-
-  // Safely handle the value for CountUp
-  const getDisplayValue = () => {
-    if (typeof value === 'string') {
-      // If it's already a formatted string (like "₹1,000"), return as is
-      return value;
-    }
-
-    if (typeof value === 'number') {
-      // Check if this is a currency value (title contains "Revenue" or "Commission")
-      if (title.includes('Revenue') || title.includes('Commission') || title.includes('Paid')) {
-        return `₹${value.toLocaleString()}`;
-      }
-      // For other numeric values, just format with commas
-      return value.toLocaleString();
-    }
-
-    // Fallback for undefined/null values
-    return '0';
-  };
+  const palette = palettes[color] || palettes.gray;
+  const isNumeric = typeof value === "number";
 
   return (
-    <div className={`${colors.bg} p-6 rounded-2xl border ${colors.border} shadow-lg hover:shadow-xl transition-all duration-300`}>
+    <div
+      className={`${palette.bg} p-6 rounded-2xl border ${palette.border} shadow-lg hover:shadow-xl transition-all duration-300`}
+    >
       <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 ${colors.iconBg} rounded-xl flex items-center justify-center shadow-lg`}>
-          <span className="text-white">{icon}</span>
+        <div
+          className={`${palette.iconBg} w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg`}
+        >
+          {icon}
         </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-sm font-medium ${colors.trend}`}>
-            {trend === 'up' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-            {trendValue}%
-          </div>
-        )}
       </div>
       <h3 className="text-gray-700 font-semibold text-sm mb-1">{title}</h3>
-      <p className={`${colors.text} font-bold text-2xl mb-1`}>
-        {typeof value === 'number' ? (
-          <CountUp end={value} duration={1.5} separator="," />
-        ) : (
-          getDisplayValue()
-        )}
+      <p className={`${palette.text} font-bold text-2xl mb-1`}>
+        {isNumeric ? <CountUp end={value} duration={1.2} separator="," /> : value}
       </p>
       <p className="text-gray-500 text-xs">{subtitle}</p>
     </div>
   );
 };
 
+const InsightCard = ({ label, value, helper, icon }) => (
+  <div className="border border-gray-200 rounded-2xl p-4 bg-white shadow-sm">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-sm text-gray-500">{label}</p>
+      <span className="text-orange-500">{icon}</span>
+    </div>
+    <p className="text-xl font-semibold text-gray-800">{value}</p>
+    {helper && <p className="text-xs text-gray-500 mt-1">{helper}</p>}
+  </div>
+);
+
+const TrendRow = ({ date, revenue, orders }) => (
+  <div className="flex items-center justify-between border-b border-gray-100 last:border-none py-3">
+    <div>
+      <p className="text-sm font-semibold text-gray-800">
+        {new Date(date).toLocaleDateString()}
+      </p>
+      <p className="text-xs text-gray-500">{orders} orders</p>
+    </div>
+    <p className="text-sm font-semibold text-green-600">
+      {formatCurrency(revenue)}
+    </p>
+  </div>
+);
+
 const AdminAnalytics = () => {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
+  const defaultRange = presetConfig.last7.range();
+  const initialFilters = { preset: "last7", ...defaultRange };
+
+  const [pendingFilters, setPendingFilters] = useState(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+  const [filterError, setFilterError] = useState("");
   const [analytics, setAnalytics] = useState({
+    period: null,
     users: {
       total: 0,
       active: 0,
       kycApproved: 0,
-      newThisMonth: 0
+      newInRange: 0,
+      activatedInRange: 0,
     },
     referrals: {
       totalReferrals: 0,
       activeReferrers: 0,
       avgReferralsPerUser: 0,
-      topReferrer: null
+      topReferrer: null,
     },
     purchases: {
       totalPurchases: 0,
       totalRevenue: 0,
       avgPurchaseValue: 0,
-      packagesSold: {}
+      packagesSold: {},
+      trend: [],
     },
     commissions: {
       totalDistributed: 0,
       totalEarned: 0,
       avgCommissionPerUser: 0,
-      topEarner: null
-    }
+      topEarner: null,
+    },
   });
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('all');
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (user && token) {
-      fetchAnalytics();
-    }
-  }, [user, token, timeRange]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async (filtersToUse) => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
-      // Use the correct analytics endpoint
-      const response = await fetch(`${API_ENDPOINTS.admin.analytics}/users?timeRange=${timeRange}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const presetMeta =
+        presetConfig[filtersToUse?.preset] || presetConfig.last7;
+      const params = {
+        timeRange: presetMeta.timeRange || "all",
+      };
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          setAnalytics(data.data);
-        } else {
-          // If the API doesn't return the expected structure, use default values
-        }
+      if (filtersToUse?.startDate) params.startDate = filtersToUse.startDate;
+      if (filtersToUse?.endDate) params.endDate = filtersToUse.endDate;
+
+      const response = await api.get(
+        `${API_ENDPOINTS.admin.analytics}/users`,
+        { params }
+      );
+
+      if (response.data?.success && response.data?.data) {
+        setAnalytics(response.data.data);
       } else {
-        // Use default data if API is not available
+        setError("Unable to parse analytics data");
       }
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-      setError('Failed to load analytics data');
-      // Use default data on error
+    } catch (err) {
+      console.error("Error fetching analytics:", err);
+      setError(err.response?.data?.message || "Failed to load analytics data");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchAnalytics(appliedFilters);
+    }
+  }, [user, appliedFilters, fetchAnalytics]);
+
+  const handlePresetSelect = (presetKey) => {
+    const preset = presetConfig[presetKey];
+    if (!preset) return;
+
+    if (presetKey === "custom") {
+      setPendingFilters((prev) => ({
+        ...prev,
+        preset: "custom",
+      }));
+      return;
+    }
+
+    const range = preset.range ? preset.range() : { startDate: "", endDate: "" };
+    const next = { preset: presetKey, ...range };
+    setPendingFilters(next);
+    setFilterError("");
+    setAppliedFilters(next);
   };
+
+  const handleDateChange = (field, value) => {
+    setPendingFilters((prev) => ({
+      ...prev,
+      preset: "custom",
+      [field]: value,
+    }));
+  };
+
+  const handleApplyFilters = () => {
+    if (pendingFilters.startDate && pendingFilters.endDate) {
+      if (
+        new Date(pendingFilters.startDate) > new Date(pendingFilters.endDate)
+      ) {
+        setFilterError("Start date cannot be after end date");
+        return;
+      }
+    }
+    setFilterError("");
+    setAppliedFilters(pendingFilters);
+  };
+
+  const userStats = analytics.users || {};
+  const purchaseStats = analytics.purchases || {};
+  const referralStats = analytics.referrals || {};
+  const commissionStats = analytics.commissions || {};
+
+  const packageMix = useMemo(() => {
+    const source = purchaseStats.packagesSold || {};
+    return Object.entries(source)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [purchaseStats.packagesSold]);
+
+  const purchaseTrend = purchaseStats.trend || [];
+  const recentTrend = purchaseTrend.slice(-7).reverse();
+
+  const activationRate = userStats.total
+    ? ((userStats.active / userStats.total) * 100).toFixed(1)
+    : "0.0";
+  const kycRate = userStats.total
+    ? ((userStats.kycApproved / userStats.total) * 100).toFixed(1)
+    : "0.0";
+  const conversionRate = userStats.total
+    ? ((purchaseStats.totalPurchases / userStats.total) * 100).toFixed(1)
+    : "0.0";
+  const revenuePerUser = userStats.total
+    ? purchaseStats.totalRevenue / userStats.total
+    : 0;
+  const avgOrdersPerDay = purchaseTrend.length
+    ? (purchaseStats.totalPurchases / purchaseTrend.length).toFixed(1)
+    : purchaseStats.totalPurchases || 0;
+
+  const periodSummary = analytics.period
+    ? `${new Date(analytics.period.start).toLocaleDateString()} – ${new Date(
+        analytics.period.end
+      ).toLocaleDateString()} (${
+        analytics.period.days || purchaseTrend.length || 0
+      } days)`
+    : "Entire history";
 
   if (loading) {
     return (
@@ -187,45 +346,33 @@ const AdminAnalytics = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pt-20 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-500" />
-          <p className="text-red-600 mb-2">Error loading analytics</p>
-          <p className="text-gray-500 text-sm">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pt-20">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 pt-20 pb-12">
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-8 px-4 sm:px-6 shadow-xl">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
-              <p className="text-orange-100">Comprehensive overview of your referral system</p>
+              <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+              <p className="text-orange-100 text-sm mt-1">
+                Real-time view of user growth, sales, and payouts
+              </p>
+              <p className="text-sm text-white/80 mt-2 flex items-center gap-2">
+                <CalendarRange size={16} />
+                {periodSummary}
+              </p>
             </div>
-            <div className="flex gap-2">
-              {['all', 'month', 'week', 'today'].map((range) => (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(presetConfig).map(([key, preset]) => (
                 <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${timeRange === range
-                      ? 'bg-white text-orange-600'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
+                  key={key}
+                  onClick={() => handlePresetSelect(key)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    pendingFilters.preset === key
+                      ? "bg-white text-orange-600 shadow"
+                      : "bg-white/20 text-white hover:bg-white/30"
+                  }`}
                 >
-                  {range.charAt(0).toUpperCase() + range.slice(1)}
+                  {preset.label}
                 </button>
               ))}
             </div>
@@ -233,153 +380,282 @@ const AdminAnalytics = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Analytics Data Notice */}
-        {!analytics.users?.total && !analytics.purchases?.totalPurchases && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 space-y-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <Info className="w-5 h-5 text-blue-600" />
-              <p className="text-blue-800">
-                Analytics data is loading or not available. Showing default values.
-              </p>
+              <AlertCircle size={18} />
+              <span>{error}</span>
             </div>
+            <button
+              onClick={() => fetchAnalytics(appliedFilters)}
+              className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition"
+            >
+              Retry
+            </button>
           </div>
         )}
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label className="flex flex-col text-sm text-gray-600">
+              Start Date
+              <div className="mt-2 relative">
+                <Calendar
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="date"
+                  value={pendingFilters.startDate || ""}
+                  max={pendingFilters.endDate || undefined}
+                  onChange={(e) => handleDateChange("startDate", e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+            </label>
+            <label className="flex flex-col text-sm text-gray-600">
+              End Date
+              <div className="mt-2 relative">
+                <Calendar
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="date"
+                  value={pendingFilters.endDate || ""}
+                  min={pendingFilters.startDate || undefined}
+                  max={formatDateInput(new Date())}
+                  onChange={(e) => handleDateChange("endDate", e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+            </label>
+            <div className="flex items-end">
+              <button
+                onClick={handleApplyFilters}
+                className="w-full px-4 py-3 bg-orange-500 text-white rounded-xl font-semibold shadow hover:bg-orange-600 transition"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+          {filterError && (
+            <p className="text-sm text-red-600 mt-3">{filterError}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <StatCard
             title="Total Users"
-            value={analytics.users?.total || 0}
-            subtitle="Registered users"
-            icon={<Users size={24} />}
+            value={userStats.total || 0}
+            subtitle="Registered members"
+            icon={<Users size={22} />}
             color="blue"
-            trend="up"
-            trendValue={12}
           />
           <StatCard
             title="Total Revenue"
-            value={analytics.purchases?.totalRevenue || 0}
-            subtitle="From package sales"
-            icon={<DollarSign size={24} />}
+            value={purchaseStats.totalRevenue || 0}
+            subtitle="Package sales value"
+            icon={<DollarSign size={22} />}
             color="green"
-            trend="up"
-            trendValue={8}
           />
           <StatCard
-            title="Total Referrals"
-            value={analytics.referrals?.totalReferrals || 0}
-            subtitle="Network growth"
-            icon={<UserCheck size={24} />}
+            title="Total Purchases"
+            value={purchaseStats.totalPurchases || 0}
+            subtitle="Orders completed"
+            icon={<ShoppingCart size={22} />}
             color="orange"
-            trend="up"
-            trendValue={15}
           />
           <StatCard
             title="Commissions Paid"
-            value={analytics.commissions?.totalDistributed || 0}
-            subtitle="To referrers"
-            icon={<Wallet size={24} />}
+            value={commissionStats.totalDistributed || 0}
+            subtitle="Network payouts"
+            icon={<Wallet size={22} />}
             color="purple"
-            trend="up"
-            trendValue={20}
           />
         </div>
 
-        {/* Detailed Analytics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <InsightCard
+            label="Activation Rate"
+            value={`${activationRate}%`}
+            helper={`${formatNumber(userStats.active)} active of ${formatNumber(
+              userStats.total
+            )}`}
+            icon={<Activity size={16} />}
+          />
+          <InsightCard
+            label="KYC Approval Rate"
+            value={`${kycRate}%`}
+            helper={`${formatNumber(
+              userStats.kycApproved
+            )} verified profiles`}
+            icon={<CheckCircle size={16} />}
+          />
+          <InsightCard
+            label="Revenue / User"
+            value={formatCurrency(revenuePerUser, {
+              maximumFractionDigits: 0,
+            })}
+            helper="Lifetime average"
+            icon={<TrendingUp size={16} />}
+          />
+          <InsightCard
+            label="Orders Per Day"
+            value={avgOrdersPerDay}
+            helper="Based on selected period"
+            icon={<PieChart size={16} />}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                Sales Performance
+              </h3>
+              <span className="text-sm text-gray-500">
+                {formatNumber(packageMix.length)} packages sold
+              </span>
+            </div>
+            {packageMix.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No package sales recorded for this period.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {packageMix.map((pkg) => {
+                  const share =
+                    purchaseStats.totalPurchases > 0
+                      ? ((pkg.count / purchaseStats.totalPurchases) * 100).toFixed(
+                          1
+                        )
+                      : 0;
+                  return (
+                    <div
+                      key={pkg.name}
+                      className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-800">{pkg.name}</p>
+                        <p className="text-xs text-gray-500">{share}% of orders</p>
+                      </div>
+                      <span className="text-base font-semibold text-gray-800">
+                        {pkg.count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-4">
+              Conversion rate:&nbsp;
+              <span className="font-semibold text-gray-800">
+                {conversionRate}%
+              </span>{" "}
+              of the active user base purchased during this window.
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Revenue Trend
+            </h3>
+            {recentTrend.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No purchase activity in the selected window.
+              </p>
+            ) : (
+              recentTrend.map((entry) => (
+                <TrendRow
+                  key={entry.date}
+                  date={entry.date}
+                  revenue={entry.revenue}
+                  orders={entry.orders}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* User Analytics */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Users size={24} className="text-blue-500" />
-              User Analytics
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Referral Network
             </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-gray-700">Active Users</span>
-                <span className="font-bold text-blue-600">{analytics.users?.active || 0}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-gray-700">KYC Approved</span>
-                <span className="font-bold text-green-600">{analytics.users?.kycApproved || 0}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-gray-700">New This Month</span>
-                <span className="font-bold text-orange-600">{analytics.users?.newThisMonth || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Purchase Analytics */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <ShoppingCart size={24} className="text-green-500" />
-              Purchase Analytics
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-gray-700">Total Purchases</span>
-                <span className="font-bold text-green-600">{analytics.purchases?.totalPurchases || 0}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-gray-700">Average Purchase</span>
-                <span className="font-bold text-blue-600">₹{(analytics.purchases?.avgPurchaseValue || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-gray-700">Conversion Rate</span>
-                <span className="font-bold text-purple-600">
-                  {analytics.users?.total > 0 ? (((analytics.purchases?.totalPurchases || 0) / analytics.users.total) * 100).toFixed(1) : 0}%
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>
+                Total referrals:{" "}
+                <span className="font-semibold">
+                  {formatNumber(referralStats.totalReferrals)}
                 </span>
-              </div>
+              </p>
+              <p>
+                Active referrers:{" "}
+                <span className="font-semibold">
+                  {formatNumber(referralStats.activeReferrers)}
+                </span>
+              </p>
+              <p>
+                Avg referrals / user:{" "}
+                <span className="font-semibold">
+                  {(referralStats.avgReferralsPerUser || 0).toFixed(2)}
+                </span>
+              </p>
+              <p>
+                Top referrer:{" "}
+                <span className="font-semibold">
+                  {referralStats.topReferrer?.name || "—"}
+                </span>
+              </p>
             </div>
           </div>
-
-          {/* Referral Analytics */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <UserCheck size={24} className="text-orange-500" />
-              Referral Analytics
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Commission Payouts
             </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-gray-700">Active Referrers</span>
-                <span className="font-bold text-orange-600">{analytics.referrals?.activeReferrers || 0}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-gray-700">Avg Referrals/User</span>
-                <span className="font-bold text-blue-600">{(analytics.referrals?.avgReferralsPerUser || 0).toFixed(1)}</span>
-              </div>
-              {analytics.referrals?.topReferrer && (
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="text-gray-700">Top Referrer</span>
-                  <span className="font-bold text-green-600">{analytics.referrals.topReferrer.name}</span>
-                </div>
-              )}
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>
+                Total distributed:{" "}
+                <span className="font-semibold">
+                  {formatCurrency(commissionStats.totalDistributed)}
+                </span>
+              </p>
+              <p>
+                Avg per user:{" "}
+                <span className="font-semibold">
+                  {formatCurrency(commissionStats.avgCommissionPerUser, {
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </p>
+              <p>
+                Top earner:{" "}
+                <span className="font-semibold">
+                  {commissionStats.topEarner?.name || "—"}
+                </span>
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Commission Analytics */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Wallet size={24} className="text-purple-500" />
-              Commission Analytics
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <span className="text-gray-700">Total Earned</span>
-                <span className="font-bold text-purple-600">₹{(analytics.commissions?.totalEarned || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-gray-700">Avg Commission/User</span>
-                <span className="font-bold text-green-600">₹{(analytics.commissions?.avgCommissionPerUser || 0).toFixed(2)}</span>
-              </div>
-              {analytics.commissions?.topEarner && (
-                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                  <span className="text-gray-700">Top Earner</span>
-                  <span className="font-bold text-orange-600">{analytics.commissions.topEarner.name}</span>
-                </div>
-              )}
-            </div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">
+            User Cohorts This Period
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InsightCard
+              label="New Registrations"
+              value={formatNumber(userStats.newInRange)}
+              helper="Joined during selected range"
+              icon={<Users size={16} />}
+            />
+            <InsightCard
+              label="New Activations"
+              value={formatNumber(userStats.activatedInRange)}
+              helper="Became active in this period"
+              icon={<Activity size={16} />}
+            />
           </div>
         </div>
       </div>
@@ -387,4 +663,4 @@ const AdminAnalytics = () => {
   );
 };
 
-export default AdminAnalytics; 
+export default AdminAnalytics;

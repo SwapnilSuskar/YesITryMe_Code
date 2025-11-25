@@ -6,6 +6,7 @@ import {
   getReferralStats,
   getAllPurchases,
   getPurchaseStats,
+  getActivationReport,
   getAllUsers,
   updateUser,
   deleteUser,
@@ -29,6 +30,8 @@ import {
   getUserWalletByMobile,
   addMoneyToWallet,
   deductMoneyFromWallet,
+  addMoneyToSmartWallet,
+  deductMoneyFromSmartWallet,
   getUserTransactionHistory,
 } from "../controllers/adminController.js";
 import {
@@ -59,6 +62,7 @@ router.get("/referrals/stats", getReferralStats);
 // Purchase management routes
 router.get("/purchases", getAllPurchases);
 router.get("/purchases/stats", getPurchaseStats);
+router.get("/activations/report", getActivationReport);
 
 // User management routes (admin only)
 router.get("/users", getAllUsers);
@@ -104,6 +108,8 @@ router.get("/users/:userId/wallet", getUserWallet);
 router.get("/users/mobile/:mobile/wallet", getUserWalletByMobile);
 router.post("/users/:userId/wallet/add", addMoneyToWallet);
 router.post("/users/:userId/wallet/deduct", deductMoneyFromWallet);
+router.post("/users/:userId/smart-wallet/add", addMoneyToSmartWallet);
+router.post("/users/:userId/smart-wallet/deduct", deductMoneyFromSmartWallet);
 router.get("/users/:userId/transactions", getUserTransactionHistory);
 
 export default router;

@@ -252,20 +252,36 @@ const WalletTransactions = () => {
     // Get wallet top-up transactions separately
     const getWalletTopUps = () => {
         return rechargeWalletTransactions
-            .filter(txn => txn.type === 'topup')
-            .map(txn => ({
-                _id: txn._id || `topup_${txn.createdAt}`,
-                source: 'wallet',
-                transactionType: 'topup',
-                amount: Math.abs(txn.amount || 0),
-                netAmount: Math.abs(txn.amount || 0),
-                status: txn.status || 'completed',
-                createdAt: txn.createdAt,
-                date: txn.createdAt,
-                description: txn.description || 'Wallet Top-Up',
-                reference: txn.reference,
-                isTopUp: true,
-            }))
+            .filter(txn =>
+                txn.type === 'topup' ||
+                txn.type === 'admin_adjustment'
+            )
+            .map(txn => {
+                const amount = parseFloat(txn.amount || 0);
+                const isAdminAdjustment = txn.type === 'admin_adjustment';
+                return {
+                    _id: txn._id || `wallet_${txn.createdAt}`,
+                    source: 'wallet',
+                    transactionType: txn.type,
+                    amount: Math.abs(amount),
+                    rawAmount: amount,
+                    netAmount: Math.abs(amount),
+                    status: txn.status || 'completed',
+                    createdAt: txn.createdAt,
+                    date: txn.createdAt,
+                    description: txn.description || (isAdminAdjustment ? 'Admin Smart Wallet Adjustment' : 'Wallet Top-Up'),
+                    reference: txn.reference,
+                    adminNotes: txn.adminNotes,
+                    isTopUp: true,
+                    adminAction: isAdminAdjustment,
+                    adminActionType: amount >= 0 ? 'credit' : 'debit',
+                    adminActionLabel: isAdminAdjustment
+                        ? amount >= 0
+                            ? 'Admin Added Funds'
+                            : 'Admin Deducted Funds'
+                        : null,
+                };
+            })
             .sort((a, b) => new Date(b.date) - new Date(a.date));
     };
 
@@ -1238,7 +1254,6 @@ const WalletTransactions = () => {
                                         <p className="text-gray-400 text-sm mt-2">Your funds and special income will appear here when added by admin</p>
                                     </div>
                                 )}
-
                                 {/* Fund and Special Income Transactions */}
                                 {(virtualFundTransactions.length > 0 || virtualSpecialIncomeTransactions.length > 0) && (
                                     <div className="mt-8">
@@ -1246,7 +1261,6 @@ const WalletTransactions = () => {
                                             <BookOpen className="text-purple-600" size={20} />
                                             Fund & Special Income Transactions
                                         </h3>
-
                                         <div className="space-y-3">
                                             {[...virtualFundTransactions, ...virtualSpecialIncomeTransactions].map((transaction) => (
                                                 <div key={transaction._id} className={`rounded-lg p-4 border ${getTransactionTypeBg(transaction.type)}`}>
@@ -1301,6 +1315,7 @@ const WalletTransactions = () => {
                             {(() => {
                                 const allRecharges = getAllRechargeTransactions();
                                 const walletTopUps = getWalletTopUps();
+                                const smartWalletTopUps = walletTopUps.filter(t => t.transactionType === 'topup');
                                 const successful = allRecharges.filter(r => r.status === 'success');
                                 const failed = allRecharges.filter(r => r.status === 'failed');
                                 const totalSpent = successful.reduce(
@@ -1323,7 +1338,7 @@ const WalletTransactions = () => {
                                                 <Wallet className="text-blue-600 flex-shrink-0" size={24} />
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[10px] sm:text-xs text-blue-700 font-medium truncate">Top-Ups</div>
-                                                    <div className="text-lg sm:text-xl font-bold text-blue-800">{walletTopUps.length}</div>
+                                                    <div className="text-lg sm:text-xl font-bold text-blue-800">{smartWalletTopUps.length}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1398,45 +1413,64 @@ const WalletTransactions = () => {
                                                 <tbody className="divide-y divide-gray-100 text-gray-700">
                                                     {paginatedTransactions.map((transaction) => {
                                                         const date = new Date(transaction.date || transaction.rechargeCompletedAt || transaction.paymentCompletedAt || transaction.createdAt);
-                                                        const amount = parseFloat(transaction.netAmount || transaction.amount || 0).toFixed(2);
+                                                        const rawAmount = typeof transaction.rawAmount === 'number'
+                                                            ? transaction.rawAmount
+                                                            : parseFloat(transaction.netAmount || transaction.amount || 0);
+                                                        const amount = Math.abs(rawAmount).toFixed(2);
                                                         const cashback = transaction.discountAmount > 0 ? `₹${transaction.discountAmount.toFixed(2)}` : null;
-                                                        const isTopUp = transaction.isTopUp || transaction.transactionType === 'topup';
-
+                                                        const isSmartWalletEvent = transaction.isTopUp
+                                                            || transaction.transactionType === 'topup'
+                                                            || transaction.transactionType === 'admin_adjustment';
+                                                        const isAdminAdjustment = transaction.transactionType === 'admin_adjustment';
                                                         return (
                                                             <tr key={transaction._id} className="hover:bg-gray-50 transition-colors">
                                                                 <td className="px-4 py-4 align-top">
-                                                                    <div className="font-semibold text-gray-900 text-base">₹{amount}</div>
-                                                                    {!isTopUp && (
+                                                                    <div className={`font-semibold text-base ${isAdminAdjustment ? (rawAmount >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-900'}`}>
+                                                                        {isAdminAdjustment ? `${rawAmount >= 0 ? '+' : '-'}₹${amount}` : `₹${amount}`}
+                                                                    </div>
+                                                                    {!isSmartWalletEvent && (
                                                                         <p className="text-xs text-gray-500 mt-0.5 capitalize">{transaction.rechargeType || 'prepaid'}</p>
                                                                     )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">
-                                                                    {isTopUp ? (
-                                                                        <>
-                                                                            <p className="font-medium text-gray-900 flex items-center gap-2">
-                                                                                <Wallet className="text-blue-600" size={16} />
-                                                                                Wallet Top-Up
-                                                                            </p>
-                                                                            <p className="text-xs text-blue-600 mt-0.5 font-medium">
-                                                                                💰 Smart Wallet Credit
-                                                                            </p>
-                                                                            {transaction.reference && (
-                                                                                <p className="text-[10px] text-gray-400 font-mono mt-1 truncate max-w-[200px]" title={transaction.reference}>
-                                                                                    Ref: {transaction.reference}
+                                                                    {isSmartWalletEvent ? (
+                                                                        transaction.transactionType === 'admin_adjustment' ? (
+                                                                            <>
+                                                                                <p className="font-medium text-gray-900 flex items-center gap-2">
+                                                                                    <Wallet className={transaction.adminActionType === 'debit' ? 'text-rose-600' : 'text-purple-600'} size={16} />
+                                                                                    {transaction.adminActionType === 'debit' ? 'Admin Smart Wallet Debit' : 'Admin Smart Wallet Credit'}
                                                                                 </p>
-                                                                            )}
-                                                                        </>
+                                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                                    {transaction.description}
+                                                                                </p>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <p className="font-medium text-gray-900 flex items-center gap-2">
+                                                                                    <Wallet className="text-blue-600" size={16} />
+                                                                                    Wallet Top-Up
+                                                                                </p>
+                                                                                <p className="text-xs text-blue-600 mt-0.5 font-medium">
+                                                                                    💰 Smart Wallet Credit
+                                                                                </p>
+                                                                                {transaction.reference && (
+                                                                                    <p className="text-[10px] text-gray-400 font-mono mt-1 truncate max-w-[200px]" title={transaction.reference}>
+                                                                                        Ref: {transaction.reference}
+                                                                                    </p>
+                                                                                )}
+                                                                            </>
+                                                                        )
                                                                     ) : (
                                                                         <>
                                                                             <p className="font-medium text-gray-900">+91 {transaction.mobileNumber}</p>
-                                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                                            <p className="text-xs text-gray-500 mt-0.5">
                                                                                 {transaction.operator || 'Unknown'} {transaction.circle && transaction.circle !== 'NA' ? `• ${transaction.circle}` : ''}
-                                                                    </p>
+                                                                            </p>
                                                                         </>
                                                                     )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">
-                                                                    {isTopUp ? (
+                                                                    {isSmartWalletEvent ? (
                                                                         <span className="text-xs text-gray-400">N/A</span>
                                                                     ) : cashback ? (
                                                                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold">
@@ -1463,7 +1497,7 @@ const WalletTransactions = () => {
                                                                     <p className="text-xs text-gray-500">
                                                                         {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                                                     </p>
-                                                                    {!isTopUp && transaction.aiTopUpOrderId && (
+                                                                    {!isSmartWalletEvent && transaction.aiTopUpOrderId && (
                                                                         <p className="mt-1 text-[10px] text-gray-400 font-mono truncate max-w-[140px]" title={transaction.aiTopUpOrderId}>
                                                                             {transaction.aiTopUpOrderId}
                                                                         </p>

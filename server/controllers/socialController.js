@@ -520,13 +520,13 @@ export const verifyPublicAction = async (req, res) => {
     if (session.action === "view") {
       // Check if user has watched for at least 33 seconds (this will be tracked on frontend)
       const { watchTime } = req.query;
-      const requiredWatchTime = 33; // 33 seconds (but show 30 to user)
+      const requiredWatchTime = 33; // 33 seconds
 
       if (!watchTime || parseInt(watchTime) < requiredWatchTime) {
         return res.status(400).json({
           success: false,
           message: `Please watch the video for at least 30 seconds before claiming coins.`,
-          requiredWatchTime: 30, // Show 30 to user
+          requiredWatchTime: 33,
           currentWatchTime: parseInt(watchTime) || 0,
         });
       }
@@ -879,12 +879,12 @@ export const verifySocialAction = async (req, res) => {
     // For view tasks, validate watch time instead of YouTube API verification
     let isVerified = false;
     if (action === "view") {
-      const requiredWatchTime = 40; // 40 seconds internally (but show 30 to user)
+      const requiredWatchTime = 33; // 33 seconds internally
       if (!watchTime || parseInt(watchTime) < requiredWatchTime) {
         return res.status(400).json({
           success: false,
           message: `Please watch the video for at least 30 seconds before claiming coins.`,
-          requiredWatchTime: 30, // Show 30 to user
+          requiredWatchTime: 33,
           currentWatchTime: parseInt(watchTime) || 0,
         });
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Play,
   ThumbsUp,
@@ -44,6 +44,7 @@ const SocialEarning = () => {
   const [videoOpened, setVideoOpened] = useState({}); // Track if user has opened the video
   const [isVideoPlaying, setIsVideoPlaying] = useState({}); // Track if video is actually playing
   const [hasActivePackages, setHasActivePackages] = useState(false);
+  const timerRefs = useRef({}); // Store timer interval references
   const progressToWithdraw = Math.min(100, Math.round((coinBalance / 20000) * 100));
   const userFirstName = user?.firstName || 'Friend';
   const userDisplayName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'You';
@@ -255,14 +256,15 @@ const SocialEarning = () => {
 
   // Cleanup timers on unmount
   useEffect(() => {
+    const timers = timerRefs.current;
     return () => {
-      Object.values(watchTimers).forEach(timer => {
-        if (typeof timer === 'number' && timer > 0) {
+      Object.values(timers).forEach(timer => {
+        if (timer) {
           clearInterval(timer);
         }
       });
     };
-  }, [watchTimers]);
+  }, []);
 
   // Load YouTube API for embedded videos
   useEffect(() => {
@@ -475,8 +477,8 @@ const SocialEarning = () => {
         return { ...prev, [taskId]: newTime };
       });
     }, 1000);
-    // Store timer reference for cleanup
-    setWatchTimers(prev => ({ ...prev, [`${taskId}_timer`]: timer }));
+    // Store timer reference in ref for cleanup
+    timerRefs.current[taskId] = timer;
   };
 
   const handleVideoPlay = (taskId) => {
@@ -489,26 +491,18 @@ const SocialEarning = () => {
 
   const handleVideoPause = (taskId) => {
     setIsVideoPlaying(prev => ({ ...prev, [taskId]: false }));
-    if (watchTimers[`${taskId}_timer`]) {
-      clearInterval(watchTimers[`${taskId}_timer`]);
-      setWatchTimers(prev => {
-        const newTimers = { ...prev };
-        delete newTimers[`${taskId}_timer`];
-        return newTimers;
-      });
+    if (timerRefs.current[taskId]) {
+      clearInterval(timerRefs.current[taskId]);
+      delete timerRefs.current[taskId];
     }
   };
 
   const stopWatchTimer = (taskId) => {
     setIsWatching(prev => ({ ...prev, [taskId]: false }));
-    const timer = watchTimers[`${taskId}_timer`];
+    const timer = timerRefs.current[taskId];
     if (timer) {
       clearInterval(timer);
-      setWatchTimers(prev => {
-        const newTimers = { ...prev };
-        delete newTimers[`${taskId}_timer`];
-        return newTimers;
-      });
+      delete timerRefs.current[taskId];
     }
     // Reset video opened state so user can restart the process
     setVideoOpened(prev => ({ ...prev, [taskId]: false }));
@@ -937,14 +931,14 @@ const SocialEarning = () => {
                                     <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
                                       <div
                                         className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
-                                        style={{ width: `${Math.min(((watchTimers[task._id] || 0) / 40) * 100, 100)}%` }}
+                                        style={{ width: `${Math.min(((watchTimers[task._id] || 0) / 33) * 100, 100)}%` }}
                                       ></div>
                                     </div>
                                     <div className="flex items-center justify-between mt-2">
                                       <p className="text-xs text-blue-600">
-                                        {(watchTimers[task._id] || 0) >= 40
+                                        {(watchTimers[task._id] || 0) >= 33
                                           ? '✅ Ready to claim!'
-                                          : `Watch for ${Math.max(0, 30 - (watchTimers[task._id] || 0))} more seconds`
+                                          : `Watch for ${Math.max(0, 33 - (watchTimers[task._id] || 0))} more seconds`
                                         }
                                       </p>
                                       <div className="flex items-center gap-1">
@@ -1009,7 +1003,7 @@ const SocialEarning = () => {
                           const isClaimed = claimedTaskIds.has(task._id);
                           const watchTime = watchTimers[task._id] || 0;
                           const isViewTask = task.action === 'view';
-                          const hasEnoughWatchTime = watchTime >= 40;
+                          const hasEnoughWatchTime = watchTime >= 33;
                           const isDisabled = verifying[task._id] || isClaimed || (isViewTask && !hasEnoughWatchTime);
                           return (
                             <button
@@ -1030,7 +1024,7 @@ const SocialEarning = () => {
                               ) : isViewTask && !hasEnoughWatchTime ? (
                                 <>
                                   <CheckCircle className="w-4 h-4" />
-                                  Watch {Math.max(0, 30 - watchTime)}s more
+                                  Watch {Math.max(0, 33 - watchTime)}s more
                                 </>
                               ) : (
                                 <>

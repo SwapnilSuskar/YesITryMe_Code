@@ -42,14 +42,20 @@ function extractYouTubeChannelIdentifier(url) {
   // Returns UC... channelId, @handle, or c/username segment for later resolution
   if (!url) return "";
   try {
-    // Channel ID
+    // Channel ID (youtube.com/channel/UC...)
     let m = url.match(/youtube\.com\/channel\/(UC[\w-]+)/i);
     if (m && m[1]) return m[1];
-    // Handle
-    m = url.match(/youtube\.com\/(?:@)([\w\.-]+)/i);
-    if (m && m[1]) return `@${m[1]}`;
+    
+    // Handle (youtube.com/@username or youtu.be/@username)
+    m = url.match(/(?:youtube\.com|youtu\.be)\/(@[\w\.-]+)/i);
+    if (m && m[1]) return m[1];
+    
     // Legacy custom URL (/c/username) or /user/username
     m = url.match(/youtube\.com\/(?:c|user)\/([\w\.-]+)/i);
+    if (m && m[1]) return m[1];
+    
+    // Sometimes channel URLs can be in video watch URLs as a parameter
+    m = url.match(/[?&]channel_id=(UC[\w-]+)/i);
     if (m && m[1]) return m[1];
   } catch (_) {}
   return "";
@@ -1116,29 +1122,42 @@ async function verifyYouTubeAction(accessToken, task, action) {
       case "subscribe":
         if (task.channelId) {
           try {
-            // First, try to get the proper channel ID if we have a username
+            // First, try to get the proper channel ID if we have a username or handle
             let channelId = task.channelId;
+            console.log(`[Subscribe Verification] Original channelId: ${channelId}`);
 
-            // If channelId looks like a username (not starting with UC), try to resolve it
-            if (!channelId.startsWith("UC") && !channelId.startsWith("@")) {
+            // If channelId doesn't start with UC, we need to resolve it to a proper channel ID
+            if (!channelId.startsWith("UC")) {
               try {
-                // Try resolving as username first
-                const channelResponse = await axios.get(
-                  `https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${channelId}`,
-                  { headers }
-                );
+                // If it's a handle starting with @, remove the @ for the search query
+                const searchQuery = channelId.startsWith("@") 
+                  ? channelId.substring(1) 
+                  : channelId;
+                
+                console.log(`[Subscribe Verification] Resolving channel with query: ${searchQuery}`);
 
-                if (
-                  channelResponse.data.items &&
-                  channelResponse.data.items.length > 0
-                ) {
-                  channelId = channelResponse.data.items[0].id;
-                } else {
-                  // If username resolution fails, try searching by channel name
+                // Try resolving as username first (for legacy /user/ URLs)
+                if (!channelId.startsWith("@")) {
+                  const channelResponse = await axios.get(
+                    `https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${searchQuery}`,
+                    { headers }
+                  );
 
+                  if (
+                    channelResponse.data.items &&
+                    channelResponse.data.items.length > 0
+                  ) {
+                    channelId = channelResponse.data.items[0].id;
+                    console.log(`[Subscribe Verification] Resolved via username to: ${channelId}`);
+                  }
+                }
+
+                // If username resolution didn't work, try searching by handle/channel name
+                if (!channelId.startsWith("UC")) {
+                  console.log(`[Subscribe Verification] Trying search API for: ${searchQuery}`);
                   const searchResponse = await axios.get(
                     `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(
-                      channelId
+                      searchQuery
                     )}&maxResults=1`,
                     { headers }
                   );
@@ -1147,36 +1166,43 @@ async function verifyYouTubeAction(accessToken, task, action) {
                     searchResponse.data.items &&
                     searchResponse.data.items.length > 0
                   ) {
-                    channelId = searchResponse.data.items[0].id.channelId;
+                    channelId = searchResponse.data.items[0].id.channelId || searchResponse.data.items[0].snippet.channelId;
+                    console.log(`[Subscribe Verification] Resolved via search to: ${channelId}`);
                   } else {
+                    console.error("[Subscribe Verification] Could not resolve channel ID from:", task.channelId);
                     return false;
                   }
                 }
               } catch (resolveError) {
                 console.error(
-                  "Error resolving channel ID:",
+                  "[Subscribe Verification] Error resolving channel ID:",
                   resolveError.response?.data || resolveError.message
                 );
                 return false;
               }
             }
 
-            // Now check if user is subscribed to the channel
+            console.log(`[Subscribe Verification] Checking subscription for resolved channelId: ${channelId}`);
+            // Now check if user is subscribed to the channel using the resolved UC... channel ID
             const response = await axios.get(
               `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&forChannelId=${channelId}`,
               { headers }
             );
 
+            const isSubscribed = response.data.items && response.data.items.length > 0;
+            console.log(`[Subscribe Verification] Subscription status: ${isSubscribed}`);
+            
             // Only return true if we actually find a subscription
-            return response.data.items && response.data.items.length > 0;
+            return isSubscribed;
           } catch (error) {
             console.error(
-              "Subscription verification error:",
+              "[Subscribe Verification] Subscription verification error:",
               error.response?.data || error.message
             );
             return false;
           }
         }
+        console.error("[Subscribe Verification] No channelId provided in task");
         // If no channelId, cannot verify
         return false;
 

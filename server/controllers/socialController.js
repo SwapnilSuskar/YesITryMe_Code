@@ -1138,16 +1138,16 @@ async function verifyYouTubeAction(accessToken, task, action) {
 
                 // Try resolving as username first (for legacy /user/ URLs)
                 if (!channelId.startsWith("@")) {
-                  const channelResponse = await axios.get(
+                const channelResponse = await axios.get(
                     `https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${searchQuery}`,
-                    { headers }
-                  );
+                  { headers }
+                );
 
-                  if (
-                    channelResponse.data.items &&
-                    channelResponse.data.items.length > 0
-                  ) {
-                    channelId = channelResponse.data.items[0].id;
+                if (
+                  channelResponse.data.items &&
+                  channelResponse.data.items.length > 0
+                ) {
+                  channelId = channelResponse.data.items[0].id;
                     console.log(`[Subscribe Verification] Resolved via username to: ${channelId}`);
                   }
                 }
@@ -1191,7 +1191,7 @@ async function verifyYouTubeAction(accessToken, task, action) {
 
             const isSubscribed = response.data.items && response.data.items.length > 0;
             console.log(`[Subscribe Verification] Subscription status: ${isSubscribed}`);
-            
+
             // Only return true if we actually find a subscription
             return isSubscribed;
           } catch (error) {

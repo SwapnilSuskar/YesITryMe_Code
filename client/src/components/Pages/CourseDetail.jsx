@@ -28,7 +28,7 @@ import designImg from '../../assets/courses/YoutubeMastery.png';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 
-// Course data with detailed content
+// Course metadata (content is fetched from API)
 const courseData = {
   "a-to-z-mastery": {
     id: "a-to-z-mastery",
@@ -38,7 +38,6 @@ const courseData = {
     image: webImg,
     badge: "All-in-One",
     duration: "12 weeks",
-    lectures: 48,
     students: 1250,
     rating: 4.8,
     price: "₹2,999",
@@ -58,71 +57,6 @@ const courseData = {
       "Building passive income streams",
       "Advanced digital marketing tactics"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "Introduction to Digital Earning",
-        lectures: 6,
-        duration: "2 hours",
-        isCompleted: false,
-        lectures: [
-          { 
-            id: 1,
-            title: "Welcome to Digital Earning",
-            duration: "15 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Introduction to the course and what you'll learn"
-          },
-          {
-            id: 2,
-            title: "Understanding the Digital Economy",
-            duration: "20 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Overview of how money flows in the digital world"
-          },
-          {
-            id: 3,
-            title: "Setting Up Your Workspace",
-            duration: "25 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Essential tools and software you'll need"
-          },
-          {
-            id: 4,
-            title: "Course Resources & Materials",
-            duration: "10 min",
-            type: "download",
-            isPreview: false,
-            isCompleted: false,
-            description: "Download course materials and resources"
-          },
-          {
-            id: 5,
-            title: "Your First Assignment",
-            duration: "30 min",
-            type: "assignment",
-            isPreview: false,
-            isCompleted: false,
-            description: "Complete your first practical assignment"
-          },
-          {
-            id: 6,
-            title: "Section Quiz",
-            duration: "20 min",
-            type: "quiz",
-            isPreview: false,
-            isCompleted: false,
-            description: "Test your knowledge from this section"
-          }
-        ]
-      },    
-    ]
   },
   "digital-growth-mastery": {
     id: "digital-growth-mastery",
@@ -132,7 +66,6 @@ const courseData = {
     image: dataImg,
     badge: "Growth",
     duration: "8 weeks",
-    lectures: 32,
     students: 890,
     rating: 4.9,
     price: "₹1,999",
@@ -151,71 +84,6 @@ const courseData = {
       "Data-driven decision making",
       "Advanced marketing automation"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "Growth Hacking Fundamentals",
-        lectures: 6,
-        duration: "2.5 hours",
-        isCompleted: false,
-        lectures: [
-          {
-            id: 1,
-            title: "Introduction to Growth Hacking",
-            duration: "20 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Understanding growth hacking principles"
-          },
-          {
-            id: 2,
-            title: "The Growth Funnel",
-            duration: "25 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Building effective growth funnels"
-          },
-          {
-            id: 3,
-            title: "Customer Acquisition",
-            duration: "30 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Strategies for acquiring customers"
-          },
-          {
-            id: 4,
-            title: "Growth Hacking Tools",
-            duration: "15 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Essential tools for growth hackers"
-          },
-          {
-            id: 5,
-            title: "Growth Hacking Resources",
-            duration: "10 min",
-            type: "download",
-            isPreview: false,
-            isCompleted: false,
-            description: "Download growth hacking guides"
-          },
-          {
-            id: 6,
-            title: "Section Assignment",
-            duration: "40 min",
-            type: "assignment",
-            isPreview: false,
-            isCompleted: false,
-            description: "Create your growth strategy"
-          }
-        ]
-      }
-    ]
   },
   "social-media-mastery": {
     id: "social-media-mastery",
@@ -225,7 +93,6 @@ const courseData = {
     image: mobileImg,
     badge: "Trending",
     duration: "10 weeks",
-    lectures: 40,
     students: 2100,
     rating: 4.7,
     price: "₹1,799",
@@ -245,71 +112,6 @@ const courseData = {
       "Analytics and performance tracking",
       "Influencer marketing and collaborations"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "Social Media Fundamentals",
-        lectures: 6,
-        duration: "2 hours",
-        isCompleted: false,
-        lectures: [
-          {
-            id: 1,
-            title: "Introduction to Social Media Marketing",
-            duration: "20 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Understanding social media marketing basics"
-          },
-          {
-            id: 2,
-            title: "Choosing Your Platforms",
-            duration: "25 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Selecting the right platforms for your niche"
-          },
-          {
-            id: 3,
-            title: "Creating Your Brand Identity",
-            duration: "30 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Building a consistent brand across platforms"
-          },
-          {
-            id: 4,
-            title: "Content Strategy Planning",
-            duration: "35 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Developing a content calendar and strategy"
-          },
-          {
-            id: 5,
-            title: "Social Media Tools & Apps",
-            duration: "20 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Essential tools for social media management"
-          },
-          {
-            id: 6,
-            title: "Section Assignment",
-            duration: "45 min",
-            type: "assignment",
-            isPreview: false,
-            isCompleted: false,
-            description: "Create your social media strategy plan"
-          }
-        ]
-      }
-    ]
   },
   "video-editing": {
     id: "video-editing",
@@ -319,7 +121,6 @@ const courseData = {
     image: marketingImg,
     badge: "Creative",
     duration: "8 weeks",
-    lectures: 35,
     students: 1650,
     rating: 4.6,
     price: "₹1,599",
@@ -339,62 +140,6 @@ const courseData = {
       "Video optimization for different platforms",
       "Advanced editing workflows"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "Video Editing Basics",
-        lectures: 5,
-        duration: "2.5 hours",
-        isCompleted: false,
-        lectures: [
-          {
-            id: 1,
-            title: "Introduction to Video Editing",
-            duration: "25 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Understanding video editing fundamentals"
-          },
-          {
-            id: 2,
-            title: "Choosing Your Editing Software",
-            duration: "20 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Comparing popular video editing tools"
-          },
-          {
-            id: 3,
-            title: "Basic Editing Techniques",
-            duration: "35 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Cutting, trimming, and basic transitions"
-          },
-          {
-            id: 4,
-            title: "Video Editing Resources",
-            duration: "10 min",
-            type: "download",
-            isPreview: false,
-            isCompleted: false,
-            description: "Download editing templates and resources"
-          },
-          {
-            id: 5,
-            title: "First Edit Assignment",
-            duration: "60 min",
-            type: "assignment",
-            isPreview: false,
-            isCompleted: false,
-            description: "Create your first edited video"
-          }
-        ]
-      }
-    ]
   },
   "ai-power-content-creation": {
     id: "ai-power-content-creation",
@@ -404,7 +149,6 @@ const courseData = {
     image: aiImg,
     badge: "AI",
     duration: "6 weeks",
-    lectures: 28,
     students: 980,
     rating: 4.9,
     price: "₹2,499",
@@ -424,53 +168,6 @@ const courseData = {
       "Ethical AI usage",
       "Future of AI in digital marketing"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "AI Fundamentals",
-        lectures: 4,
-        duration: "2 hours",
-        isCompleted: false,
-        lectures: [
-          {
-            id: 1,
-            title: "Introduction to AI in Content Creation",
-            duration: "30 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Understanding AI's role in content creation"
-          },
-          {
-            id: 2,
-            title: "Popular AI Tools Overview",
-            duration: "25 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Exploring top AI content creation tools"
-          },
-          {
-            id: 3,
-            title: "AI Content Generation",
-            duration: "35 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Using AI for text, image, and video creation"
-          },
-          {
-            id: 4,
-            title: "AI Tools Directory",
-            duration: "10 min",
-            type: "download",
-            isPreview: false,
-            isCompleted: false,
-            description: "Comprehensive list of AI tools and resources"
-          }
-        ]
-      }
-    ]
   },
   "youtube-mastery": {
     id: "youtube-mastery",
@@ -480,7 +177,6 @@ const courseData = {
     image: designImg,
     badge: "YouTube",
     duration: "10 weeks",
-    lectures: 42,
     students: 1850,
     rating: 4.8,
     price: "₹2,199",
@@ -500,62 +196,6 @@ const courseData = {
       "YouTube monetization strategies",
       "Analytics and performance tracking"
     ],
-    sections: [
-      {
-        id: 1,
-        title: "YouTube Channel Setup",
-        lectures: 5,
-        duration: "2 hours",
-        isCompleted: false,
-        lectures: [
-          {
-            id: 1,
-            title: "Creating Your YouTube Channel",
-            duration: "20 min",
-            type: "video",
-            isPreview: true,
-            isCompleted: false,
-            description: "Step-by-step channel creation guide"
-          },
-          {
-            id: 2,
-            title: "Channel Branding & Design",
-            duration: "25 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Creating professional channel branding"
-          },
-          {
-            id: 3,
-            title: "Channel Optimization",
-            duration: "30 min",
-            type: "video",
-            isPreview: false,
-            isCompleted: false,
-            description: "Optimizing your channel for maximum visibility"
-          },
-          {
-            id: 4,
-            title: "YouTube Branding Templates",
-            duration: "10 min",
-            type: "download",
-            isPreview: false,
-            isCompleted: false,
-            description: "Download channel branding templates"
-          },
-          {
-            id: 5,
-            title: "Channel Setup Assignment",
-            duration: "45 min",
-            type: "assignment",
-            isPreview: false,
-            isCompleted: false,
-            description: "Set up your YouTube channel"
-          }
-        ]
-      }
-    ]
   }
 };
 
@@ -567,20 +207,98 @@ const CourseDetail = () => {
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userPurchases, setUserPurchases] = useState([]);
-  const [paymentVerifications, setPaymentVerifications] = useState([]);
   const [hasPurchasedPackage, setHasPurchasedPackage] = useState(false);
 
+  // Fetch course metadata and content
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      const courseInfo = courseData[courseId];
-      if (courseInfo) {
-        setCourse(courseInfo);
-        setSelectedLecture(courseInfo.sections[0]?.lectures[0] || null);
+    const fetchCourseData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get course metadata from static data
+        const courseInfo = courseData[courseId];
+        if (!courseInfo) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch course content from API
+        try {
+          const contentResponse = await api.get(
+            API_ENDPOINTS.courseContent.byCourseId.replace(':courseId', courseId)
+          );
+          
+          if (contentResponse.data.success && contentResponse.data.data.length > 0) {
+            // Transform API data into sections/lectures format
+            const lessons = contentResponse.data.data.map((lesson, index) => ({
+              id: lesson._id || index + 1,
+              title: lesson.name,
+              duration: lesson.duration || "N/A",
+              type: "video", // Default type
+              isPreview: lesson.lessonNo === 1, // First lesson is preview
+              isCompleted: false,
+              description: lesson.shortDescription,
+              lessonNo: lesson.lessonNo,
+              link: lesson.link || null,
+            }));
+
+            // Create a single section with all lessons
+            const sections = [{
+              id: 1,
+              title: "Course Lessons",
+              duration: `${lessons.length} ${lessons.length === 1 ? 'lesson' : 'lessons'}`,
+              isCompleted: false,
+              lectures: lessons,
+            }];
+
+            // Update course with dynamic content
+            setCourse({
+              ...courseInfo,
+              sections: sections,
+              lectures: lessons.length, // Update lecture count
+            });
+
+            // Set first lesson as selected
+            if (lessons.length > 0) {
+              setSelectedLecture(lessons[0]);
+            }
+          } else {
+            // No content uploaded yet, use empty sections
+            setCourse({
+              ...courseInfo,
+              sections: [{
+                id: 1,
+                title: "Course Lessons",
+                duration: "0 lessons",
+                isCompleted: false,
+                lectures: [],
+              }],
+              lectures: 0,
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching course content:', error);
+          // If API fails, still show course metadata with empty sections
+          setCourse({
+            ...courseInfo,
+            sections: [{
+              id: 1,
+              title: "Course Lessons",
+              duration: "0 lessons",
+              isCompleted: false,
+              lectures: [],
+            }],
+            lectures: 0,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading course:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 1000);
+    };
+
+    fetchCourseData();
   }, [courseId]);
 
   // Check if user has purchased any package
@@ -588,34 +306,56 @@ const CourseDetail = () => {
     const checkUserPurchases = async () => {
       if (user && token) {
         try {
-          // Fetch user purchases
-          const purchasesResponse = await api.get(`${API_ENDPOINTS.packages.purchases}`);
-          if (purchasesResponse.data.success) {
-            setUserPurchases(purchasesResponse.data.data.purchases);
-          }
+          const [
+            purchasesResponse,
+            verificationsResponse,
+            superPackagesResponse
+          ] = await Promise.all([
+            api.get(`${API_ENDPOINTS.packages.purchases}`),
+            api.get(API_ENDPOINTS.payment.status),
+            api.get(API_ENDPOINTS.superPackages.purchases).catch(() => null)
+          ]);
 
-          // Fetch payment verifications
-          const verificationsResponse = await api.get(API_ENDPOINTS.payment.status);
-          if (verificationsResponse.data.success) {
-            setPaymentVerifications(verificationsResponse.data.data.verifications || []);
-          }
+          const hasVerifiedPurchase = purchasesResponse.data?.success &&
+            purchasesResponse.data.data?.purchases?.some(purchase => purchase.status === 'active');
 
-          // Check if user has any verified purchases
-          const hasVerifiedPurchase = purchasesResponse.data.success &&
-            purchasesResponse.data.data.purchases.some(purchase => purchase.status === 'active');
+          const hasVerifiedPayment = verificationsResponse.data?.success &&
+            verificationsResponse.data.data?.verifications?.some(verification => verification.status === 'verified');
 
-          const hasVerifiedPayment = verificationsResponse.data.success &&
-            verificationsResponse.data.data.verifications.some(verification => verification.status === 'verified');
+          const hasSuperPackagePurchase = superPackagesResponse?.data?.success &&
+            superPackagesResponse.data.data?.purchases?.some(purchase => purchase.status === 'active');
 
-          setHasPurchasedPackage(hasVerifiedPurchase || hasVerifiedPayment);
+          const userStatusActive = user?.status === 'active' || user?.status === 'kyc_verified';
+
+          setHasPurchasedPackage(
+            Boolean(
+              hasVerifiedPurchase ||
+              hasVerifiedPayment ||
+              hasSuperPackagePurchase ||
+              userStatusActive
+            )
+          );
         } catch (error) {
           console.error('Error checking user purchases:', error);
+          // Fall back to user status if available
+          setHasPurchasedPackage(user?.status === 'active' || user?.status === 'kyc_verified');
         }
+      } else {
+        setHasPurchasedPackage(false);
       }
     };
 
     checkUserPurchases();
   }, [user, token]);
+
+  const canAccessLecture = (lecture) => {
+    if (!lecture) return false;
+    if (lecture.isPreview) return true;
+    if (!user) return false;
+    return hasPurchasedPackage;
+  };
+
+  const selectedLectureAccessible = selectedLecture ? canAccessLecture(selectedLecture) : false;
 
   const toggleSection = (sectionId) => {
     const newExpanded = new Set(expandedSections);
@@ -819,76 +559,114 @@ const CourseDetail = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Content</h2>
 
               <div className="space-y-4">
-                {course.sections.map((section) => (
-                  <div key={section.id} className="border border-gray-200 rounded-lg">
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {expandedSections.has(section.id) ? (
-                          <ChevronDown className="w-5 h-5 text-orange-600" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-orange-600" />
-                        )}
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{section.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <span>{section.lectures.length} lectures</span>
-                            <span>•</span>
-                            <span>{section.duration}</span>
+                {course.sections && course.sections.length > 0 ? (
+                  course.sections.map((section) => (
+                    <div key={section.id} className="border border-gray-200 rounded-lg">
+                      <button
+                        onClick={() => toggleSection(section.id)}
+                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          {expandedSections.has(section.id) ? (
+                            <ChevronDown className="w-5 h-5 text-orange-600" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-orange-600" />
+                          )}
+                          <div>
+                            <h3 className="font-semibold text-gray-800">{section.title}</h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>{section.lectures.length} {section.lectures.length === 1 ? 'lesson' : 'lessons'}</span>
+                              <span>•</span>
+                              <span>{section.duration}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {section.isCompleted && (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      )}
-                    </button>
-                    {expandedSections.has(section.id) && (
-                      <div className="border-t border-gray-200">
-                        {section.lectures.map((lecture) => (
-                          <div
-                            key={lecture.id}
-                            className={`flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedLecture?.id === lecture.id ? 'bg-orange-50 border-l-4 border-orange-500' : ''
-                              }`}
-                            onClick={() => setSelectedLecture(lecture)}
-                          >
-                            <div className={`p-2 rounded-full ${getLectureTypeColor(lecture.type)}`}>
-                              {getLectureIcon(lecture.type)}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium text-gray-800">{lecture.title}</h4>
-                                {lecture.isPreview && (
-                                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Preview</span>
-                                )}
-                                {lecture.isCompleted && (
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600">{lecture.description}</p>
-                            </div>
+                        {section.isCompleted && (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        )}
+                      </button>
+                      {expandedSections.has(section.id) && (
+                        <div className="border-t border-gray-200">
+                          {section.lectures.length > 0 ? (
+                            section.lectures.map((lecture) => (
+                              <div
+                                key={lecture.id}
+                            className={`flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors ${
+                              selectedLecture?.id === lecture.id
+                                ? 'bg-orange-50 border-l-4 border-orange-500'
+                                : ''
+                            } ${canAccessLecture(lecture) ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'}`}
+                            onClick={() => {
+                              if (canAccessLecture(lecture)) {
+                                setSelectedLecture(lecture);
+                              }
+                            }}
+                              >
+                                <div className={`p-2 rounded-full ${getLectureTypeColor(lecture.type)}`}>
+                                  {getLectureIcon(lecture.type)}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-gray-800">
+                                      {lecture.lessonNo ? `Lesson ${lecture.lessonNo}: ` : ''}{lecture.title}
+                                    </h4>
+                                    {lecture.isPreview && (
+                                      <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Preview</span>
+                                    )}
+                                    {lecture.isCompleted && (
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600">{lecture.description}</p>
+                                  {lecture.link && canAccessLecture(lecture) && (
+                                    <a
+                                      href={lecture.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 hover:underline mt-1 inline-block"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      View Content →
+                                    </a>
+                                  )}
+                                </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-500">{lecture.duration}</span>
-                              {!user && (
-                                <Lock className="w-4 h-4 text-gray-400" />
+                              {lecture.duration && lecture.duration !== 'N/A' && (
+                                <span className="text-sm text-gray-500">{lecture.duration}</span>
                               )}
-                              {user && !hasPurchasedPackage && !lecture.isPreview && (
-                                <Lock className="w-4 h-4 text-yellow-500" />
-                              )}
+                                  {!user && (
+                                    <Lock className="w-4 h-4 text-gray-400" />
+                                  )}
+                                  {user && !hasPurchasedPackage && !lecture.isPreview && (
+                                    <Lock className="w-4 h-4 text-yellow-500" />
+                                  )}
                               {user && hasPurchasedPackage && !lecture.isCompleted && (
-                                <Play className="w-4 h-4 text-green-500" />
-                              )}
-                              {lecture.isCompleted && (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              )}
+                                    <Play className="w-4 h-4 text-green-500" />
+                                  )}
+                                  {lecture.isCompleted && (
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-8 text-center text-gray-500">
+                              <BookOpen className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                              <p>No lessons uploaded yet</p>
+                              <p className="text-sm text-gray-400">Check back soon for course content</p>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="border border-gray-200 rounded-lg p-8 text-center">
+                    <BookOpen className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                    <p className="text-gray-500">No course content available</p>
+                    <p className="text-sm text-gray-400">Content will be added soon</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -951,9 +729,28 @@ const CourseDetail = () => {
               <div className={`p-2 rounded-full ${getLectureTypeColor(selectedLecture.type)}`}>
                 {getLectureIcon(selectedLecture.type)}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-800">{selectedLecture.title}</h3>
                 <p className="text-gray-600">{selectedLecture.description}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  {selectedLecture.duration && selectedLecture.duration !== "N/A" && (
+                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <Clock className="w-4 h-4" />
+                      <span>{selectedLecture.duration}</span>
+                    </div>
+                  )}
+                  {selectedLecture.link && selectedLectureAccessible && (
+                    <a
+                      href={selectedLecture.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <Video className="w-4 h-4" />
+                      View Content Link
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1011,9 +808,23 @@ const CourseDetail = () => {
                       }
                     </p>
                   </div>
-                  <button className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors">
-                    Start Learning
-                  </button>
+                  {selectedLecture.link && selectedLectureAccessible ? (
+                    <a
+                      href={selectedLecture.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors inline-block"
+                    >
+                      Start Learning
+                    </a>
+                  ) : (
+                    <button
+                      className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60"
+                      disabled={!selectedLectureAccessible}
+                    >
+                      Start Learning
+                    </button>
+                  )}
                 </div>
               )}
             </div>

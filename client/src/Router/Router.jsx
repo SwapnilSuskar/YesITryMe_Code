@@ -57,6 +57,7 @@ import WithdrawalRequests from '../components/Admin/WithdrawalRequests';
 import AiToolManager from '../components/Admin/AiToolManager';
 import SocialEarning from '../components/User/SocialEarning';
 import SocialTasks from '../components/Admin/SocialTasks';
+import CourseContentManager from '../components/Admin/CourseContentManager';
 import PublicTask from '../components/Pages/PublicTask';
 import Nominee from '../components/User/Nominee';
 import Recharge from '../components/User/Recharge';
@@ -206,6 +207,7 @@ const AppRouter = () => {
         <Route path="wallet-manager" element={<WalletManager />} />
         <Route path="recharge-analysis" element={<AdminRechargeAnalysis />} />
         <Route path="wallet-topup-manager" element={<AdminWalletTopUpManager />} />
+        <Route path="course-content" element={<CourseContentManager />} />
       </Route>
 
       {/* Catch-all route for 404 */}

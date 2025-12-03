@@ -238,6 +238,11 @@ export const API_ENDPOINTS = {
     updateLecture: `${API_URL}/api/courses/:courseId/sections/:sectionIndex/lectures/:lectureIndex`,
     deleteLecture: `${API_URL}/api/courses/:courseId/sections/:sectionIndex/lectures/:lectureIndex`,
   },
+  courseContent: {
+    all: `${API_URL}/api/course-content`,
+    byId: `${API_URL}/api/course-content/:id`,
+    byCourseId: `${API_URL}/api/course-content/course/:courseId`,
+  },
   social: {
     youtubeOAuthStart: `${API_URL}/api/social/youtube/oauth/start`,
     youtubeOAuthCallback: `${API_URL}/api/social/youtube/oauth/callback`,

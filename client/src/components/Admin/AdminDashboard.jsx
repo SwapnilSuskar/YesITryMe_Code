@@ -576,6 +576,23 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </Link>
+            <Link
+              to="/admin/course-content"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/course-content"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/course-content" ? "bg-white/20" : "bg-teal-100 group-hover:bg-teal-200"}`}>
+                  <BookOpen className={`w-8 h-8 ${location.pathname === "/admin/course-content" ? "text-white" : "text-teal-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Course Content</h3>
+                  <p className="text-xs opacity-75 mt-1">Manage course lessons</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
 

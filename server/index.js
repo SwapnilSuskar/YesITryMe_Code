@@ -22,6 +22,7 @@ import coinsRoutes from "./routes/coins.js";
 import nomineeRoutes from "./routes/nominee.js";
 import rechargeRoutes from "./routes/recharge.js";
 import walletTopUpRoutes from "./routes/walletTopUp.js";
+import courseContentRoutes from "./routes/courseContent.js";
 
 const app = express();
 
@@ -223,6 +224,7 @@ app.use("/api/coins", coinsRoutes);
 app.use("/api/nominee", nomineeRoutes);
 app.use("/api/recharge", rechargeRoutes);
 app.use("/api/wallet-topup", walletTopUpRoutes);
+app.use("/api/course-content", courseContentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

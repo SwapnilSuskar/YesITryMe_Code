@@ -1359,7 +1359,6 @@ const Dashboard = () => {
                 </div>
                 <h4 className="font-semibold text-lg text-orange-600 tracking-wide">Daily Inspiration</h4>
               </div>
-
               {/* Grid Layout for Multiple Quotes */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {motivationQuotes.map((quote, index) => (

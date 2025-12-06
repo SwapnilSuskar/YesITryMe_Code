@@ -510,8 +510,10 @@ const purchaseSuperPackage = asyncHandler(async (req, res) => {
         // For production (Vercel/serverless), prefer buffer over temp files
         let uploadSource;
         if (file.data) {
-          // Use buffer (works in all environments)
-          uploadSource = file.data;
+          // Convert buffer to data URI for Cloudinary (works in all environments)
+          const mimeType = file.mimetype || 'application/octet-stream';
+          const base64Data = file.data.toString('base64');
+          uploadSource = `data:${mimeType};base64,${base64Data}`;
         } else if (file.tempFilePath && fs.existsSync(file.tempFilePath)) {
           // Use temp file if available (local development)
           uploadSource = file.tempFilePath;

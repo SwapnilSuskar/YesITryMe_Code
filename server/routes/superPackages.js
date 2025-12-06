@@ -11,6 +11,7 @@ import {
   getSuperPackageStats,
   purchaseSuperPackage,
   getUserSuperPackagePurchases,
+  getUserSuperPackagePaymentVerifications,
   getSuperPackageCommissionSummary,
   getSuperPackageCommissionTransactions,
   getAllSuperPackagePaymentVerifications,
@@ -24,12 +25,14 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // File upload middleware
+// Use buffers in production (Vercel/serverless), temp files in development
 router.use(
   fileUpload({
-    useTempFiles: true,
-    tempFileDir: './uploads/temp',
+    useTempFiles: process.env.NODE_ENV !== "production",
+    tempFileDir: "./uploads/temp",
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     abortOnLimit: true,
+    createParentPath: true, // Create parent directories if they don't exist
   })
 );
 
@@ -40,6 +43,7 @@ router.get("/", getActiveSuperPackages);
 router.use(protect);
 router.post("/purchase", purchaseSuperPackage);
 router.get("/purchases", getUserSuperPackagePurchases);
+router.get("/payments/verifications", getUserSuperPackagePaymentVerifications);
 router.get("/commission/summary", getSuperPackageCommissionSummary);
 router.get("/commission/transactions", getSuperPackageCommissionTransactions);
 

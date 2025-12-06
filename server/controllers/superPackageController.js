@@ -436,140 +436,175 @@ const getSuperPackageStats = asyncHandler(async (req, res) => {
 
 // Purchase super package (payment verification submission)
 const purchaseSuperPackage = asyncHandler(async (req, res) => {
-  const {
-    superPackageId,
-    paymentAmount,
-    paymentMethod,
-    transactionId,
-    payerName,
-    payerMobile,
-    payerEmail,
-    additionalNotes,
-  } = req.body;
+  try {
+    const {
+      superPackageId,
+      paymentAmount,
+      paymentMethod,
+      transactionId,
+      payerName,
+      payerMobile,
+      payerEmail,
+      additionalNotes,
+    } = req.body;
 
-  const userId = req.user.userId;
-
-  // Validate required fields
-  if (
-    !superPackageId ||
-    !paymentAmount ||
-    !paymentMethod ||
-    !transactionId ||
-    !payerName ||
-    !payerMobile ||
-    !payerEmail
-  ) {
-    throw new ApiError(400, "All required fields must be provided");
-  }
-
-  // Check if super package exists
-  const superPackage = await SuperPackage.findById(superPackageId);
-  if (!superPackage) {
-    throw new ApiError(404, "Super Package not found");
-  }
-
-  // Check if super package is active
-  if (!superPackage.isActive) {
-    throw new ApiError(400, "This super package is not available for purchase");
-  }
-
-  // Validate payment amount
-  if (parseFloat(paymentAmount) !== superPackage.price) {
-    throw new ApiError(
-      400,
-      "Payment amount must match the super package price"
-    );
-  }
-
-  // Check if transaction ID already exists
-  const existingVerification = await SuperPackagePaymentVerification.findOne({
-    transactionId,
-  });
-  if (existingVerification) {
-    throw new ApiError(400, "Transaction ID already exists");
-  }
-
-  // Handle payment proof upload
-  let paymentProofUrl = "";
-  if (req.files && req.files.paymentProof) {
-    try {
-      // Ensure temp directory exists
-      const tempDir = './uploads/temp';
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      // Check if tempFilePath exists, otherwise use buffer
-      let uploadSource;
-      if (req.files.paymentProof.tempFilePath && fs.existsSync(req.files.paymentProof.tempFilePath)) {
-        uploadSource = req.files.paymentProof.tempFilePath;
-      } else if (req.files.paymentProof.data) {
-        // Use buffer if temp file doesn't exist
-        uploadSource = req.files.paymentProof.data;
-      } else {
-        throw new Error("No valid file source found");
-      }
-
-      const result = await cloudinary.uploader.upload(
-        uploadSource,
-        {
-          folder: "super-package-payments",
-          use_filename: true,
-          unique_filename: true,
-          overwrite: true,
-          resource_type: "auto",
-        }
-      );
-      paymentProofUrl = result.secure_url;
-
-      // Clean up temporary file if it exists
-      if (
-        req.files.paymentProof.tempFilePath &&
-        fs.existsSync(req.files.paymentProof.tempFilePath)
-      ) {
-        fs.unlinkSync(req.files.paymentProof.tempFilePath);
-      }
-    } catch (error) {
-      console.error("Payment proof upload error:", error);
-      
-      // Clean up temporary file if it exists
-      if (
-        req.files.paymentProof.tempFilePath &&
-        fs.existsSync(req.files.paymentProof.tempFilePath)
-      ) {
-        fs.unlinkSync(req.files.paymentProof.tempFilePath);
-      }
-      throw new ApiError(500, `Failed to upload payment proof: ${error.message}`);
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      throw new ApiError(401, "User authentication required");
     }
-  } else {
-    throw new ApiError(400, "Payment proof is required");
-  }
 
-  // Create payment verification record
-  const paymentVerification = await SuperPackagePaymentVerification.create({
-    userId,
-    superPackageId,
-    superPackageName: superPackage.name,
-    superPackagePrice: superPackage.price,
-    paymentAmount: parseFloat(paymentAmount),
-    paymentMethod,
-    transactionId,
-    paymentProofUrl,
-    payerName,
-    payerMobile,
-    payerEmail,
-    additionalNotes: additionalNotes || "",
-  });
+    // Validate required fields
+    if (
+      !superPackageId ||
+      !paymentAmount ||
+      !paymentMethod ||
+      !transactionId ||
+      !payerName ||
+      !payerMobile ||
+      !payerEmail
+    ) {
+      throw new ApiError(400, "All required fields must be provided");
+    }
 
-  return res
-    .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        paymentVerification,
-        "Payment verification submitted successfully"
-      )
+    // Check if super package exists
+    const superPackage = await SuperPackage.findById(superPackageId);
+    if (!superPackage) {
+      throw new ApiError(404, "Super Package not found");
+    }
+
+    // Check if super package is active
+    if (!superPackage.isActive) {
+      throw new ApiError(400, "This super package is not available for purchase");
+    }
+
+    // Validate payment amount (allow small floating point differences)
+    const packagePrice = parseFloat(superPackage.price);
+    const providedAmount = parseFloat(paymentAmount);
+    if (Math.abs(packagePrice - providedAmount) > 0.01) {
+      throw new ApiError(
+        400,
+        `Payment amount (${providedAmount}) must match the super package price (${packagePrice})`
+      );
+    }
+
+    // Check if transaction ID already exists
+    const existingVerification = await SuperPackagePaymentVerification.findOne({
+      transactionId,
+    });
+    if (existingVerification) {
+      throw new ApiError(400, "Transaction ID already exists");
+    }
+
+    // Handle payment proof upload
+    let paymentProofUrl = "";
+    if (req.files && req.files.paymentProof) {
+      try {
+        const file = req.files.paymentProof;
+        
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new ApiError(400, "File size must be less than 10MB");
+        }
+
+        // For production (Vercel/serverless), prefer buffer over temp files
+        let uploadSource;
+        if (file.data) {
+          // Use buffer (works in all environments)
+          uploadSource = file.data;
+        } else if (file.tempFilePath && fs.existsSync(file.tempFilePath)) {
+          // Use temp file if available (local development)
+          uploadSource = file.tempFilePath;
+        } else {
+          throw new ApiError(400, "Invalid file upload. Please try again.");
+        }
+
+        const result = await cloudinary.uploader.upload(
+          uploadSource,
+          {
+            folder: "super-package-payments",
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
+            resource_type: "auto",
+          }
+        );
+        paymentProofUrl = result.secure_url;
+
+        // Clean up temporary file if it exists (only in local dev)
+        if (
+          file.tempFilePath &&
+          fs.existsSync(file.tempFilePath)
+        ) {
+          try {
+            fs.unlinkSync(file.tempFilePath);
+          } catch (cleanupError) {
+            console.warn("Failed to cleanup temp file:", cleanupError);
+          }
+        }
+      } catch (error) {
+        console.error("Payment proof upload error:", error);
+        
+        // Clean up temporary file if it exists
+        if (
+          req.files.paymentProof.tempFilePath &&
+          fs.existsSync(req.files.paymentProof.tempFilePath)
+        ) {
+          try {
+            fs.unlinkSync(req.files.paymentProof.tempFilePath);
+          } catch (cleanupError) {
+            console.warn("Failed to cleanup temp file:", cleanupError);
+          }
+        }
+        
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw new ApiError(500, `Failed to upload payment proof: ${error.message || "Unknown error"}`);
+      }
+    } else {
+      throw new ApiError(400, "Payment proof is required");
+    }
+
+    // Create payment verification record
+    const paymentVerification = await SuperPackagePaymentVerification.create({
+      userId,
+      superPackageId,
+      superPackageName: superPackage.name,
+      superPackagePrice: superPackage.price,
+      paymentAmount: providedAmount,
+      paymentMethod,
+      transactionId,
+      paymentProofUrl,
+      payerName,
+      payerMobile,
+      payerEmail,
+      additionalNotes: additionalNotes || "",
+    });
+
+    return res
+      .status(201)
+      .json(
+        new ApiResponse(
+          201,
+          paymentVerification,
+          "Payment verification submitted successfully"
+        )
+      );
+  } catch (error) {
+    console.error("Purchase super package error:", error);
+    
+    // If it's already an ApiError, re-throw it
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    
+    // Otherwise, wrap it in an ApiError
+    throw new ApiError(
+      error.statusCode || 500,
+      error.message || "Failed to submit payment verification"
     );
+  }
 });
 
 // Get user's super package purchases
@@ -587,6 +622,27 @@ const getUserSuperPackagePurchases = asyncHandler(async (req, res) => {
         200,
         { purchases },
         "Super package purchases fetched successfully"
+      )
+    );
+});
+
+// Get user's own payment verifications
+const getUserSuperPackagePaymentVerifications = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+
+  const verifications = await SuperPackagePaymentVerification.find({
+    userId: userId,
+  })
+    .populate("superPackageId", "name price")
+    .sort({ submittedAt: -1 });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { verifications },
+        "Payment verifications fetched successfully"
       )
     );
 });
@@ -1066,6 +1122,7 @@ export {
   getSuperPackageStats,
   purchaseSuperPackage,
   getUserSuperPackagePurchases,
+  getUserSuperPackagePaymentVerifications,
   getSuperPackageCommissionSummary,
   getSuperPackageCommissionTransactions,
   getAllSuperPackagePaymentVerifications,

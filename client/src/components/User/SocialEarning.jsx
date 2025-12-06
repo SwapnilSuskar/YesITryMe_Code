@@ -743,7 +743,7 @@ const SocialEarning = () => {
               <div className="sm:flex-shrink-0">
                 {!youtubeConnected ? (
                   <button
-                    onClick={connectYouTube}
+                    // onClick={connectYouTube}
                     className="text-white px-6 py-2 rounded-xl font-semibold transition-all bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 shadow-md hover:shadow-lg active:scale-[0.98] w-full sm:w-auto"
                   >
                     Connect YouTube
@@ -836,7 +836,7 @@ const SocialEarning = () => {
                 <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Connect your YouTube account to start earning coins</p>
                 <button
-                  onClick={connectYouTube}
+                  // onClick={connectYouTube}
                   className="text-white px-6 py-2 rounded-xl font-semibold transition-all bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 shadow-md hover:shadow-lg active:scale-[0.98]"
                 >
                   Connect YouTube

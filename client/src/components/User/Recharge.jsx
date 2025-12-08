@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowRight, X, Headphones, Wallet, Plus, Send, Eye, RefreshCw, Loader2, Shield } from 'lucide-react';
+import { ArrowRight, X, Headphones, Wallet, Plus, Send, Eye, RefreshCw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WalletTopUpVerificationForm from './WalletTopUpVerificationForm';
 import api, { API_ENDPOINTS } from '../../config/api';
@@ -45,9 +45,6 @@ const Recharge = () => {
     const [showAddMoneyForm, setShowAddMoneyForm] = useState(false);
     const [smartWalletBalance, setSmartWalletBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(false);
-    const [kycStatus, setKycStatus] = useState(null);
-    const [checkingKyc, setCheckingKyc] = useState(true);
-
     const rechargeServices = [
         { key: 'mobile', label: 'Mobile', icon: MobileRecharge, color: 'text-blue-600', border: 'border-blue-200', bg: 'bg-blue-50 hover:bg-blue-100' },
         { key: 'dth', label: 'DTH', icon: DTHRecharge, color: 'text-purple-600', border: 'border-purple-200', bg: 'bg-purple-50 hover:bg-purple-100' },
@@ -101,39 +98,6 @@ const Recharge = () => {
         }
     }, [userId]);
 
-    // Check KYC status
-    const checkKycStatus = useCallback(async () => {
-        if (!userId) {
-            setCheckingKyc(false);
-            return;
-        }
-
-        try {
-            const response = await api.get(API_ENDPOINTS.kyc.status);
-            if (response.data.success && response.data.data) {
-                setKycStatus(response.data.data);
-            } else {
-                if (user?.kycApprovedDate) {
-                    setKycStatus({ status: 'approved' });
-                } else {
-                    setKycStatus(null);
-                }
-            }
-        } catch (error) {
-            if (user?.kycApprovedDate) {
-                setKycStatus({ status: 'approved' });
-            } else {
-                setKycStatus(null);
-            }
-        } finally {
-            setCheckingKyc(false);
-        }
-    }, [userId, user]);
-
-    useEffect(() => {
-        checkKycStatus();
-    }, [checkKycStatus]);
-
     useEffect(() => {
         fetchWalletBalance();
 
@@ -148,25 +112,6 @@ const Recharge = () => {
         };
     }, [fetchWalletBalance]);
 
-    const ensureKycVerified = useCallback(() => {
-        if (checkingKyc) {
-            showError('Please wait while we verify your KYC status...');
-            return false;
-        }
-
-        const isKycVerified = kycStatus?.status === 'approved' || user?.kycApprovedDate;
-
-        if (!isKycVerified) {
-            showError('KYC verification required! Please complete your KYC to use this feature.');
-            setTimeout(() => {
-                navigate('/kyc');
-            }, 1500);
-            return false;
-        }
-
-        return true;
-    }, [checkingKyc, kycStatus, user, showError, navigate]);
-
     const handleAddMoneySuccess = () => {
         setShowAddMoneyForm(false);
         showSuccess('Wallet top-up request submitted successfully! Admin will review and approve your request.');
@@ -177,12 +122,10 @@ const Recharge = () => {
     };
 
     const handleAddMoneyClick = () => {
-        if (!ensureKycVerified()) return;
         setShowAddMoneyForm(true);
     };
 
     const handleSendMoney = () => {
-        if (!ensureKycVerified()) return;
         showError('Send Money feature coming soon!');
     };
 
@@ -192,8 +135,6 @@ const Recharge = () => {
     };
 
     const onSelectService = (section, service) => {
-        if (!ensureKycVerified()) return;
-
         if (service.key === 'mobile') {
             navigate('/recharge/mobile');
             return;
@@ -211,34 +152,6 @@ const Recharge = () => {
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Recharge & Bill Payments</h1>
                 <p className="text-gray-600 mb-6">Select a service to get started.</p>
-
-                {/* KYC Verification Banner */}
-                {checkingKyc ? (
-                    <div className="mb-6 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                        <div className="flex items-center justify-center gap-2">
-                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                            <span className="text-sm text-blue-700">Verifying KYC status...</span>
-                        </div>
-                    </div>
-                ) : (!kycStatus || kycStatus.status !== 'approved') && !user?.kycApprovedDate ? (
-                    <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Shield className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-800">KYC Verification Required</p>
-                                <p className="text-xs text-gray-600 mt-0.5">Complete KYC to access all services</p>
-                            </div>
-                            <button
-                                onClick={() => navigate('/kyc')}
-                                className="flex-shrink-0 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            >
-                                Verify Now
-                            </button>
-                        </div>
-                    </div>
-                ) : null}
 
                 <div className="overflow-hidden bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-orange-100">
                     {/* Gradient header */}

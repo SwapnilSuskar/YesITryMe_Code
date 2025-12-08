@@ -27,6 +27,7 @@ const WalletTransactions = () => {
     const [rechargeWalletTransactions, setRechargeWalletTransactions] = useState([]);
     const [rechargePage, setRechargePage] = useState(1);
     const [rechargeTotalPages, setRechargeTotalPages] = useState(1);
+    const [allCreditedTransactions, setAllCreditedTransactions] = useState([]);
 
     useEffect(() => {
         if (user) {
@@ -69,6 +70,8 @@ const WalletTransactions = () => {
                 const creditedTransactions = allTransactions.filter(t =>
                     t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal'
                 );
+
+                setAllCreditedTransactions(creditedTransactions);
 
                 // Client-side pagination
                 const itemsPerPage = 10;
@@ -776,8 +779,8 @@ const WalletTransactions = () => {
     }
 
     // Calculate total earned from commission transactions (this should NOT be affected by withdrawals)
-    const totalEarned = creditedTransactions
-        .filter(t => t.status === 'completed')
+    const totalEarned = (allCreditedTransactions.length ? allCreditedTransactions : creditedTransactions)
+        .filter(t => (t.status || '').toLowerCase() === 'completed')
         .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
 
     // Calculate total withdrawn from payout history (only approved and completed payouts)

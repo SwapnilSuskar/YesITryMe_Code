@@ -40,6 +40,7 @@ import Courses from '../components/Pages/Course';
 import KycDetailForm from '../components/User/KycDetailForm';
 import Payout from '../components/User/Payout';
 import WalletTransactions from '../components/User/WalletTransactions';
+import Earnings from '../components/User/Earnings';
 import MyTeam from '../components/User/MyTeam';
 import DirectReferrals from '../components/User/DirectReferrals';
 import Gallery from '../components/Pages/Gallery';
@@ -163,6 +164,7 @@ const AppRouter = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/direct-referrals" element={<DirectReferrals />} />
         <Route path="/socialearning" element={<SocialEarning />} />
+        <Route path="/earnings" element={<Earnings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-team" element={<MyTeam />} />
         <Route path="/kyc" element={<KycDetailForm />} />

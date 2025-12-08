@@ -2,6 +2,7 @@ import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import RechargeWallet from "../models/RechargeWallet.js";
+import mongoose from "mongoose";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { checkActiveMemberStatus } from "../services/mlmService.js";
@@ -2391,6 +2392,174 @@ export const getRechargeWalletTransactions = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch recharge wallet transactions",
+      error: error.message,
+    });
+  }
+};
+
+export const transferRechargeBalance = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const senderId = req.user.userId;
+    const {
+      recipientMobile = "",
+      recipientUserId = "",
+      amount,
+      note = "",
+    } = req.body;
+
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "Invalid amount.",
+      });
+    }
+
+    const normalizedAmount = Math.round(parsedAmount * 100) / 100;
+    if (normalizedAmount <= 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be greater than zero.",
+      });
+    }
+
+    const sender = await User.findOne({ userId: senderId });
+    if (!sender) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: "Sender not found.",
+      });
+    }
+
+    const sanitizedMobile = (recipientMobile || "").replace(/\D/g, "");
+    const recipientQuery = recipientUserId
+      ? { userId: recipientUserId }
+      : sanitizedMobile
+      ? { mobile: sanitizedMobile }
+      : null;
+
+    if (!recipientQuery) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "Recipient mobile or userId is required.",
+      });
+    }
+
+    const recipient = await User.findOne(recipientQuery);
+    if (!recipient) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: "Recipient not found.",
+      });
+    }
+
+    if (recipient.userId === senderId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "You cannot transfer to yourself.",
+      });
+    }
+
+    const senderWallet = await RechargeWallet.getOrCreateWallet(senderId);
+    const recipientWallet = await RechargeWallet.getOrCreateWallet(recipient.userId);
+
+    if ((senderWallet.balance || 0) < normalizedAmount) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient Super Wallet balance.",
+      });
+    }
+
+    const reference = `SWTRF-${Date.now()}`;
+    const safeNote = (note || "").toString().trim();
+    const senderName =
+      [sender.firstName, sender.lastName].filter(Boolean).join(" ").trim() ||
+      sender.mobile ||
+      sender.userId;
+    const recipientName =
+      [recipient.firstName, recipient.lastName].filter(Boolean).join(" ").trim() ||
+      recipient.mobile ||
+      recipient.userId;
+
+    senderWallet.balance = Math.max(
+      0,
+      Number(senderWallet.balance || 0) - normalizedAmount
+    );
+    senderWallet.totalTransferredOut =
+      Number(senderWallet.totalTransferredOut || 0) + normalizedAmount;
+    senderWallet.transactions.push({
+      type: "transfer_out",
+      amount: normalizedAmount,
+      description: `Transfer to ${recipientName}`,
+      status: "completed",
+      reference,
+      counterpartyUserId: recipient.userId,
+      counterpartyMobile: recipient.mobile,
+      counterpartyName: recipientName,
+      note: safeNote,
+    });
+
+    recipientWallet.balance =
+      Number(recipientWallet.balance || 0) + normalizedAmount;
+    recipientWallet.totalTransferredIn =
+      Number(recipientWallet.totalTransferredIn || 0) + normalizedAmount;
+    recipientWallet.totalAdded =
+      Number(recipientWallet.totalAdded || 0) + normalizedAmount;
+    recipientWallet.transactions.push({
+      type: "transfer_in",
+      amount: normalizedAmount,
+      description: `Transfer from ${senderName}`,
+      status: "completed",
+      reference,
+      counterpartyUserId: senderId,
+      counterpartyMobile: sender.mobile,
+      counterpartyName: senderName,
+      note: safeNote,
+    });
+
+    await senderWallet.save({ session });
+    await recipientWallet.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: `Transferred ₹${normalizedAmount.toFixed(
+        2
+      )} to ${recipientName}`,
+      balance: senderWallet.balance,
+      reference,
+      recipient: {
+        userId: recipient.userId,
+        mobile: recipient.mobile,
+        name: recipientName,
+      },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error transferring recharge balance:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to transfer balance. Please try again.",
       error: error.message,
     });
   }

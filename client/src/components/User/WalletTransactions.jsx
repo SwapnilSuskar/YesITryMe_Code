@@ -313,6 +313,31 @@ const WalletTransactions = () => {
         const walletTxns = rechargeWalletTransactions
             .filter(txn => txn.type !== 'recharge_refund' && txn.type !== 'topup') // Exclude topup transactions from recharge display
             .map(txn => {
+                // Transfers are handled separately
+                if (txn.type === 'transfer_in' || txn.type === 'transfer_out') {
+                    const amount = Math.abs(Number(txn.amount) || 0);
+                    return {
+                        _id: txn._id || `wallet_${txn.createdAt}`,
+                        source: 'wallet',
+                        transactionType: txn.type,
+                        amount,
+                        rawAmount: txn.type === 'transfer_out' ? -amount : amount,
+                        netAmount: amount,
+                        status: txn.status || 'completed',
+                        createdAt: txn.createdAt,
+                        date: txn.createdAt,
+                        description: txn.description || '',
+                        walletTransaction: true,
+                        isTransfer: true,
+                        transferDirection: txn.type === 'transfer_out' ? 'out' : 'in',
+                        counterpartyName: txn.counterpartyName || '',
+                        counterpartyMobile: txn.counterpartyMobile || '',
+                        counterpartyUserId: txn.counterpartyUserId || '',
+                        note: txn.note,
+                        reference: txn.reference,
+                    };
+                }
+
                 // Try to extract recharge details from description
                 const description = txn.description || '';
                 const mobileMatch = description.match(/\+91\s*(\d{10})|(\d{10})/);
@@ -394,6 +419,15 @@ const WalletTransactions = () => {
 
         // Then add wallet transactions that don't have matches in history
         walletTxns.forEach(txn => {
+            if (txn.isTransfer || txn.transactionType === 'transfer_in' || txn.transactionType === 'transfer_out') {
+                const key = txn._id || `${txn.transactionType}_${txn.date}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueTransactions.push(txn);
+                }
+                return;
+            }
+
             // Skip transactions with invalid mobile numbers (like "N/A") - these are likely topups or other non-recharge transactions
             if (!txn.mobileNumber || txn.mobileNumber === 'N/A' || !/^\d{10}$/.test(txn.mobileNumber.replace(/\D/g, ''))) {
                 return; // Skip this transaction
@@ -579,6 +613,8 @@ const WalletTransactions = () => {
             case 'admin_adjust': return <Wallet className="text-green-600" size={16} />;
             case 'recharge_payment': return <ArrowDownCircle className="text-orange-600" size={16} />;
             case 'recharge_refund': return <ArrowUpCircle className="text-orange-600" size={16} />;
+            case 'transfer_in': return <ArrowUpCircle className="text-emerald-600" size={16} />;
+            case 'transfer_out': return <ArrowDownCircle className="text-rose-600" size={16} />;
             // Coin transaction types
             case 'view': return <ArrowUpCircle className="text-blue-600" size={16} />;
             case 'like': return <ArrowUpCircle className="text-pink-600" size={16} />;
@@ -602,6 +638,8 @@ const WalletTransactions = () => {
             case 'admin_adjust': return 'text-green-700';
             case 'recharge_payment': return 'text-orange-700';
             case 'recharge_refund': return 'text-orange-700';
+            case 'transfer_in': return 'text-emerald-700';
+            case 'transfer_out': return 'text-rose-700';
             // Coin transaction types
             case 'view': return 'text-blue-700';
             case 'like': return 'text-pink-700';
@@ -625,6 +663,8 @@ const WalletTransactions = () => {
             case 'fund_credit': return 'bg-blue-50 border-blue-200';
             case 'special_income_credit': return 'bg-purple-50 border-purple-200';
             case 'admin_adjust': return 'bg-green-50 border-green-200';
+            case 'transfer_in': return 'bg-emerald-50 border-emerald-200';
+            case 'transfer_out': return 'bg-rose-50 border-rose-200';
             // Coin transaction types
             case 'view': return 'bg-blue-50 border-blue-200';
             case 'like': return 'bg-pink-50 border-pink-200';
@@ -1421,15 +1461,27 @@ const WalletTransactions = () => {
                                                             : parseFloat(transaction.netAmount || transaction.amount || 0);
                                                         const amount = Math.abs(rawAmount).toFixed(2);
                                                         const cashback = transaction.discountAmount > 0 ? `₹${transaction.discountAmount.toFixed(2)}` : null;
+                                                        const isTransfer = transaction.transactionType === 'transfer_in' || transaction.transactionType === 'transfer_out';
+                                                        const isTransferOut = transaction.transactionType === 'transfer_out';
                                                         const isSmartWalletEvent = transaction.isTopUp
                                                             || transaction.transactionType === 'topup'
-                                                            || transaction.transactionType === 'admin_adjustment';
+                                                            || transaction.transactionType === 'admin_adjustment'
+                                                            || isTransfer
+                                                            || transaction.isTransfer;
                                                         const isAdminAdjustment = transaction.transactionType === 'admin_adjustment';
                                                         return (
                                                             <tr key={transaction._id} className="hover:bg-gray-50 transition-colors">
                                                                 <td className="px-4 py-4 align-top">
-                                                                    <div className={`font-semibold text-base ${isAdminAdjustment ? (rawAmount >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-900'}`}>
-                                                                        {isAdminAdjustment ? `${rawAmount >= 0 ? '+' : '-'}₹${amount}` : `₹${amount}`}
+                                                                    <div className={`font-semibold text-base ${isAdminAdjustment
+                                                                        ? (rawAmount >= 0 ? 'text-green-600' : 'text-red-600')
+                                                                        : isTransfer
+                                                                            ? (isTransferOut ? 'text-rose-600' : 'text-emerald-600')
+                                                                            : 'text-gray-900'}`}>
+                                                                        {isAdminAdjustment
+                                                                            ? `${rawAmount >= 0 ? '+' : '-'}₹${amount}`
+                                                                            : isTransfer
+                                                                                ? `${isTransferOut ? '-' : '+'}₹${amount}`
+                                                                                : `₹${amount}`}
                                                                     </div>
                                                                     {!isSmartWalletEvent && (
                                                                         <p className="text-xs text-gray-500 mt-0.5 capitalize">{transaction.rechargeType || 'prepaid'}</p>
@@ -1446,6 +1498,26 @@ const WalletTransactions = () => {
                                                                                 <p className="text-xs text-gray-500 mt-0.5">
                                                                                     {transaction.description}
                                                                                 </p>
+                                                                            </>
+                                                                        ) : isTransfer ? (
+                                                                            <>
+                                                                                <p className="font-medium text-gray-900 flex items-center gap-2">
+                                                                                    <Wallet className={isTransferOut ? 'text-rose-600' : 'text-emerald-600'} size={16} />
+                                                                                    {isTransferOut ? 'Transfer to' : 'Transfer from'} {transaction.counterpartyMobile || transaction.counterpartyUserId || 'User'}
+                                                                                </p>
+                                                                                <p className="text-xs text-blue-600 mt-0.5 font-medium">
+                                                                                    💸 Super Wallet Transfer
+                                                                                </p>
+                                                                                {transaction.note && (
+                                                                                    <p className="text-[11px] text-gray-500 mt-1 truncate max-w-[220px]" title={transaction.note}>
+                                                                                        Note: {transaction.note}
+                                                                                    </p>
+                                                                                )}
+                                                                                {transaction.reference && (
+                                                                                    <p className="text-[10px] text-gray-400 font-mono mt-1 truncate max-w-[220px]" title={transaction.reference}>
+                                                                                        Ref: {transaction.reference}
+                                                                                    </p>
+                                                                                )}
                                                                             </>
                                                                         ) : (
                                                                             <>

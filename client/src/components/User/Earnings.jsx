@@ -87,7 +87,7 @@ const Earnings = () => {
 
     return (
         <div className="max-w-4xl mx-auto mt-20 mb-12 px-4">
-            <div className="bg-gradient-to-br from-orange-50 via-white to-amber-50 border border-orange-100 shadow-xl rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-orange-200 via-white to-orange-200 border border-orange-200 shadow-xl rounded-3xl p-6 sm:p-8 relative overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-white/50 via-transparent to-orange-100/60 blur-3xl" />
 
                 <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">

@@ -6,6 +6,7 @@ import {
   checkRechargeStatus,
   getRechargeHistory,
   getRechargeWalletTransactions,
+  transferRechargeBalance,
   getAllRecharges,
   getRechargeStats,
   updateRecharge,
@@ -23,6 +24,7 @@ router.post("/initiate", protect, initiateRecharge);
 router.get("/status/:rechargeId", protect, checkRechargeStatus);
 router.get("/history", protect, getRechargeHistory);
 router.get("/wallet/transactions", protect, getRechargeWalletTransactions);
+router.post("/wallet/transfer", protect, transferRechargeBalance);
 
 // Admin routes
 router.get("/admin/all", protect, admin, getAllRecharges);

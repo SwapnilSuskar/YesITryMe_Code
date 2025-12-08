@@ -137,3 +137,18 @@ export const getRechargeHistory = async (page = 1, limit = 10, status = 'all') =
   }
 };
 
+export const transferSuperWallet = async ({ recipientMobile, recipientUserId, amount, note }) => {
+  try {
+    const payload = {
+      recipientMobile,
+      recipientUserId,
+      amount,
+      note,
+    };
+    const response = await api.post(API_ENDPOINTS.recharge.walletTransfer, payload);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to transfer balance' };
+  }
+};
+

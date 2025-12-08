@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowRight, X, Headphones, Wallet, Plus, Send, Eye, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowRight, X, Headphones, Wallet, Plus, Send, Eye, RefreshCw, Loader2, AlertCircle, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WalletTopUpVerificationForm from './WalletTopUpVerificationForm';
 import api, { API_ENDPOINTS } from '../../config/api';
 import useToast from '../../hooks/useToast';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
+import { transferSuperWallet } from '../../services/rechargeService';
 
 // Recharge Imports
 import MobileRecharge from '../../assets/RechargeAndBillPayment/MobileRecharge.png';
@@ -45,6 +46,10 @@ const Recharge = () => {
     const [showAddMoneyForm, setShowAddMoneyForm] = useState(false);
     const [smartWalletBalance, setSmartWalletBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(false);
+    const [sendMoneyModal, setSendMoneyModal] = useState({ open: false, mobile: '', amount: '', note: '' });
+    const [sendingMoney, setSendingMoney] = useState(false);
+    const [sendMoneyError, setSendMoneyError] = useState('');
+    const [sendMoneySuccess, setSendMoneySuccess] = useState('');
     const rechargeServices = [
         { key: 'mobile', label: 'Mobile', icon: MobileRecharge, color: 'text-blue-600', border: 'border-blue-200', bg: 'bg-blue-50 hover:bg-blue-100' },
         { key: 'dth', label: 'DTH', icon: DTHRecharge, color: 'text-purple-600', border: 'border-purple-200', bg: 'bg-purple-50 hover:bg-purple-100' },
@@ -125,8 +130,58 @@ const Recharge = () => {
         setShowAddMoneyForm(true);
     };
 
-    const handleSendMoney = () => {
-        showError('Send Money feature coming soon!');
+    const handleOpenSendMoney = () => {
+        setSendMoneyError('');
+        setSendMoneySuccess('');
+        setSendMoneyModal({ open: true, mobile: '', amount: '', note: '' });
+    };
+
+    const handleSendMoney = async () => {
+        if (sendingMoney) return;
+
+        const trimmedMobile = sendMoneyModal.mobile.replace(/\D/g, '');
+        const amountValue = Number(sendMoneyModal.amount);
+        const note = (sendMoneyModal.note || '').trim();
+
+        if (!trimmedMobile || trimmedMobile.length !== 10) {
+            setSendMoneyError('Enter a valid 10-digit mobile number for the recipient.');
+            return;
+        }
+
+        if (!Number.isFinite(amountValue) || amountValue <= 0) {
+            setSendMoneyError('Enter a valid transfer amount greater than ₹0.');
+            return;
+        }
+
+        if (amountValue > smartWalletBalance) {
+            setSendMoneyError('Insufficient Super Wallet balance for this transfer.');
+            return;
+        }
+
+        setSendingMoney(true);
+        setSendMoneyError('');
+        setSendMoneySuccess('');
+        try {
+            const response = await transferSuperWallet({
+                recipientMobile: trimmedMobile,
+                amount: amountValue,
+                note,
+            });
+
+            if (response?.success) {
+                setSendMoneySuccess(response.message || 'Transfer successful.');
+                setSmartWalletBalance(response.balance ?? smartWalletBalance - amountValue);
+                fetchWalletBalance();
+                setTimeout(() => {
+                    setSendMoneyModal({ open: false, mobile: '', amount: '', note: '' });
+                    setSendMoneySuccess('');
+                }, 900);
+            }
+        } catch (error) {
+            setSendMoneyError(error?.message || 'Failed to transfer. Please try again.');
+        } finally {
+            setSendingMoney(false);
+        }
     };
 
     const handleViewBalance = () => {
@@ -148,11 +203,10 @@ const Recharge = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-24 pb-12">
+        <div className="min-h-screen bg-gradient-to-br from-white via-orange-50 to-orange-100 pt-24 pb-12">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Recharge & Bill Payments</h1>
                 <p className="text-gray-600 mb-6">Select a service to get started.</p>
-
                 <div className="overflow-hidden bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-orange-100">
                     {/* Gradient header */}
                     <div className="bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 p-5 sm:p-6">
@@ -201,7 +255,7 @@ const Recharge = () => {
                                 <span>Add Money</span>
                             </button>
                             <button
-                                onClick={handleSendMoney}
+                                onClick={handleOpenSendMoney}
                                 className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
                             >
                                 <Send className="w-5 h-5" />
@@ -366,6 +420,97 @@ const Recharge = () => {
                     onClose={() => setShowAddMoneyForm(false)}
                     onSuccess={handleAddMoneySuccess}
                 />
+            )}
+
+            {/* Send Money Modal */}
+            {sendMoneyModal.open && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-blue-100">
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h3 className="text-lg font-bold text-gray-800">Send Money (Super Wallet)</h3>
+                            <button
+                                onClick={() => {
+                                    setSendMoneyModal({ open: false, mobile: '', amount: '', note: '' });
+                                    setSendMoneyError('');
+                                    setSendMoneySuccess('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm text-blue-800">
+                                Available Super Wallet: <span className="font-bold">₹{smartWalletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Recipient Mobile (10 digits)</label>
+                                <input
+                                    type="tel"
+                                    value={sendMoneyModal.mobile}
+                                    onChange={(e) => setSendMoneyModal({ ...sendMoneyModal, mobile: e.target.value })}
+                                    placeholder="Enter recipient mobile number"
+                                    className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Amount (₹)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="0.01"
+                                    value={sendMoneyModal.amount}
+                                    onChange={(e) => setSendMoneyModal({ ...sendMoneyModal, amount: e.target.value })}
+                                    placeholder="Enter amount"
+                                    className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Note (optional)</label>
+                                <textarea
+                                    value={sendMoneyModal.note}
+                                    onChange={(e) => setSendMoneyModal({ ...sendMoneyModal, note: e.target.value })}
+                                    placeholder="Add a note for the recipient"
+                                    className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    rows={2}
+                                />
+                            </div>
+                            {sendMoneyError && (
+                                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
+                                    <AlertCircle className="w-4 h-4 mt-0.5" />
+                                    <span>{sendMoneyError}</span>
+                                </div>
+                            )}
+                            {sendMoneySuccess && (
+                                <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg p-3 flex items-start gap-2">
+                                    <Check className="w-4 h-4 mt-0.5" />
+                                    <span>{sendMoneySuccess}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => {
+                                        setSendMoneyModal({ open: false, mobile: '', amount: '', note: '' });
+                                        setSendMoneyError('');
+                                        setSendMoneySuccess('');
+                                    }}
+                                    className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50 transition-colors"
+                                    disabled={sendingMoney}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSendMoney}
+                                    disabled={sendingMoney}
+                                    className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    {sendingMoney && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    <span>{sendingMoney ? 'Transferring...' : 'Send Money'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

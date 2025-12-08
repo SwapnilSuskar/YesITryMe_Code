@@ -3,7 +3,14 @@ import mongoose from "mongoose";
 const rechargeTransactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['topup', 'recharge_payment', 'recharge_refund', 'admin_adjustment'],
+    enum: [
+      'topup',
+      'recharge_payment',
+      'recharge_refund',
+      'admin_adjustment',
+      'transfer_in',
+      'transfer_out',
+    ],
     required: true
   },
   amount: {
@@ -37,6 +44,23 @@ const rechargeTransactionSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  counterpartyUserId: {
+    type: String,
+    required: false,
+    index: true,
+  },
+  counterpartyMobile: {
+    type: String,
+    required: false,
+  },
+  counterpartyName: {
+    type: String,
+    required: false,
+  },
+  note: {
+    type: String,
+    required: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -62,6 +86,16 @@ const rechargeWalletSchema = new mongoose.Schema({
     min: 0
   },
   totalSpent: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  totalTransferredIn: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  totalTransferredOut: {
     type: Number,
     default: 0,
     min: 0
@@ -95,6 +129,7 @@ rechargeWalletSchema.index({ 'transactions.type': 1 });
 rechargeWalletSchema.index({ 'transactions.status': 1 });
 rechargeWalletSchema.index({ 'transactions.rechargeId': 1 });
 rechargeWalletSchema.index({ 'transactions.topUpId': 1 });
+rechargeWalletSchema.index({ 'transactions.counterpartyUserId': 1 });
 rechargeWalletSchema.index({ isActive: 1 });
 rechargeWalletSchema.index({ createdAt: -1 });
 rechargeWalletSchema.index({ updatedAt: -1 });

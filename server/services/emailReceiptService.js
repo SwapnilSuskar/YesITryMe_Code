@@ -132,6 +132,18 @@ export const sendWalletTopUpReceipt = async (
             <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Smart Wallet Top-Up Receipt</p>
           </div>
           <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; font-size: 13px; color: #555;">
+                <div>
+                  <p style="margin: 0;"><strong>Receipt Number:</strong> ${topUpData.transactionId || `TOPUP-${Date.now()}`}</p>
+                  <p style="margin: 5px 0 0 0;"><strong>Receipt Date:</strong> ${formattedDate}</p>
+                  <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
+                </div>
+                <div style="text-align: right;">
+                  <p style="margin: 0;"><strong>YesITryMe</strong></p>
+                  <p style="margin: 5px 0 0 0;">${COMPANY_ADDRESS}</p>
+                  <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
+                </div>
+              </div>
               <h2 style="color: #155724; margin: 0;">Top-Up Approved!</h2>
               <p style="color: #666; margin: 10px 0 0 0;">Your Smart Wallet has been credited successfully</p>
             </div>
@@ -493,10 +505,12 @@ export const sendSuperPackagePurchaseReceipt = async (
               <div>
                 <p style="margin: 0;"><strong>Receipt Number:</strong> ${receiptNumber}</p>
                 <p style="margin: 5px 0 0 0;"><strong>Receiption Date:</strong> ${receiptDate}</p>
+                <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
               </div>
               <div style="text-align: right;">
                 <p style="margin: 0;"><strong>YesITryMe</strong></p>
                 <p style="margin: 5px 0 0 0;">${COMPANY_ADDRESS}</p>
+                <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
               </div>
             </div>
             <h2 style="color: #155724; margin: 0;">Super Package Activated!</h2>
@@ -679,6 +693,18 @@ export const sendMobileRechargeReceipt = async (rechargeData, userData) => {
           </div>
           
           <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; font-size: 13px; color: #555;">
+              <div>
+                <p style="margin: 0;"><strong>Receipt Number:</strong> ${rechargeData.aiTopUpOrderId || rechargeData._id}</p>
+                <p style="margin: 5px 0 0 0;"><strong>Receiption Date:</strong> ${formattedDate}</p>
+                <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="margin: 0;"><strong>YesITryMe</strong></p>
+                <p style="margin: 5px 0 0 0;">${COMPANY_ADDRESS}</p>
+                <p style="margin: 5px 0 0 0;"><strong>GSTIN:</strong> ${COMPANY_GSTIN}</p>
+              </div>
+            </div>
             <h2 style="color: #155724; margin: 0;">Recharge Successful!</h2>
             <p style="color: #666; margin: 10px 0 0 0;">Your mobile recharge has been completed</p>
 

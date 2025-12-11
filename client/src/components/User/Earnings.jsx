@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IndianRupee, CalendarClock, CalendarDays, Infinity } from 'lucide-react';
+import CountUp from 'react-countup';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
@@ -21,16 +22,22 @@ const Earnings = () => {
             setLoading(true);
             const response = await api.get(`${API_ENDPOINTS.packages.transactions}?limit=1000`);
             if (response.data.success) {
-                const list = (response.data.data.transactions || []).filter(t =>
-                    t.type === 'commission' ||
-                    t.type === 'bonus' ||
-                    t.type === 'leadership' ||
-                    t.type === 'royalty' ||
-                    t.type === 'reward' ||
-                    t.type === 'refund' ||
-                    t.type === 'payout_received' ||
-                    t.type === 'fund_credit'
-                );
+                const earningTypes = new Set([
+                    'commission',
+                    'bonus',
+                    'leadership',
+                    'royalty',
+                    'reward',                // legacy reward tag
+                    'rewards',               // some APIs send plural
+                    'reward_income',         // occasional reward naming
+                    'special_income_credit', // reward/leadership credits
+                ]);
+
+                const list = (response.data.data.transactions || []).filter(t => {
+                    const type = (t.type || '').toLowerCase();
+                    // Exclude refunds/payouts/fund credits to align with dashboard "Total Income"
+                    return earningTypes.has(type);
+                });
                 setAllTransactions(list);
             }
         } catch (err) {
@@ -48,7 +55,11 @@ const Earnings = () => {
 
     const calculateEarnings = () => {
         const now = new Date();
-        const completed = allTransactions.filter(t => (t.status || '').toLowerCase() === 'completed');
+        const completed = allTransactions.filter(t => {
+            const status = (t.status || '').toLowerCase();
+            // include approved/success to count reward payouts consistently with dashboard
+            return status === 'completed' || status === 'approved' || status === 'success' || status === 'paid';
+        });
         const sum = arr => arr.reduce((s, t) => s + parseFloat(t.amount || 0), 0);
 
         const today = completed.filter(t => isSameDay(new Date(t.createdAt), now));
@@ -139,6 +150,7 @@ const Earnings = () => {
 };
 
 const EarningCard = ({ label, value, icon, accent }) => {
+    const displayValue = Math.floor(Number(value) || 0);
     return (
         <div className={`rounded-2xl border bg-gradient-to-br ${accent} shadow-md hover:shadow-lg transition-shadow p-4 sm:p-5`}>
             <div className="flex items-center gap-4">
@@ -147,7 +159,15 @@ const EarningCard = ({ label, value, icon, accent }) => {
                 </div>
                 <div>
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">{label}</div>
-                    <div className="text-2xl font-bold leading-tight">₹{(value || 0).toLocaleString('en-IN')}</div>
+                    <div className="text-2xl font-bold leading-tight">
+                        ₹
+                        <CountUp
+                            end={displayValue}
+                            duration={1.2}
+                            separator=","
+                            decimals={0}
+                        />
+                    </div>
                     <div className="text-[11px] text-gray-500">Completed earnings only</div>
                 </div>
             </div>

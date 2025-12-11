@@ -13,8 +13,6 @@ import StatsCard from '../UI/StatsCard';
 import TimePeriodSelector from '../UI/TimePeriodSelector';
 import UserAvatar from '../UI/UserAvatar';
 import UserFunds from '../UI/UserFunds';
-import Leaderboard from './Leaderboard';
-import TopDownlinePerformers from './TopDownlinePerformers';
 
 const Dashboard = () => {
   const { user, token, syncUserStatus } = useAuthStore();
@@ -102,6 +100,10 @@ const Dashboard = () => {
 
   // Per requirement: Wallet = Active + Passive + Super Package Commissions
   const WalletIncome = (activeIncome || 0) + (teamIncome || 0) + (superPackageCommissions.totalEarned || 0) + parseFloat(specialIncome.royaltyIncome || 0) + parseFloat(specialIncome.rewardIncome || 0) + parseFloat(specialIncome.leaderShipFund || 0);
+
+  // Display helpers to avoid rounding up and drop fractional paise
+  const displayWalletIncome = Math.floor(Number(WalletIncome) || 0);
+  const displayTotalIncome = Math.floor(Number(totalIncome) || 0);
 
   useEffect(() => {
     if (user && token) {
@@ -1044,7 +1046,7 @@ const Dashboard = () => {
             icon={Wallet}
             iconColor="text-green-500"
             title="Wallet"
-            value={WalletIncome}
+            value={displayWalletIncome}
             prefix="₹"
             borderColor="border-green-100"
             textColor="text-green-700"
@@ -1139,7 +1141,7 @@ const Dashboard = () => {
             icon={Wallet}
             iconColor="text-blue-500"
             title="Total Income"
-            value={totalIncome}
+            value={displayTotalIncome}
             prefix="₹"
             borderColor="border-blue-100"
             textColor="text-blue-700"

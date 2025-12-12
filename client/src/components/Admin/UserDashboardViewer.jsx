@@ -31,6 +31,9 @@ const UserDashboardViewer = () => {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userDashboardData, setUserDashboardData] = useState(null);
+    const [superPackageCommissions, setSuperPackageCommissions] = useState({
+        totalEarned: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [userDataLoading, setUserDataLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -73,8 +76,17 @@ const UserDashboardViewer = () => {
     const fetchUserDashboardData = async (userId) => {
         try {
             setUserDataLoading(true);
-            const response = await api.get(`${API_ENDPOINTS.admin.userDashboard}/${userId}/dashboard`);
-            setUserDashboardData(response.data.data);
+            const dashboardResponse = await api.get(`${API_ENDPOINTS.admin.userDashboard}/${userId}/dashboard`);
+            setUserDashboardData(dashboardResponse.data.data);
+
+            // Try to fetch super package commissions, but default to 0 if not available
+            try {
+                const superPackageResponse = await api.get(API_ENDPOINTS.superPackages.commissionSummary);
+                setSuperPackageCommissions(superPackageResponse.data?.data || { totalEarned: 0 });
+            } catch {
+                // If super package commissions can't be fetched (e.g., admin viewing different user), default to 0
+                setSuperPackageCommissions({ totalEarned: 0 });
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to fetch user dashboard data');
         } finally {
@@ -335,115 +347,142 @@ const UserDashboardViewer = () => {
                                         User's Dashboard View (What they see)
                                     </h3>
                                     {/* Stats Cards - Exactly as user sees */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Wallet className="w-4 h-4 text-green-500" />
-                                                <span className="text-xs font-medium text-gray-600">Wallet</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-green-700">
-                                                ₹{userDashboardData.wallet?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <IndianRupee className="w-4 h-4 text-blue-500" />
-                                                <span className="text-xs font-medium text-gray-600">Withdrawn</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-blue-700">
-                                                ₹{userDashboardData.withdrawn?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Users className="w-4 h-4 text-purple-500" />
-                                                <span className="text-xs font-medium text-gray-600">My Referral Leads</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-purple-700">
-                                                {userDashboardData.referralLeads || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Package className="w-4 h-4 text-red-500" />
-                                                <span className="text-xs font-medium text-gray-600">My Successfully Downline</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-red-700">
-                                                {(() => {
-                                                    const regular = parseInt(userDashboardData.successfullyDownline || 0, 10) || 0;
-                                                    const superPkg = parseInt(userDashboardData.superSuccessfullyDownline || 0, 10) || 0;
-                                                    return (regular + superPkg).toLocaleString();
-                                                })()}
-                                            </div>
-                                        </div>
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <TrendingUp className="w-4 h-4 text-blue-500" />
-                                                <span className="text-xs font-medium text-gray-600">Active Income</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-blue-700">
-                                                ₹{userDashboardData.activeIncome?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Users className="w-4 h-4 text-green-500" />
-                                                <span className="text-xs font-medium text-gray-600">Passive Income</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-green-700">
-                                                ₹{userDashboardData.passiveIncome?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
+                                    {(() => {
+                                        // Calculate values exactly as Dashboard does
+                                        const activeIncome = parseFloat(userDashboardData.activeIncome || 0) || 0;
+                                        const passiveIncome = parseFloat(userDashboardData.passiveIncome || 0) || 0;
+                                        const royaltyIncome = parseFloat(userDashboardData.royaltyIncome || 0) || 0;
+                                        const rewardIncome = parseFloat(userDashboardData.rewardIncome || 0) || 0;
+                                        const leadershipFund = parseFloat(userDashboardData.leadershipFund || 0) || 0;
+                                        const withdrawn = parseFloat(userDashboardData.withdrawn || 0) || 0;
+                                        const totalFunds = parseFloat(userDashboardData.userFunds?.totalFunds || 0) || 0;
+                                        const superPackageTotalEarned = parseFloat(superPackageCommissions.totalEarned || 0) || 0;
 
-                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <IndianRupee className="w-4 h-4 text-orange-500" />
-                                                <span className="text-xs font-medium text-gray-600">Leadership Fund</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-orange-700">
-                                                ₹{userDashboardData.leadershipFund?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
+                                        // Wallet calculation: Active + Passive + Super Package + Special Income (matches Dashboard)
+                                        const walletIncome = activeIncome + passiveIncome + superPackageTotalEarned + royaltyIncome + rewardIncome + leadershipFund;
+                                        const displayWalletIncome = Math.floor(walletIncome);
 
-                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Crown className="w-4 h-4 text-purple-500" />
-                                                <span className="text-xs font-medium text-gray-600">Royalty Income</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-purple-700">
-                                                ₹{userDashboardData.royaltyIncome?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
+                                        // Total Active Income: Active + Total Funds + Special Income (matches Dashboard)
+                                        const totalActiveIncome = activeIncome + totalFunds + royaltyIncome + rewardIncome + leadershipFund;
 
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Gift className="w-4 h-4 text-yellow-500" />
-                                                <span className="text-xs font-medium text-gray-600">Reward Income</span>
-                                            </div>
-                                            <div className="text-lg font-bold text-yellow-700">
-                                                ₹{userDashboardData.rewardIncome?.toLocaleString() || '0'}
-                                            </div>
-                                        </div>
+                                        // Total Income: Active + Passive + Super Package + Special Income + Withdrawn (matches Dashboard)
+                                        const totalIncome = activeIncome + passiveIncome + superPackageTotalEarned + royaltyIncome + rewardIncome + leadershipFund + withdrawn;
+                                        const displayTotalIncome = Math.floor(totalIncome);
 
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Wallet className="w-4 h-4 text-blue-500" />
-                                                <span className="text-xs font-medium text-gray-600">Total Income</span>
+                                        return (
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Wallet className="w-4 h-4 text-green-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Wallet</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-green-700">
+                                                        ₹{displayWalletIncome.toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <IndianRupee className="w-4 h-4 text-blue-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Withdrawn</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-blue-700">
+                                                        ₹{Math.floor(withdrawn).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Users className="w-4 h-4 text-purple-500" />
+                                                        <span className="text-xs font-medium text-gray-600">My Referrals</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-purple-700">
+                                                        {userDashboardData.referralLeads || '0'}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Package className="w-4 h-4 text-red-500" />
+                                                        <span className="text-xs font-medium text-gray-600">My Successfully Downline</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-red-700">
+                                                        {(() => {
+                                                            // Use directBuyers and directSuperPackageBuyers from backend to match Dashboard exactly
+                                                            const directBuyers = parseInt(userDashboardData.directBuyers || 0, 10) || 0;
+                                                            const directSuperPackageBuyers = parseInt(userDashboardData.directSuperPackageBuyers || 0, 10) || 0;
+                                                            return (directBuyers + directSuperPackageBuyers).toLocaleString();
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <TrendingUp className="w-4 h-4 text-blue-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Active Income</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-blue-700">
+                                                        ₹{Math.floor(totalActiveIncome).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Users className="w-4 h-4 text-green-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Passive Income</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-green-700">
+                                                        ₹{Math.floor(passiveIncome).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <IndianRupee className="w-4 h-4 text-orange-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Leadership Fund</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-orange-700">
+                                                        ₹{Math.floor(leadershipFund).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Crown className="w-4 h-4 text-purple-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Royalty Income</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-purple-700">
+                                                        ₹{Math.floor(royaltyIncome).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Gift className="w-4 h-4 text-yellow-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Reward Income</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-yellow-700">
+                                                        ₹{Math.floor(rewardIncome).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Package className="w-4 h-4 text-indigo-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Super Package Commissions</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-indigo-700">
+                                                        ₹{Math.floor(superPackageTotalEarned).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Wallet className="w-4 h-4 text-blue-500" />
+                                                        <span className="text-xs font-medium text-gray-600">Total Income</span>
+                                                    </div>
+                                                    <div className="text-lg font-bold text-blue-700">
+                                                        ₹{displayTotalIncome.toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-lg font-bold text-blue-700">
-                                                ₹{(() => {
-                                                    const activeIncome = parseFloat(userDashboardData.activeIncome || 0) || 0;
-                                                    const passiveIncome = parseFloat(userDashboardData.passiveIncome || 0) || 0;
-                                                    const royaltyIncome = parseFloat(userDashboardData.royaltyIncome || 0) || 0;
-                                                    const rewardIncome = parseFloat(userDashboardData.rewardIncome || 0) || 0;
-                                                    const leadershipFund = parseFloat(userDashboardData.leadershipFund || 0) || 0;
-                                                    const withdrawn = parseFloat(userDashboardData.withdrawn || 0) || 0;
-                                                    const total = activeIncome + passiveIncome + royaltyIncome + rewardIncome + leadershipFund + withdrawn;
-                                                    return total.toLocaleString();
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
                                     {/* Funds Section - Exactly as user sees */}
                                     <div className="bg-gray-50 rounded-lg p-4">

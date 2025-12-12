@@ -1312,11 +1312,6 @@ export const getUserDashboardData = async (req, res) => {
       regularBuyerIds.add(v.userId);
     }
 
-    const totalBuyerIds = new Set([...regularBuyerIds, ...superBuyerIds]);
-
-    const directBuyers = totalBuyerIds.size;
-    const superDirectBuyers = superBuyerIds.size;
-
     // Get referral leads count - optimized to avoid loading full tree
     const directReferralsCount = await User.countDocuments({
       sponsorId: user.userId,
@@ -1326,21 +1321,20 @@ export const getUserDashboardData = async (req, res) => {
     const walletTransactions = commissionSummary?.transactions?.slice(-5) || []; // Last 5 transactions
 
     // Mirror dashboard counts using referralService for accuracy
+    // Use exact values from referralService to match Dashboard calculation
     const regularTotals = await referralService.getTotalCategorizedPackageBuyers(
       user.userId
     );
     const superTotals =
       await referralService.getTotalCategorizedSuperPackageBuyers(user.userId);
 
-    // Choose the most reliable numbers between referralService and our fallbacks above
-    const finalRegularDirect = Math.max(
-      regularTotals?.directCount || 0,
-      (typeof regularBuyerIds !== 'undefined' ? regularBuyerIds.size : 0)
-    );
-    const finalSuperDirect = Math.max(
-      superTotals?.directCount || 0,
-      (typeof superBuyerIds !== 'undefined' ? superBuyerIds.size : 0)
-    );
+    // Use exact values from referralService to match Dashboard (no Math.max)
+    const directBuyers = regularTotals?.directCount || 0;
+    const directSuperPackageBuyers = superTotals?.directCount || 0;
+    
+    // Keep fallback values for backwards compatibility but use Dashboard values for display
+    const finalRegularDirect = directBuyers;
+    const finalSuperDirect = directSuperPackageBuyers;
 
     const dashboardData = {
       user: {
@@ -1365,6 +1359,9 @@ export const getUserDashboardData = async (req, res) => {
       referralLeads: directReferralsCount,
       successfullyDownline: finalRegularDirect,
       superSuccessfullyDownline: finalSuperDirect,
+      // Direct buyers matching Dashboard calculation exactly
+      directBuyers: directBuyers,
+      directSuperPackageBuyers: directSuperPackageBuyers,
       activeIncome: activeIncome,
       passiveIncome: passiveIncome,
       leadershipFund: leadershipFund,

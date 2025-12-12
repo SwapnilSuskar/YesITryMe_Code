@@ -1,5 +1,6 @@
 import Funds from "../models/Funds.js";
 import User from "../models/User.js";
+import SpecialIncome from "../models/SpecialIncome.js";
 
 // Get funds for a specific user
 export const getUserFunds = async (req, res) => {
@@ -264,7 +265,7 @@ export const deductFundsFromUser = async (req, res) => {
   }
 };
 
-// Admin: Get all users with their funds
+// Admin: Get all users with their funds (only users who have received funds)
 export const getAllUsersWithFunds = async (req, res) => {
   try {
     // Validate admin role
@@ -277,19 +278,44 @@ export const getAllUsersWithFunds = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50; // Default 50 users per page
     const skip = (page - 1) * limit;
 
-    // Get users with pagination
-    const [users, totalUsers] = await Promise.all([
-      User.find({ role: "user" })
-        .select("userId firstName lastName mobile email")
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      User.countDocuments({ role: "user" }),
+    // Get all users who have received funds (totalFunds > 0)
+    const fundsWithUsers = await Funds.find({
+      totalFunds: { $gt: 0 }
+    }).select("userId").lean();
+
+    // Get all users who have received special income (any type > 0)
+    const specialIncomeWithUsers = await SpecialIncome.find({
+      $or: [
+        { leaderShipFund: { $gt: 0 } },
+        { royaltyIncome: { $gt: 0 } },
+        { rewardIncome: { $gt: 0 } }
+      ]
+    }).select("userId").lean();
+
+    // Combine and get unique userIds
+    const allUserIdsWithFunds = new Set([
+      ...fundsWithUsers.map(f => f.userId),
+      ...specialIncomeWithUsers.map(si => si.userId)
     ]);
 
+    const userIdsArray = Array.from(allUserIdsWithFunds);
+
+    // Get total count of users with funds
+    const totalUsers = userIdsArray.length;
+
+    // Apply pagination to userIds
+    const paginatedUserIds = userIdsArray.slice(skip, skip + limit);
+
+    // Get users for these userIds
+    const users = await User.find({
+      userId: { $in: paginatedUserIds },
+      role: "user"
+    })
+      .select("userId firstName lastName mobile email")
+      .lean();
+
     // Get funds for these specific users
-    const userIds = users.map((user) => user.userId);
-    const allFunds = await Funds.find({ userId: { $in: userIds } }).lean();
+    const allFunds = await Funds.find({ userId: { $in: paginatedUserIds } }).lean();
 
     // Create a map of funds by userId for quick lookup
     const fundsMap = new Map();

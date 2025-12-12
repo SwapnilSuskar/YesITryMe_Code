@@ -1235,14 +1235,7 @@ export const getUserDashboardData = async (req, res) => {
     const royaltyIncome = specialIncome?.royaltyIncome || 0;
     const rewardIncome = specialIncome?.rewardIncome || 0;
 
-    // Total Income calculation exactly as user sees it
-    const totalIncome =
-      parseFloat(activeIncome) +
-      parseFloat(passiveIncome) +
-      parseFloat(royaltyIncome) +
-      parseFloat(rewardIncome) +
-      parseFloat(leadershipFund) +
-      parseFloat(withdrawn);
+    // Note: superPackageTotalEarned will be calculated below and added to totalIncome
 
     // Get direct buyers count (My Successfully Downline)
     // Count direct referrals who purchased regular packages or super packages (paymentStatus completed)
@@ -1336,6 +1329,33 @@ export const getUserDashboardData = async (req, res) => {
     const finalRegularDirect = directBuyers;
     const finalSuperDirect = directSuperPackageBuyers;
 
+    // Calculate Super Package commissions exactly as Dashboard does
+    // Filter wallet transactions for super package commissions
+    const superPackageTransactions = (commissionSummary?.transactions || []).filter(
+      (t) =>
+        t.type === "commission" &&
+        t.packageName &&
+        (t.packageName.toLowerCase().includes("booster") ||
+          t.packageName.toLowerCase().includes("bronze") ||
+          t.packageName.toLowerCase().includes("silver") ||
+          t.packageName.toLowerCase().includes("gold") ||
+          t.packageName.toLowerCase().includes("diamond"))
+    );
+
+    // Calculate Super Package specific active and passive income
+    const superPackageActiveIncome = superPackageTransactions
+      .filter((t) => t.level === 1)
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+    const superPackagePassiveIncome = superPackageTransactions
+      .filter((t) => t.level >= 2 && t.level <= 120)
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+    const superPackageTotalEarned = superPackageTransactions.reduce(
+      (sum, t) => sum + (parseFloat(t.amount) || 0),
+      0
+    );
+
     const dashboardData = {
       user: {
         _id: user._id,
@@ -1367,7 +1387,20 @@ export const getUserDashboardData = async (req, res) => {
       leadershipFund: leadershipFund,
       royaltyIncome: royaltyIncome,
       rewardIncome: rewardIncome,
-      totalIncome: totalIncome,
+      superPackageCommissions: {
+        totalEarned: superPackageTotalEarned,
+        activeIncome: superPackageActiveIncome,
+        passiveIncome: superPackagePassiveIncome,
+      },
+      // Total Income calculation exactly as user sees it (includes super package commissions)
+      totalIncome:
+        parseFloat(activeIncome) +
+        parseFloat(passiveIncome) +
+        parseFloat(superPackageTotalEarned) +
+        parseFloat(royaltyIncome) +
+        parseFloat(rewardIncome) +
+        parseFloat(leadershipFund) +
+        parseFloat(withdrawn),
       userFunds: {
         mobileFund: userFunds?.mobileFund || 0,
         laptopFund: userFunds?.laptopFund || 0,

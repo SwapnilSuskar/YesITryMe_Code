@@ -31,9 +31,6 @@ const UserDashboardViewer = () => {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userDashboardData, setUserDashboardData] = useState(null);
-    const [superPackageCommissions, setSuperPackageCommissions] = useState({
-        totalEarned: 0,
-    });
     const [loading, setLoading] = useState(true);
     const [userDataLoading, setUserDataLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,15 +75,6 @@ const UserDashboardViewer = () => {
             setUserDataLoading(true);
             const dashboardResponse = await api.get(`${API_ENDPOINTS.admin.userDashboard}/${userId}/dashboard`);
             setUserDashboardData(dashboardResponse.data.data);
-
-            // Try to fetch super package commissions, but default to 0 if not available
-            try {
-                const superPackageResponse = await api.get(API_ENDPOINTS.superPackages.commissionSummary);
-                setSuperPackageCommissions(superPackageResponse.data?.data || { totalEarned: 0 });
-            } catch {
-                // If super package commissions can't be fetched (e.g., admin viewing different user), default to 0
-                setSuperPackageCommissions({ totalEarned: 0 });
-            }
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to fetch user dashboard data');
         } finally {
@@ -356,7 +344,8 @@ const UserDashboardViewer = () => {
                                         const leadershipFund = parseFloat(userDashboardData.leadershipFund || 0) || 0;
                                         const withdrawn = parseFloat(userDashboardData.withdrawn || 0) || 0;
                                         const totalFunds = parseFloat(userDashboardData.userFunds?.totalFunds || 0) || 0;
-                                        const superPackageTotalEarned = parseFloat(superPackageCommissions.totalEarned || 0) || 0;
+                                        // Get super package commissions from backend response (for the selected user, not admin)
+                                        const superPackageTotalEarned = parseFloat(userDashboardData.superPackageCommissions?.totalEarned || 0) || 0;
 
                                         // Wallet calculation: Active + Passive + Super Package + Special Income (matches Dashboard)
                                         const walletIncome = activeIncome + passiveIncome + superPackageTotalEarned + royaltyIncome + rewardIncome + leadershipFund;

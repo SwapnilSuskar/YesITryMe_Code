@@ -31,11 +31,12 @@ const Earnings = () => {
                     'rewards',               // some APIs send plural
                     'reward_income',         // occasional reward naming
                     'special_income_credit', // reward/leadership credits
+                    'fund_credit',           // admin-added money from Wallet Manager
                 ]);
 
                 const list = (response.data.data.transactions || []).filter(t => {
                     const type = (t.type || '').toLowerCase();
-                    // Exclude refunds/payouts/fund credits to align with dashboard "Total Income"
+                    // Include fund_credit so admin-added money shows in earnings
                     return earningTypes.has(type);
                 });
                 setAllTransactions(list);

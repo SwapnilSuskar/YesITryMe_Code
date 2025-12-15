@@ -39,9 +39,17 @@ const StatsCard = ({
         )}
       </span>
       {ArrowIcon && (
-        <div className="absolute top-3 right-3 opacity-60">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          className="absolute top-3 right-3 opacity-70 hover:opacity-100 transition cursor-pointer"
+          aria-label="View details"
+        >
           <ArrowIcon size={16} className="text-gray-500" />
-        </div>
+        </button>
       )}
     </div>
   );

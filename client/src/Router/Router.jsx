@@ -43,6 +43,7 @@ import WalletTransactions from '../components/User/WalletTransactions';
 import Earnings from '../components/User/Earnings';
 import MyTeam from '../components/User/MyTeam';
 import DirectReferrals from '../components/User/DirectReferrals';
+import SuccessfulDownline from '../components/User/SuccessfulDownline';
 import Gallery from '../components/Pages/Gallery';
 import CourseDetail from '../components/Pages/CourseDetail';
 import Products from '../components/Pages/Products';
@@ -163,6 +164,7 @@ const AppRouter = () => {
         <Route path="/about" element={<About />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/direct-referrals" element={<DirectReferrals />} />
+        <Route path="/my-successfully-downline" element={<SuccessfulDownline />} />
         <Route path="/socialearning" element={<SocialEarning />} />
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/profile" element={<Profile />} />

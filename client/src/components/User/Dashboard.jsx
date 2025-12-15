@@ -1079,6 +1079,8 @@ const Dashboard = () => {
             borderColor="border-red-100"
             textColor="text-red-700"
             tooltip={`Direct Package Buyers: ${directBuyers} | Direct Super Package Buyers: ${directSuperPackageBuyers}`}
+            onClick={() => navigate('/my-successfully-downline')}
+            arrowIcon={ArrowRight}
           />
           <StatsCard
             icon={User}

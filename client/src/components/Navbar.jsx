@@ -29,7 +29,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'My Recharge', path: '/recharge', icon: BatteryCharging },
     { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
-    { name: 'Your Earnings', path: '/earnings', icon: IndianRupee },
+    { name: 'My Earnings', path: '/earnings', icon: IndianRupee },
     { name: 'Payout', path: '/payout', icon: Wallet },
     { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
     { name: 'My Team', path: '/my-team', icon: Users },

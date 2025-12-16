@@ -216,6 +216,7 @@ class ReferralService {
    * @param {string} userId - The user ID to get referrals for
    * @returns {Object} Tree structure with direct referrals and their sub-referrals
    */
+  // Replace getUserReferralTree with this version
   async getUserReferralTree(userId) {
     try {
       const tree = {
@@ -224,53 +225,110 @@ class ReferralService {
         totalReferrals: 0,
       };
 
-      // Get ALL direct referrals (Level 1) - no limits
-      let directReferrals = await User.find(
+      // 1) Load ALL direct referrals in one query (same as before)
+      const directReferrals = await User.find(
         { sponsorId: userId },
         "userId firstName lastName mobile status imageUrl email referralCode activationDate createdAt"
-      ); // No limit - show all referrals
+      );
 
-      // Filter out self-referral if present
-      directReferrals = directReferrals.filter((ref) => ref.userId !== userId);
+      // Build base nodes map for fast attachment later
+      const nodeByUserId = new Map();
+      const queue = [];
 
-      // Process ALL direct referrals
-      for (const directReferral of directReferrals) {
-        const directReferralNode = {
-          userId: directReferral.userId,
-          firstName: directReferral.firstName,
-          lastName: directReferral.lastName,
-          mobile: directReferral.mobile,
-          status: directReferral.status,
-          imageUrl: directReferral.imageUrl,
-          email: directReferral.email,
-          referralCode: directReferral.referralCode,
-          activationDate: directReferral.activationDate,
-          createdAt: directReferral.createdAt,
+      for (const direct of directReferrals) {
+        const node = {
+          userId: direct.userId,
+          firstName: direct.firstName,
+          lastName: direct.lastName,
+          mobile: direct.mobile,
+          status: direct.status,
+          imageUrl: direct.imageUrl,
+          email: direct.email,
+          referralCode: direct.referralCode,
+          activationDate: direct.activationDate,
+          createdAt: direct.createdAt,
           level: 1,
           isDirect: true,
           subReferrals: [],
         };
-
-        // Get ALL sub-referrals with full depth
-        const subReferrals = await this.getSubReferralsOptimized(
-          directReferral.userId,
-          2,
-          10 // Increased max depth to show more levels
-        );
-        directReferralNode.subReferrals = subReferrals;
-
-        tree.directReferrals.push(directReferralNode);
+        tree.directReferrals.push(node);
+        nodeByUserId.set(direct.userId, node);
+        queue.push({ userId: direct.userId, level: 2 });
       }
 
-      // Calculate total referrals using a simple count query
-      const totalReferrals = await User.countDocuments({
+      // Optional: simple totalReferrals = count of all users that have a sponsor
+      tree.totalReferrals = await User.countDocuments({
         sponsorId: { $exists: true, $ne: null, $ne: "" },
       });
-      tree.totalReferrals = totalReferrals;
+
+      // 2) BFS: load sub-referrals LEVEL BY LEVEL (maxDepth + safety maxNodes)
+      const maxDepth = 10;
+      const maxNodes = 5000; // hard safety limit; tune as needed
+      const visited = new Set();
+      let totalNodes = nodeByUserId.size;
+
+      while (queue.length > 0) {
+        // Group current level
+        const currentLevel = [];
+        const nextQueue = [];
+
+        while (queue.length > 0) {
+          currentLevel.push(queue.shift());
+        }
+
+        const sponsorIds = currentLevel.map((i) => i.userId);
+        const level = currentLevel.length ? currentLevel[0].level : 2;
+        if (level > maxDepth) break;
+
+        // Single query for all users whose sponsorId is in this level
+        const children = await User.find(
+          { sponsorId: { $in: sponsorIds } },
+          "userId firstName lastName mobile status email referralCode sponsorId activationDate createdAt"
+        );
+
+        for (const child of children) {
+          if (visited.has(child.userId)) continue;
+          visited.add(child.userId);
+
+          // Safety: don’t allow unbounded growth
+          if (totalNodes >= maxNodes) {
+            // Stop attaching more children; you can log a warning here
+            continue;
+          }
+
+          const parentNode = nodeByUserId.get(child.sponsorId);
+          if (!parentNode) continue;
+
+          const node = {
+            userId: child.userId,
+            firstName: child.firstName,
+            lastName: child.lastName,
+            mobile: child.mobile,
+            status: child.status,
+            email: child.email,
+            referralCode: child.referralCode,
+            activationDate: child.activationDate,
+            createdAt: child.createdAt,
+            level,
+            isDirect: false,
+            subReferrals: [],
+          };
+
+          parentNode.subReferrals.push(node);
+          nodeByUserId.set(child.userId, node);
+          totalNodes += 1;
+
+          if (level < maxDepth) {
+            nextQueue.push({ userId: child.userId, level: level + 1 });
+          }
+        }
+
+        queue.push(...nextQueue);
+      }
 
       return tree;
     } catch (error) {
-      console.error("Error getting user referral tree:", error);
+      console.error("Error getting user referral tree (BFS):", error);
       throw new Error("Failed to get user referral tree");
     }
   }

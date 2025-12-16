@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Package } from 'lucide-react';
+import { MessageCircle, Package } from 'lucide-react';
 import { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import UserAvatar from '../UI/UserAvatar';
@@ -66,6 +66,14 @@ const SuccessfulDownline = () => {
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
   }, [selectedDate]);
+
+  const openWhatsApp = (mobile) => {
+    if (!mobile) return;
+    const cleaned = String(mobile).replace(/[^0-9]/g, '');
+    if (!cleaned) return;
+    const url = `https://wa.me/${cleaned}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const rows = useMemo(() => {
     const mapReferral = (ref, source) => {
@@ -269,7 +277,21 @@ const SuccessfulDownline = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm font-mono text-gray-700">{r.userId || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{r.mobile || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          <div className="flex items-center gap-2">
+                            <span>{r.mobile || '-'}</span>
+                            {/* {r.mobile && (
+                              <button
+                                type="button"
+                                onClick={() => openWhatsApp(r.mobile)}
+                                className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 transition-colors p-1.5"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                            )} */}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${r.source === 'Super Package' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                             {r.source}

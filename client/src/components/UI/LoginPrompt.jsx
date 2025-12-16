@@ -80,7 +80,7 @@ const promptConfig = {
     buttonText: 'Login',
     icon: <Shield className="w-8 h-8" />,
   },
-  socialEarning:{ 
+  socialEarning: {
     title: "Login Required",
     message: 'Please log in to see your social earning.',
     buttonText: "Login to Social Earning",
@@ -103,6 +103,12 @@ const promptConfig = {
     message: 'Please log in to access recharge and bill payment services.',
     buttonText: 'Login to Recharge',
     icon: <Wallet className="w-8 h-8" />,
+  },
+  successfulDownline: {
+    title: 'View Your Successful Downline',
+    message: 'Please log in to view your successful downline.',
+    buttonText: 'Login to Successful Downline',
+    icon: <Users className="w-8 h-8" />,
   },
 };
 

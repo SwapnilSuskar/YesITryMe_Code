@@ -10,7 +10,7 @@ const SuccessfulDownline = () => {
   const [regularDirects, setRegularDirects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' | 'desc'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [selectedDate, setSelectedDate] = useState('');
   const [isFiltering, setIsFiltering] = useState(false);
 
@@ -67,13 +67,13 @@ const SuccessfulDownline = () => {
     return () => clearTimeout(t);
   }, [selectedDate]);
 
-  const openWhatsApp = (mobile) => {
-    if (!mobile) return;
-    const cleaned = String(mobile).replace(/[^0-9]/g, '');
-    if (!cleaned) return;
-    const url = `https://wa.me/${cleaned}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  // const openWhatsApp = (mobile) => {
+  //   if (!mobile) return;
+  //   const cleaned = String(mobile).replace(/[^0-9]/g, '');
+  //   if (!cleaned) return;
+  //   const url = `https://wa.me/${cleaned}`;
+  //   window.open(url, '_blank', 'noopener,noreferrer');
+  // };
 
   const rows = useMemo(() => {
     const mapReferral = (ref, source) => {

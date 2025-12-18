@@ -252,7 +252,7 @@ const SuccessfulDownline = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Mobile</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Mobile/WhatsApp</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Type</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Registration Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Activation Date</th>

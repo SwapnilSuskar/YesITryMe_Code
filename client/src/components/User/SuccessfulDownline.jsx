@@ -67,13 +67,13 @@ const SuccessfulDownline = () => {
     return () => clearTimeout(t);
   }, [selectedDate]);
 
-  // const openWhatsApp = (mobile) => {
-  //   if (!mobile) return;
-  //   const cleaned = String(mobile).replace(/[^0-9]/g, '');
-  //   if (!cleaned) return;
-  //   const url = `https://wa.me/${cleaned}`;
-  //   window.open(url, '_blank', 'noopener,noreferrer');
-  // };
+  const openWhatsApp = (mobile) => {
+    if (!mobile) return;
+    const cleaned = String(mobile).replace(/[^0-9]/g, '');
+    if (!cleaned) return;
+    const url = `https://wa.me/${cleaned}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const rows = useMemo(() => {
     const mapReferral = (ref, source) => {
@@ -280,7 +280,7 @@ const SuccessfulDownline = () => {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           <div className="flex items-center gap-2">
                             <span>{r.mobile || '-'}</span>
-                            {/* {r.mobile && (
+                            {r.mobile && (
                               <button
                                 type="button"
                                 onClick={() => openWhatsApp(r.mobile)}
@@ -289,7 +289,7 @@ const SuccessfulDownline = () => {
                               >
                                 <MessageCircle className="w-4 h-4" />
                               </button>
-                            )} */}
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3">

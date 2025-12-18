@@ -81,6 +81,13 @@ const SuccessfulDownline = () => {
       const activationTs = ref?.activationDate ? new Date(ref.activationDate).getTime() : 0;
       const fullName = `${ref?.firstName || ''} ${ref?.lastName || ''}`.trim();
 
+      // Robust team count handling:
+      // - Prefer subReferrals length when it's an array
+      // - Fall back to any numeric teamCount already present on the node
+      const rawTeamCount = Array.isArray(ref?.subReferrals)
+        ? ref.subReferrals.length
+        : (Number.isFinite(ref?.teamCount) ? ref.teamCount : 0);
+
       return {
         userId: ref?.userId || ref?._id || '',
         name: fullName || '-',
@@ -92,6 +99,7 @@ const SuccessfulDownline = () => {
         registrationTs: Number.isFinite(createdAtTs) ? createdAtTs : 0,
         status: ref?.status || ref?.packageStatus || 'active',
         source,
+        teamCount: Number.isFinite(rawTeamCount) && rawTeamCount > 0 ? rawTeamCount : 0,
       };
     };
 
@@ -257,6 +265,7 @@ const SuccessfulDownline = () => {
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Registration Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Activation Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold tracking-wide text-gray-600">My Team Count</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -303,6 +312,9 @@ const SuccessfulDownline = () => {
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${r.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : r.status === 'kyc_verified' ? 'bg-blue-50 text-blue-700 border-blue-200' : r.status === 'blocked' ? 'bg-gray-800 text-white border-gray-800' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                             {r.status ? (r.status === 'free' ? 'Free' : r.status.replace(/_/g, ' ')) : 'Active'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                          {Number.isFinite(r.teamCount) ? r.teamCount : 0}
                         </td>
                       </tr>
                     );

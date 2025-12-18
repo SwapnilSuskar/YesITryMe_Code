@@ -11,7 +11,7 @@ const DirectReferrals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortField, setSortField] = useState('registration'); // 'registration' | 'activation'
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' | 'desc'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [selectedDate, setSelectedDate] = useState(''); // YYYY-MM-DD
   const [isFiltering, setIsFiltering] = useState(false);
 

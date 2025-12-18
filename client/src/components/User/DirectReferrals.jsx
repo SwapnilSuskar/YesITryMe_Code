@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { API_ENDPOINTS } from '../../config/api';
 import UserAvatar from '../UI/UserAvatar';
-import { Users } from 'lucide-react';
+import { MessageCircle, Users } from 'lucide-react';
 import LoginPrompt from '../UI/LoginPrompt';
 
 const DirectReferrals = () => {
@@ -59,6 +59,14 @@ const DirectReferrals = () => {
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
   }, [selectedDate]);
+
+  const openWhatsApp = (mobile) => {
+    if (!mobile) return;
+    const cleaned = String(mobile).replace(/[^0-9]/g, '');
+    if (!cleaned) return;
+    const url = `https://wa.me/${cleaned}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const rows = useMemo(() => {
     const list = referralTree?.directReferrals || [];
@@ -239,6 +247,7 @@ const DirectReferrals = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Mobile/WhatsApp</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Registration Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Activation Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-600">Status</th>
@@ -262,6 +271,21 @@ const DirectReferrals = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm font-mono text-gray-700">{r.userId || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          <div className="flex items-center gap-2">
+                            <span>{r.mobile || '-'}</span>
+                            {r.mobile && (
+                              <button
+                                type="button"
+                                onClick={() => openWhatsApp(r.mobile)}
+                                className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-300 transition-colors p-1.5"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-700">{r.registrationDate}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{r.activationDate}</td>
                         <td className="px-4 py-3">

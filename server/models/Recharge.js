@@ -17,7 +17,8 @@ const rechargeSchema = new mongoose.Schema(
       required: true,
       enum: [
         "Airtel", "Vodafone", "BSNL TOPUP", "RELIANCE JIO", "Idea", "BSNL STV",
-        "Airtel Postpaid", "Idea Postpaid", "Vodafone Postpaid", "JIO PostPaid", "BSNL Postpaid"
+        "Airtel Postpaid", "Idea Postpaid", "Vodafone Postpaid", "JIO PostPaid", "BSNL Postpaid",
+        "Tata Play", "Dish TV", "Airtel Digital TV", "Videocon d2h", "Sun Direct"
       ],
     },
     operatorCode: {
@@ -30,7 +31,10 @@ const rechargeSchema = new mongoose.Schema(
     },
     circle: {
       type: String,
-      required: true,
+      required: function() {
+        // Circle is only required for prepaid recharges, not for DTH or postpaid
+        return this.rechargeType === "prepaid";
+      },
     },
     rechargeType: {
       type: String,

@@ -6,7 +6,7 @@ import useToast from '../../hooks/useToast';
 import { useAuthStore } from '../../store/useAuthStore';
 import api, { API_ENDPOINTS } from '../../config/api';
 
-// Operator discount rates (same as MobileRecharge)
+// Operator discount rates (same as MobileRecharge and DTHRecharge)
 const operatorDiscountRates = {
 	Airtel: 0.5,
 	Vodafone: 1.0,
@@ -19,6 +19,12 @@ const operatorDiscountRates = {
 	'Idea Postpaid': 1.0,
 	'JIO PostPaid': 0,
 	'BSNL Postpaid': 1.0,
+	// DTH Operators - All users get 2% discount
+	'Tata Play': 2.0,
+	'Dish TV': 2.0,
+	'Airtel Digital TV': 2.0,
+	'Videocon d2h': 2.0,
+	'Sun Direct': 2.0,
 };
 
 const PlanConfirmation = () => {
@@ -46,7 +52,13 @@ const PlanConfirmation = () => {
 	useEffect(() => {
 		if (!formData || !plan) {
 			showError('Invalid plan selection. Please select a plan again.');
-			navigate('/recharge/mobile', { replace: true });
+			// Redirect based on recharge type
+			const rechargeType = formData?.rechargeType || 'prepaid';
+			if (rechargeType === 'dth') {
+				navigate('/recharge/dth', { replace: true });
+			} else {
+				navigate('/recharge/mobile', { replace: true });
+			}
 		}
 	}, [formData, plan, navigate, showError]);
 
@@ -270,28 +282,34 @@ const PlanConfirmation = () => {
 
 			// Prioritize numeric code for backend (as per A1Topup API requirement)
 			// Backend will use numeric code if available, otherwise fallback to text code or value
-			if (formData.circleInfo) {
-				// Always send the circle value (for backend mapping)
-				rechargeData.circle = formData.circleInfo.value;
+			// Circle is only needed for prepaid recharges, not for DTH or postpaid
+			if (formData.rechargeType !== 'dth' && formData.rechargeType !== 'postpaid') {
+				if (formData.circleInfo) {
+					// Always send the circle value (for backend mapping)
+					rechargeData.circle = formData.circleInfo.value;
 
-				// Send label for display purposes
-				if (formData.circleInfo.label) {
-					rechargeData.circleLabel = formData.circleInfo.label;
-				}
+					// Send label for display purposes
+					if (formData.circleInfo.label) {
+						rechargeData.circleLabel = formData.circleInfo.label;
+					}
 
-				// Send numeric code (backend prioritizes this)
-				if (formData.circleInfo.numericCode) {
-					rechargeData.circleNumeric = formData.circleInfo.numericCode;
-					rechargeData.circleCode = formData.circleInfo.numericCode; // Also send as circleCode for compatibility
-				}
+					// Send numeric code (backend prioritizes this)
+					if (formData.circleInfo.numericCode) {
+						rechargeData.circleNumeric = formData.circleInfo.numericCode;
+						rechargeData.circleCode = formData.circleInfo.numericCode; // Also send as circleCode for compatibility
+					}
 
-				// Send text code as fallback
-				if (formData.circleInfo.textCode && !formData.circleInfo.numericCode) {
-					rechargeData.circleCode = formData.circleInfo.textCode;
+					// Send text code as fallback
+					if (formData.circleInfo.textCode && !formData.circleInfo.numericCode) {
+						rechargeData.circleCode = formData.circleInfo.textCode;
+					}
+				} else if (formData.circle) {
+					// Fallback: if we have circle but no circleInfo, send as-is
+					rechargeData.circle = formData.circle;
 				}
-			} else if (formData.circle) {
-				// Fallback: if we have circle but no circleInfo, send as-is
-				rechargeData.circle = formData.circle;
+			} else {
+				// For DTH and postpaid, circle is optional - send NA if not provided
+				rechargeData.circle = formData.circle || 'NA';
 			}
 
 			const response = await initiateRecharge(rechargeData);
@@ -537,7 +555,7 @@ const PlanConfirmation = () => {
 								<p className="text-sm text-gray-600">
 									Please verify the details before proceeding with payment:
 								</p>
-								
+
 								<div className="bg-gray-50 rounded-xl p-4 space-y-2">
 									<div className="flex justify-between items-center">
 										<span className="text-sm text-gray-600">Mobile Number:</span>

@@ -1374,10 +1374,20 @@ export const POSTPAID_OPERATORS = {
   "BSNL Postpaid": { code: "BP", apiCode: "BSNL", type: "postpaid" }, // Updated to "BP" as per API docs
 };
 
+// DTH OPERATORS - For DTH recharges
+export const DTH_OPERATORS = {
+  "Tata Play": { code: "TATASKY", apiCode: "TATASKY", type: "dth" },
+  "Dish TV": { code: "DISHTV", apiCode: "DISHTV", type: "dth" },
+  "Airtel Digital TV": { code: "AIRTEL", apiCode: "AIRTEL", type: "dth" },
+  "Videocon d2h": { code: "D2H", apiCode: "D2H", type: "dth" },
+  "Sun Direct": { code: "SUN", apiCode: "SUN", type: "dth" },
+};
+
 // Combined mapping for backward compatibility
 export const OPERATOR_CODES = {
   ...PREPAID_OPERATORS,
   ...POSTPAID_OPERATORS,
+  ...DTH_OPERATORS,
 };
 
 const getOperatorDetails = (operator) => OPERATOR_CODES[operator] || {};
@@ -1395,6 +1405,12 @@ const getOperatorApiCode = (operator, fallbackCode = "") => {
  * - Vodafone: user 1%, admin 3%
  * - Idea: user 1%, admin 3%
  * - BSNL: user 1%, admin 4%
+ * - DTH Operators: user 2% (fixed), admin gets remaining:
+ *   - Tata Play: user 2%, admin 1.20% (total 3.20%)
+ *   - Dish TV: user 2%, admin 2.40% (total 4.40%)
+ *   - Airtel Digital TV: user 2%, admin 2.42% (total 4.42%)
+ *   - Videocon d2h: user 2%, admin 2.20% (total 4.20%)
+ *   - Sun Direct: user 2%, admin 1.35% (total 3.35%)
  */
 export const calculateCommissions = (operator, amount) => {
   // Admin commission rates
@@ -1410,6 +1426,12 @@ export const calculateCommissions = (operator, amount) => {
     "BSNL TOPUP": 4.0,
     "BSNL STV": 4.0,
     "BSNL Postpaid": 4.0,
+    // DTH Operators - Admin gets remaining after 2% user commission
+    "Tata Play": 1.20,      // Total: 3.20%, User: 2%, Admin: 1.20%
+    "Dish TV": 2.40,         // Total: 4.40%, User: 2%, Admin: 2.40%
+    "Airtel Digital TV": 2.42, // Total: 4.42%, User: 2%, Admin: 2.42%
+    "Videocon d2h": 2.20,    // Total: 4.20%, User: 2%, Admin: 2.20%
+    "Sun Direct": 1.35,      // Total: 3.35%, User: 2%, Admin: 1.35%
   };
 
   // User commission rates
@@ -1425,6 +1447,12 @@ export const calculateCommissions = (operator, amount) => {
     "BSNL TOPUP": 1.0,
     "BSNL STV": 1.0,
     "BSNL Postpaid": 1.0,
+    // DTH Operators - All users get 2% commission
+    "Tata Play": 2.0,
+    "Dish TV": 2.0,
+    "Airtel Digital TV": 2.0,
+    "Videocon d2h": 2.0,
+    "Sun Direct": 2.0,
   };
 
   const adminRate = adminRates[operator] || 0.65;
@@ -1661,12 +1689,23 @@ export const initiateRecharge = async (req, res) => {
       });
     }
 
-    // Validate mobile number format (10 digits, starts with 6-9)
-    if (!/^[6-9]\d{9}$/.test(mobileNumber)) {
+    // Validate mobile number format (10 digits, starts with 6-9) - only for mobile recharges
+    // For DTH, mobileNumber is actually subscriber ID (10-12 digits)
+    if (rechargeType !== "dth" && !/^[6-9]\d{9}$/.test(mobileNumber)) {
       return res.status(400).json({
         success: false,
         message:
           "Invalid mobile number format. Must be 10 digits starting with 6-9.",
+      });
+    }
+    
+    // For DTH, validate subscriber ID (10-12 digits)
+    if (rechargeType === "dth" && !/^\d{10,12}$/.test(mobileNumber)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid DTH subscriber ID format. Must be 10-12 digits.",
+        error: "INVALID_SUBSCRIBER_ID",
       });
     }
 
@@ -1689,13 +1728,15 @@ export const initiateRecharge = async (req, res) => {
     if (!actualRechargeType && operator) {
       if (operator.toLowerCase().includes("postpaid")) {
         actualRechargeType = "postpaid";
+      } else if (DTH_OPERATORS[operator]) {
+        actualRechargeType = "dth";
       } else {
         actualRechargeType = "prepaid";
       }
     }
     
-    // Now check if circle is required (only for prepaid)
-    const requiresCircle = actualRechargeType !== "postpaid";
+    // Now check if circle is required (only for prepaid, not for DTH or postpaid)
+    const requiresCircle = actualRechargeType === "prepaid";
     if (requiresCircle && !circle) {
       return res.status(400).json({
         success: false,
@@ -1706,7 +1747,17 @@ export const initiateRecharge = async (req, res) => {
     
     // Validate operator based on recharge type
     let operatorInfo;
-    if (actualRechargeType === "postpaid") {
+    if (actualRechargeType === "dth") {
+      operatorInfo = DTH_OPERATORS[operator];
+      if (!operatorInfo || !operatorInfo.code) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid DTH operator selected. Please select a valid DTH operator.",
+          error: "INVALID_OPERATOR",
+        });
+      }
+    } else if (actualRechargeType === "postpaid") {
       operatorInfo = POSTPAID_OPERATORS[operator];
       if (!operatorInfo || !operatorInfo.code) {
         return res.status(400).json({
@@ -1752,8 +1803,11 @@ export const initiateRecharge = async (req, res) => {
 
     // Use operator type from operatorInfo if available
     actualRechargeType = operatorInfo.type || actualRechargeType;
+    // Circle is not required for DTH or postpaid
     const normalizedCircle =
-      actualRechargeType === "postpaid" ? circle || "NA" : circle;
+      actualRechargeType === "postpaid" || actualRechargeType === "dth" 
+        ? circle || "NA" 
+        : circle;
 
     // Calculate commissions
     const commissionData = calculateCommissions(operator, parseFloat(amount));
@@ -1954,6 +2008,8 @@ const processRechargeWithA1Topup = async (recharge) => {
     const operatorDirectory =
       recharge.rechargeType === "postpaid"
       ? POSTPAID_OPERATORS
+      : recharge.rechargeType === "dth"
+      ? DTH_OPERATORS
       : PREPAID_OPERATORS;
     const operatorInfo = operatorDirectory[recharge.operator] || {};
     const operatorCode = operatorInfo.code || recharge.operatorCode || null;
@@ -1972,8 +2028,15 @@ const processRechargeWithA1Topup = async (recharge) => {
       throw new Error("Operator code is required for provider recharge");
     }
 
-    if (!recharge.mobileNumber || !/^[6-9]\d{9}$/.test(recharge.mobileNumber)) {
-      throw new Error("Valid mobile number is required");
+    // Validate mobile number or subscriber ID based on recharge type
+    if (recharge.rechargeType === "dth") {
+      if (!recharge.mobileNumber || !/^\d{10,12}$/.test(recharge.mobileNumber)) {
+        throw new Error("Valid DTH subscriber ID (10-12 digits) is required");
+      }
+    } else {
+      if (!recharge.mobileNumber || !/^[6-9]\d{9}$/.test(recharge.mobileNumber)) {
+        throw new Error("Valid mobile number is required");
+      }
     }
 
     const numericAmount = Number(recharge.amount);
@@ -2036,11 +2099,17 @@ const processRechargeWithA1Topup = async (recharge) => {
         recharge.rechargeType &&
         recharge.rechargeType.toLowerCase() === "postpaid"
           ? "postpaid"
+          : recharge.rechargeType &&
+            recharge.rechargeType.toLowerCase() === "dth"
+          ? "dth"
           : "prepaid",
       category:
         recharge.rechargeType &&
         recharge.rechargeType.toLowerCase() === "postpaid"
           ? "postpaid"
+          : recharge.rechargeType &&
+            recharge.rechargeType.toLowerCase() === "dth"
+          ? "dth"
           : "prepaid",
     };
 
@@ -2051,7 +2120,8 @@ const processRechargeWithA1Topup = async (recharge) => {
     }
 
     // Only add circlecode if we have a valid numeric code (as per API requirement)
-    if (circleParam && /^\d+$/.test(circleParam.toString())) {
+    // Circle is not required for DTH or postpaid recharges
+    if (recharge.rechargeType !== "dth" && recharge.rechargeType !== "postpaid" && circleParam && /^\d+$/.test(circleParam.toString())) {
       params.circlecode = circleParam.toString();
     }
 

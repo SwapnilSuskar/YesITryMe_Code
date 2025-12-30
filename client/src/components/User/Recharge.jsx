@@ -194,6 +194,10 @@ const Recharge = () => {
             navigate('/recharge/mobile');
             return;
         }
+        // if (service.key === 'dth') {
+        //     navigate('/recharge/dth');
+        //     return;
+        // }
         setComingSoon({ open: true, section, label: service.label });
     };
 

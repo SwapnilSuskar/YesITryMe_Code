@@ -64,6 +64,7 @@ import PublicTask from '../components/Pages/PublicTask';
 import Nominee from '../components/User/Nominee';
 import Recharge from '../components/User/Recharge';
 import MobileRecharge from '../components/User/MobileRecharge';
+import DTHRecharge from '../components/User/DTHRecharge';
 import PlanConfirmation from '../components/User/PlanConfirmation';
 import RechargeSuccess from '../components/User/RechargeSuccess';
 import NotFound from '../components/Pages/NotFound';
@@ -180,6 +181,7 @@ const AppRouter = () => {
         <Route path="/nominee" element={<Nominee />} />
         <Route path="/recharge" element={<Recharge />} />
         <Route path="/recharge/mobile" element={<MobileRecharge />} />
+        <Route path="/recharge/dth" element={<DTHRecharge />} />
         <Route path="/recharge/plan-confirmation" element={<PlanConfirmation />} />
         <Route path="/recharge/success" element={<RechargeSuccess />} />
       </Route>

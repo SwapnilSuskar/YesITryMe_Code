@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 
@@ -102,6 +103,20 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    // Handle category - can be ObjectId or name
+    let categoryId = category;
+    if (!category.match(/^[0-9a-fA-F]{24}$/)) {
+      // It's a category name, find the category
+      const categoryDoc = await Category.findOne({ name: category.trim(), status: 'active' });
+      if (!categoryDoc) {
+        return res.status(400).json({
+          success: false,
+          message: "Category not found. Please select a valid category.",
+        });
+      }
+      categoryId = categoryDoc._id;
+    }
+
     // Parse pricing if it's a string
     let parsedPricing = pricing;
     if (typeof pricing === "string") {
@@ -174,7 +189,7 @@ export const createProduct = async (req, res) => {
     const product = new Product({
       title,
       description,
-      category,
+      category: categoryId,
       pricing: parsedPricing || [],
       images,
       status,
@@ -218,7 +233,30 @@ export const getProducts = async (req, res) => {
     const query = {};
 
     // Apply filters
-    if (category) query.category = category;
+    if (category) {
+      // Check if category is ObjectId or name
+      if (category.match(/^[0-9a-fA-F]{24}$/)) {
+        query.category = category;
+      } else {
+        // Find category by name
+        const categoryDoc = await Category.findOne({ name: category, status: 'active' });
+        if (categoryDoc) {
+          query.category = categoryDoc._id;
+        } else {
+          // Return empty if category not found
+          return res.status(200).json({
+            success: true,
+            data: [],
+            pagination: {
+              currentPage: parseInt(page),
+              totalPages: 0,
+              totalItems: 0,
+              itemsPerPage: parseInt(limit),
+            },
+          });
+        }
+      }
+    }
     if (status) query.status = status;
     if (featured !== undefined) query.featured = featured === "true";
     if (search) {
@@ -231,6 +269,7 @@ export const getProducts = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const products = await Product.find(query)
+      .populate("category", "name")
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email")
       .sort(sortOptions)
@@ -275,7 +314,30 @@ export const getPublicProducts = async (req, res) => {
     const query = { status: "active" };
 
     // Apply filters
-    if (category) query.category = category;
+    if (category) {
+      // Check if category is ObjectId or name
+      if (category.match(/^[0-9a-fA-F]{24}$/)) {
+        query.category = category;
+      } else {
+        // Find category by name
+        const categoryDoc = await Category.findOne({ name: category, status: 'active' });
+        if (categoryDoc) {
+          query.category = categoryDoc._id;
+        } else {
+          // Return empty if category not found
+          return res.status(200).json({
+            success: true,
+            data: [],
+            pagination: {
+              currentPage: parseInt(page),
+              totalPages: 0,
+              totalItems: 0,
+              itemsPerPage: parseInt(limit),
+            },
+          });
+        }
+      }
+    }
     if (featured !== undefined) query.featured = featured === "true";
     if (search) {
       query.$text = { $search: search };
@@ -287,6 +349,7 @@ export const getPublicProducts = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const products = await Product.find(query)
+      .populate("category", "name")
       .populate("createdBy", "name")
       .sort(sortOptions)
       .skip(skip)
@@ -320,6 +383,7 @@ export const getProductById = async (req, res) => {
     const { id } = req.params;
 
     const product = await Product.findById(id)
+      .populate("category", "name")
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 
@@ -394,6 +458,21 @@ export const updateProduct = async (req, res) => {
           success: false,
           message: "Invalid tags format",
         });
+      }
+    }
+
+    // Handle category update - can be ObjectId or name
+    if (updateData.category) {
+      if (!updateData.category.match(/^[0-9a-fA-F]{24}$/)) {
+        // It's a category name, find the category
+        const categoryDoc = await Category.findOne({ name: updateData.category.trim(), status: 'active' });
+        if (!categoryDoc) {
+          return res.status(400).json({
+            success: false,
+            message: "Category not found. Please select a valid category.",
+          });
+        }
+        updateData.category = categoryDoc._id;
       }
     }
 
@@ -582,19 +661,16 @@ export const setPrimaryImage = async (req, res) => {
 // Get product categories
 export const getProductCategories = async (req, res) => {
   try {
-    const categories = [
-      "Educational Courses",
-      "Electronic Products",
-      "Financial Products",
-      "Subscription-Based Digital Products",
-      "Utility Services",
-      "Shopping Products",
-      "Daily Usable Products",
-    ];
+    const categories = await Category.find({ status: 'active' })
+      .select('name')
+      .sort({ displayOrder: 1, name: 1 });
+
+    // Return category names for backward compatibility
+    const categoryNames = categories.map(cat => cat.name);
 
     res.status(200).json({
       success: true,
-      data: categories,
+      data: categoryNames,
     });
   } catch (error) {
     console.error("Get categories error:", error);

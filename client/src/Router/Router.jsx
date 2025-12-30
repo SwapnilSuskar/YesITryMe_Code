@@ -49,6 +49,7 @@ import CourseDetail from '../components/Pages/CourseDetail';
 import Products from '../components/Pages/Products';
 import ProductDetail from '../components/Pages/ProductDetail';
 import ProductManager from '../components/Admin/ProductManager';
+import CategoryManager from '../components/Admin/CategoryManager';
 import SuperPackagePaymentManager from '../components/Admin/SuperPackagePaymentManager';
 import SuperPackageManager from '../components/Admin/SuperPackageManager';
 import SuperPackages from '../components/User/SuperPackages';
@@ -205,6 +206,7 @@ const AppRouter = () => {
         <Route path="user-status" element={<UserStatusManager />} />
         <Route path="user-dashboard-viewer" element={<UserDashboardViewer />} />
         <Route path="product-manager" element={<ProductManager />} />
+        <Route path="category-manager" element={<CategoryManager />} />
         <Route path="ai-tools" element={<AiToolManager />} />
         <Route path="super-packages" element={<SuperPackageManager />} />
         <Route path="super-package-payments" element={<SuperPackagePaymentManager />} />

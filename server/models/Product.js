@@ -13,17 +13,9 @@ const productSchema = new mongoose.Schema({
     trim: true
   },
   category: {
-    type: String,
-    required: true,
-    enum: [
-      'Educational Courses',
-      'Electronic Products',
-      'Financial Products',
-      'Subscription-Based Digital Products',
-      'Utility Services',
-      'Shopping Products',
-      'Daily Usable Products'
-    ]
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: true
   },
   pricing: [{
     packageName: {

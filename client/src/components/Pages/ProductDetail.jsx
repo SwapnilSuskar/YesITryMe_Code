@@ -305,7 +305,7 @@ const ProductDetail = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  {product.category}
+                  {product.category?.name || product.category}
                 </span>
                 {product.featured && (
                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800 flex items-center gap-1">

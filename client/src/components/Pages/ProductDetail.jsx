@@ -99,7 +99,7 @@ const ProductDetail = () => {
         productInfo: {
           _id: product._id,
           title: product.title,
-          category: product.category,
+          category: product.category?.name || product.category,
           description: product.description,
           images: product.images,
           selectedPricing: selectedPricing

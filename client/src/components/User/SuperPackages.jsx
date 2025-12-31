@@ -277,7 +277,7 @@ const SuperPackages = () => {
                   )}
                   <div>
                     <h3 className="font-semibold text-gray-800">{productInfo.title}</h3>
-                    <p className="text-sm text-gray-600">{productInfo.category}</p>
+                    <p className="text-sm text-gray-600">{productInfo.category?.name || productInfo.category}</p>
                   </div>
                 </div>
               </div>
@@ -382,8 +382,8 @@ const SuperPackages = () => {
                     onClick={() => handlePurchase(pkg)}
                     disabled={hasPending}
                     className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center ${hasPending
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white cursor-not-allowed'
-                        : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105'
+                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105'
                       }`}
                   >
                     {hasPending ? (

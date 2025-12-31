@@ -39,18 +39,18 @@ const uploadToCloudinary = async (file) => {
     } else if (file.tempFilePath) {
       // File is on disk (useTempFiles: true)
       result = await cloudinary.uploader.upload(file.tempFilePath, {
-        folder: "products",
-        use_filename: true,
-        unique_filename: true,
-        overwrite: true,
-        resource_type: "auto",
-      });
-      // Clean up the temporary file
-      try {
-        fs.unlinkSync(file.tempFilePath);
-      } catch (cleanupError) {
-        console.error("Error cleaning up temporary file:", cleanupError);
-      }
+      folder: "products",
+      use_filename: true,
+      unique_filename: true,
+      overwrite: true,
+      resource_type: "auto",
+    });
+    // Clean up the temporary file
+    try {
+      fs.unlinkSync(file.tempFilePath);
+    } catch (cleanupError) {
+      console.error("Error cleaning up temporary file:", cleanupError);
+    }
     } else {
       throw new Error("File data or tempFilePath is missing");
     }
@@ -63,15 +63,15 @@ const uploadToCloudinary = async (file) => {
 
     // Clean up the temporary file even if upload fails (only if it exists)
     if (file.tempFilePath) {
-      try {
+    try {
         if (fs.existsSync(file.tempFilePath)) {
-          fs.unlinkSync(file.tempFilePath);
-        }
-      } catch (cleanupError) {
-        console.error(
-          "Error cleaning up temporary file after error:",
-          cleanupError
-        );
+        fs.unlinkSync(file.tempFilePath);
+      }
+    } catch (cleanupError) {
+      console.error(
+        "Error cleaning up temporary file after error:",
+        cleanupError
+      );
       }
     }
 

@@ -194,11 +194,13 @@ const Recharge = () => {
             navigate('/recharge/mobile');
             return;
         }
-        // if (service.key === 'dth') {
-        //     navigate('/recharge/dth');
-        //     return;
-        // }
+        if (service.key === 'dth') {
+            navigate('/recharge/dth');
+            return;
+        }
         setComingSoon({ open: true, section, label: service.label });
+        // Scroll to top when modal opens to ensure it's visible
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // Show login prompt if user is not authenticated
@@ -368,7 +370,10 @@ const Recharge = () => {
                         <h2 className="text-sm font-semibold text-gray-700 mt-10 mb-3">Travel</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                             {travelServices.map(s => (
-                                <button key={s.key} onClick={() => setComingSoon({ open: true, section: 'Travel', label: s.label })} className={`relative ${tilesBase} ${s.border} ${s.bg}`}>
+                                <button key={s.key} onClick={() => {
+                                    setComingSoon({ open: true, section: 'Travel', label: s.label });
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }} className={`relative ${tilesBase} ${s.border} ${s.bg}`}>
                                     {/* Left content */}
                                     <div className="flex items-center gap-3">
                                         <div className="relative w-10 h-10 rounded-lg bg-white/70 border border-gray-100 flex items-center justify-center overflow-hidden">
@@ -389,34 +394,38 @@ const Recharge = () => {
                             ))}
                         </div>
                     </div>
-                    {/* Coming Soon Modal */}
-                    {comingSoon.open && (
-                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-orange-100">
-                                <div className="flex items-center justify-between p-4 border-b">
-                                    <h3 className="text-lg font-bold text-gray-800">Coming Soon</h3>
-                                    <button onClick={() => setComingSoon({ open: false, section: '', label: '' })} className="text-gray-400 hover:text-gray-600">
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <div className="p-5">
-                                    <p className="text-gray-700 text-sm">
-                                        {comingSoon.section} → <span className="font-semibold">{comingSoon.label}</span> is under development. We are working hard to bring this service to you soon.
-                                    </p>
-                                    <div className="mt-4 flex justify-end">
-                                        <button
-                                            onClick={() => setComingSoon({ open: false, section: '', label: '' })}
-                                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF4E00] to-orange-500 text-white text-sm font-semibold hover:shadow-md"
-                                        >
-                                            Okay
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {/* Coming Soon Modal - Moved outside container for proper positioning */}
+            {comingSoon.open && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-orange-100 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-800">Coming Soon</h3>
+                            <button
+                                onClick={() => setComingSoon({ open: false, section: '', label: '' })}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-5">
+                            <p className="text-gray-700 text-sm leading-relaxed">
+                                <span className="font-semibold text-orange-600">{comingSoon.section}</span> → <span className="font-semibold text-gray-900">{comingSoon.label}</span> is under development. We are working hard to bring this service to you soon.
+                            </p>
+                            <div className="mt-4 flex justify-end">
+                                <button
+                                    onClick={() => setComingSoon({ open: false, section: '', label: '' })}
+                                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF4E00] to-orange-500 text-white text-sm font-semibold hover:shadow-md transition-all"
+                                >
+                                    Okay
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Add Money Form Modal */}
             {showAddMoneyForm && (

@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { api, API_ENDPOINTS } from "../config/api";
 
+// Shared polling state to prevent multiple intervals
+let globalPollingInterval = null;
+let globalUnreadCountCache = { count: 0, timestamp: 0 };
+let activeComponentsCount = 0; // Track how many components are using the hook
+const CACHE_DURATION = 10000; // 10 seconds cache
+const POLLING_INTERVAL = 60000; // 60 seconds (1 minute) instead of 30 seconds
+let pendingRequest = null;
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -11,6 +19,7 @@ export const useNotifications = () => {
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const lastConnectionAttemptRef = useRef(0);
+  const lastFetchTimeRef = useRef(0);
 
   // Check if we should proceed with API calls
   const shouldProceed = () => {
@@ -62,22 +71,54 @@ export const useNotifications = () => {
     [isAuthenticated, user, token, isTokenValid, validateAuth]
   );
 
-  // Fetch unread count
-  const fetchUnreadCount = useCallback(async () => {
+  // Fetch unread count with caching and deduplication
+  const fetchUnreadCount = useCallback(async (force = false) => {
     if (!shouldProceed()) return;
 
-    try {
-      const response = await api.get(API_ENDPOINTS.notifications.unreadCount);
-      if (response.data.success) {
-        setUnreadCount(response.data.data.unreadCount);
-      }
-    } catch (error) {
-      console.error("Error fetching unread count:", error);
-      // If we get a 401, validate auth
-      if (error.response?.status === 401) {
-        validateAuth();
-      }
+    // Check cache first (unless forced)
+    const now = Date.now();
+    if (!force && now - globalUnreadCountCache.timestamp < CACHE_DURATION) {
+      setUnreadCount(globalUnreadCountCache.count);
+      return;
     }
+
+    // Prevent duplicate simultaneous requests
+    if (pendingRequest) {
+      return pendingRequest.then(() => {
+        setUnreadCount(globalUnreadCountCache.count);
+      });
+    }
+
+    // Throttle: Don't fetch if last fetch was less than 5 seconds ago
+    if (!force && now - lastFetchTimeRef.current < 5000) {
+      setUnreadCount(globalUnreadCountCache.count);
+      return;
+    }
+
+    lastFetchTimeRef.current = now;
+
+    // Create the request promise
+    pendingRequest = (async () => {
+      try {
+        const response = await api.get(API_ENDPOINTS.notifications.unreadCount);
+        if (response.data.success) {
+          const count = response.data.data.unreadCount;
+          // Update cache
+          globalUnreadCountCache = { count, timestamp: now };
+          setUnreadCount(count);
+        }
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+        // If we get a 401, validate auth
+        if (error.response?.status === 401) {
+          validateAuth();
+        }
+      } finally {
+        pendingRequest = null;
+      }
+    })();
+
+    return pendingRequest;
   }, [isAuthenticated, user, token, isTokenValid, validateAuth]);
 
   // Mark notification as read
@@ -99,7 +140,10 @@ export const useNotifications = () => {
               : notif
           )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        const newCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newCount);
+        // Update cache
+        globalUnreadCountCache = { count: newCount, timestamp: Date.now() };
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -107,7 +151,7 @@ export const useNotifications = () => {
         validateAuth();
       }
     }
-  }, [isAuthenticated, user, token, isTokenValid, validateAuth]);
+  }, [isAuthenticated, user, token, isTokenValid, validateAuth, unreadCount]);
 
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
@@ -122,6 +166,8 @@ export const useNotifications = () => {
           prev.map((notif) => ({ ...notif, isRead: true, readAt: new Date() }))
         );
         setUnreadCount(0);
+        // Update cache
+        globalUnreadCountCache = { count: 0, timestamp: Date.now() };
       }
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
@@ -175,6 +221,9 @@ export const useNotifications = () => {
 
   // Initialize SSE connection for real-time notifications
   useEffect(() => {
+    // Increment active components count
+    activeComponentsCount++;
+    
     // Early return if not authenticated or missing credentials
     if (!shouldProceed()) {
       // Clean up SSE connection when not authenticated
@@ -189,6 +238,7 @@ export const useNotifications = () => {
       // Reset state
       setNotifications([]);
       setUnreadCount(0);
+      activeComponentsCount--;
       return;
     }
 
@@ -227,8 +277,12 @@ export const useNotifications = () => {
               case 'new_notification':
                 // Add new notification to state
                 addNotification(data.notification);
-                // Update unread count
-                setUnreadCount(prev => prev + 1);
+                // Update unread count and cache (use functional update to get current value)
+                setUnreadCount(prev => {
+                  const newCount = prev + 1;
+                  globalUnreadCountCache = { count: newCount, timestamp: Date.now() };
+                  return newCount;
+                });
                 break;
               default:
             }
@@ -266,22 +320,29 @@ export const useNotifications = () => {
     // Temporarily disable SSE and use polling only for production
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     
+    // Use shared global polling to prevent multiple intervals
     if (isProduction) {
-      // Use polling for production
-      const interval = setInterval(() => {
-        fetchUnreadCount();
-      }, 30000);
-      return () => clearInterval(interval);
+      // Clear any existing polling interval
+      if (globalPollingInterval) {
+        clearInterval(globalPollingInterval);
+      }
+      
+      // Set up shared polling interval (only one for all components)
+      globalPollingInterval = setInterval(() => {
+        fetchUnreadCount(false); // Use cache if available
+      }, POLLING_INTERVAL);
     } else {
       // Use SSE for development
       connectSSE();
     }
 
-    // Initial fetch of notifications
-    fetchUnreadCount();
+    // Initial fetch of notifications (force fetch on mount)
+    fetchUnreadCount(true);
 
     // Cleanup function
     return () => {
+      activeComponentsCount--;
+      
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -289,6 +350,12 @@ export const useNotifications = () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
+      }
+      
+      // Clear global polling interval when no components are using it
+      if (activeComponentsCount === 0 && globalPollingInterval) {
+        clearInterval(globalPollingInterval);
+        globalPollingInterval = null;
       }
     };
   }, [isAuthenticated, user, token, isTokenValid, validateAuth, fetchUnreadCount, addNotification]);

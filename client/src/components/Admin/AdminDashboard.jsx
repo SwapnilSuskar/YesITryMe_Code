@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, User, Wallet, YoutubeIcon } from "lucide-react";
+import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, Tv, User, Wallet, YoutubeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import api, { API_ENDPOINTS } from "../../config/api";
@@ -556,6 +556,23 @@ const AdminDashboard = () => {
                 <div>
                   <h3 className="font-bold text-sm">Recharge Analysis</h3>
                   <p className="text-xs opacity-75 mt-1">Monitor recharges</p>
+                </div>
+              </div>
+            </Link>
+            <Link
+              to="/admin/dth-analysis"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/dth-analysis"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-purple-50 hover:to-purple-100 border border-gray-200 hover:border-purple-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/dth-analysis" ? "bg-white/20" : "bg-purple-100 group-hover:bg-purple-200"}`}>
+                  <Tv className={`w-8 h-8 ${location.pathname === "/admin/dth-analysis" ? "text-white" : "text-purple-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">DTH Analysis</h3>
+                  <p className="text-xs opacity-75 mt-1">Monitor DTH recharges</p>
                 </div>
               </div>
             </Link>

@@ -21,6 +21,7 @@ import AdminActivationTracker from '../components/Admin/AdminActivationTracker';
 import AdminAnalytics from '../components/Admin/AdminAnalytics';
 import AdminPurchaseManager from '../components/Admin/AdminPurchaseManager';
 import AdminRechargeAnalysis from '../components/Admin/AdminRechargeAnalysis';
+import AdminDTHAnalysis from '../components/Admin/AdminDTHAnalysis';
 import AdminWalletTopUpManager from '../components/Admin/AdminWalletTopUpManager';
 import AdminFundsManager from '../components/Admin/AdminFundsManager';
 import KycManager from '../components/Admin/KycManager';
@@ -214,6 +215,7 @@ const AppRouter = () => {
         <Route path="coin-withdrawal-requests" element={<WithdrawalRequests />} />
         <Route path="wallet-manager" element={<WalletManager />} />
         <Route path="recharge-analysis" element={<AdminRechargeAnalysis />} />
+        <Route path="dth-analysis" element={<AdminDTHAnalysis />} />
         <Route path="wallet-topup-manager" element={<AdminWalletTopUpManager />} />
         <Route path="course-content" element={<CourseContentManager />} />
       </Route>

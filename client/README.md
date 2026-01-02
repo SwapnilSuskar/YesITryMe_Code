@@ -1,4 +1,4 @@
 @"
 protocol=https
 host=github.com
-"@ | git credential-manager erase
+"@ | git credential-manager erasee

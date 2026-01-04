@@ -207,7 +207,6 @@ const Recharge = () => {
     if (!user) {
         return <LoginPrompt type="recharge" />;
     }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-white via-orange-50 to-orange-100 pt-24 pb-12">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">

@@ -86,7 +86,14 @@ const AdminRechargeAnalysis = () => {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+    setFilters(prev => {
+      // Don't reset page to 1 when changing the page itself
+      if (key === 'page') {
+        return { ...prev, [key]: value };
+      }
+      // Reset to page 1 for other filter changes
+      return { ...prev, [key]: value, page: 1 };
+    });
   };
 
   const handleEdit = (recharge) => {

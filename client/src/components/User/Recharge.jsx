@@ -194,10 +194,10 @@ const Recharge = () => {
             navigate('/recharge/mobile');
             return;
         }
-        // if (service.key === 'dth') {
-        //     navigate('/recharge/dth');
-        //     return;
-        // }
+        if (service.key === 'dth') {
+            navigate('/recharge/dth');
+            return;
+        }
         setComingSoon({ open: true, section, label: service.label });
         // Scroll to top when modal opens to ensure it's visible
         window.scrollTo({ top: 0, behavior: 'smooth' });

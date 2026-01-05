@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Smartphone, IndianRupee, Clock, ArrowLeft, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle, Smartphone, Tv, IndianRupee, Clock, ArrowLeft, Sparkles, Loader2 } from 'lucide-react';
 import { checkRechargeStatus } from '../../services/rechargeService';
 import useToast from '../../hooks/useToast';
 
@@ -15,13 +15,18 @@ const RechargeSuccess = () => {
     const rechargeId = searchParams.get('rechargeId') || location.state?.rechargeId;
     const formData = location.state?.formData;
     const showUpgradeNotice = formData?.isActiveMember === false;
+    
+    // Calculate recharge type - use formData first (available immediately), then rechargeData (after API call)
+    const rechargeType = formData?.rechargeType || rechargeData?.rechargeType || 'prepaid';
+    const isDTH = rechargeType === 'dth';
 
     // Fetch recharge details
     useEffect(() => {
         const fetchRechargeDetails = async () => {
             if (!rechargeId) {
                 showError('Recharge ID not found');
-                setTimeout(() => navigate('/recharge/mobile'), 2000);
+                const redirectPath = formData?.rechargeType === 'dth' ? '/recharge/dth' : '/recharge/mobile';
+                setTimeout(() => navigate(redirectPath), 2000);
                 return;
             }
 
@@ -32,12 +37,14 @@ const RechargeSuccess = () => {
                     setRechargeData(response.data);
                 } else {
                     showError('Failed to fetch recharge details');
-                    setTimeout(() => navigate('/recharge/mobile'), 2000);
+                    const redirectPath = formData?.rechargeType === 'dth' ? '/recharge/dth' : '/recharge/mobile';
+                    setTimeout(() => navigate(redirectPath), 2000);
                 }
             } catch (error) {
                 console.error('Error fetching recharge details:', error);
                 showError('Failed to fetch recharge details');
-                setTimeout(() => navigate('/recharge/mobile'), 2000);
+                const redirectPath = formData?.rechargeType === 'dth' ? '/recharge/dth' : '/recharge/mobile';
+                setTimeout(() => navigate(redirectPath), 2000);
             } finally {
                 setLoading(false);
             }
@@ -61,7 +68,8 @@ const RechargeSuccess = () => {
     const cashbackAmount = formData?.discountDetails?.amount || rechargeData?.discountAmount || 0;
     const platformFee = rechargeData?.platformFee || rechargeData?.convenienceFee || 0;
     const totalSavings = cashbackAmount > 0 ? cashbackAmount : Math.max(basePlanAmount - amount, 0);
-    const mobileNumber = rechargeData?.mobileNumber || formData?.mobileNumber || '';
+    const mobileNumber = rechargeData?.mobileNumber || formData?.mobileNumber || formData?.subscriberId || '';
+    const subscriberId = isDTH ? (rechargeData?.mobileNumber || formData?.subscriberId || formData?.mobileNumber || '') : '';
     const operator = rechargeData?.operator || formData?.operator || '';
     const rechargeTime = rechargeData?.rechargeCompletedAt || rechargeData?.createdAt || new Date();
 
@@ -101,20 +109,20 @@ const RechargeSuccess = () => {
         <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-24 pb-12">
             <div className="max-w-2xl mx-auto px-4 sm:px-6">
                 <button
-                    onClick={() => navigate('/recharge/mobile')}
+                    onClick={() => navigate(isDTH ? '/recharge/dth' : '/recharge/mobile')}
                     className="mb-4 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-orange-600 transition"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to Recharge
+                    Back to {isDTH ? 'DTH' : 'Mobile'} Recharge
                 </button>
                 <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
                     {/* Success Header */}
-                    <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 p-8 text-center">
+                    <div className={`bg-gradient-to-r ${isDTH ? 'from-purple-500 via-pink-500 to-rose-500' : 'from-green-500 via-emerald-500 to-teal-500'} p-8 text-center`}>
                         <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                             <CheckCircle className="w-12 h-12 text-white" />
                         </div>
                         <h1 className="text-3xl font-extrabold text-white mb-2">🎉 Congratulations!</h1>
-                        <p className="text-white/90 text-lg">Your recharge was successful</p>
+                        <p className="text-white/90 text-lg">Your {isDTH ? 'DTH recharge' : 'recharge'} was successful</p>
                         <div className="mt-4 inline-block">
                             <div className="bg-white/20 backdrop-blur-md rounded-full px-6 py-2 border-2 border-white/30 shadow-lg">
                                 <p className="text-white font-bold text-lg tracking-wide animate-pulse">
@@ -126,18 +134,24 @@ const RechargeSuccess = () => {
                     {/* Recharge Details */}
                     <div className="p-6 space-y-6">
                         {/* Recharge Info Card */}
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                        <div className={`bg-gradient-to-r ${isDTH ? 'from-purple-50 to-pink-50 border-purple-200' : 'from-blue-50 to-indigo-50 border-blue-200'} rounded-xl p-6 border`}>
                             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <Smartphone className="w-5 h-5 text-blue-600" />
-                                Recharge Information
+                                {isDTH ? (
+                                    <Tv className="w-5 h-5 text-purple-600" />
+                                ) : (
+                                    <Smartphone className="w-5 h-5 text-blue-600" />
+                                )}
+                                {isDTH ? 'DTH' : 'Recharge'} Information
                             </h2>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-600">Mobile Number</span>
-                                    <span className="text-base font-semibold text-gray-800">+91 {mobileNumber}</span>
+                                    <span className="text-sm text-gray-600">{isDTH ? 'Subscriber ID' : 'Mobile Number'}</span>
+                                    <span className="text-base font-semibold text-gray-800">
+                                        {isDTH ? subscriberId : `+91 ${mobileNumber}`}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-600">Operator</span>
+                                    <span className="text-sm text-gray-600">{isDTH ? 'DTH Operator' : 'Operator'}</span>
                                     <span className="text-base font-semibold text-gray-800">{operator}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -241,10 +255,10 @@ const RechargeSuccess = () => {
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3 pt-4">
                             <button
-                                onClick={() => navigate('/recharge/mobile')}
+                                onClick={() => navigate(isDTH ? '/recharge/dth' : '/recharge/mobile')}
                                 className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 text-white font-semibold hover:shadow-lg transition-all"
                             >
-                                Recharge Again
+                                {isDTH ? 'DTH Recharge Again' : 'Recharge Again'}
                             </button>
                             <button
                                 onClick={() => navigate('/recharge')}

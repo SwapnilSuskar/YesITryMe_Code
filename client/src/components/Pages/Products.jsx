@@ -363,18 +363,28 @@ const Products = () => {
               </button>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 bg-white/50 backdrop-blur rounded-xl p-1.5 border border-gray-200 shadow-sm">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'}`}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
+                  viewMode === 'grid'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 transform scale-105'
+                    : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
+                }`}
               >
-                <Grid className="w-5 h-5" />
+                <Grid className={`w-5 h-5 ${viewMode === 'grid' ? 'text-white' : ''}`} />
+                <span className="text-sm font-semibold">Grid</span>
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'}`}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
+                  viewMode === 'list'
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 transform scale-105'
+                    : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
+                }`}
               >
-                <List className="w-5 h-5" />
+                <List className={`w-5 h-5 ${viewMode === 'list' ? 'text-white' : ''}`} />
+                <span className="text-sm font-semibold">List</span>
               </button>
             </div>
           </div>

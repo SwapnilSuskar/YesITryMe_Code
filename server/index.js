@@ -83,9 +83,9 @@ if (process.env.NODE_ENV === "development") {
         heapTotal: endMemory.heapTotal - startMemory.heapTotal,
         external: endMemory.external - startMemory.external
       };
-      
+
       if (Math.abs(memoryDiff.heapUsed) > 10 * 1024 * 1024) { // 10MB threshold
-        console.log(`⚠️  High memory usage on ${req.method} ${req.path}:`, {
+        console.log(`High memory usage on ${req.method} ${req.path}:`, {
           heapUsed: `${Math.round(memoryDiff.heapUsed / 1024 / 1024)}MB`,
           rss: `${Math.round(memoryDiff.rss / 1024 / 1024)}MB`
         });
@@ -264,12 +264,12 @@ if (process.env.NODE_ENV !== "production") {
       // Start server
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
-        console.log(`🚀 Server is running on port ${PORT}`);
-        console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
-        console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+        console.log(`Server is running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+        console.log(`Health check: http://localhost:${PORT}/health`);
       });
     } catch (error) {
-      console.error("❌ Failed to start server:", error);
+      console.error("Failed to start server:", error);
       process.exit(1);
     }
   };

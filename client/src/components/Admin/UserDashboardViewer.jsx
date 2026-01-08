@@ -478,7 +478,6 @@ const UserDashboardViewer = () => {
                                         <h4 className="text-lg font-bold text-gray-800 mb-3">Your Funds</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                                                <div className="text-2xl mb-1">📱</div>
                                                 <div className="text-sm font-medium text-gray-600">Mobile Fund</div>
                                                 <div className="text-lg font-bold text-blue-700">
                                                     ₹{userDashboardData.userFunds?.mobileFund?.toLocaleString() || '0'}
@@ -486,7 +485,6 @@ const UserDashboardViewer = () => {
                                             </div>
 
                                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                                                <div className="text-2xl mb-1">💻</div>
                                                 <div className="text-sm font-medium text-gray-600">Laptop Fund</div>
                                                 <div className="text-lg font-bold text-green-700">
                                                     ₹{userDashboardData.userFunds?.laptopFund?.toLocaleString() || '0'}
@@ -502,7 +500,6 @@ const UserDashboardViewer = () => {
                                             </div>
 
                                             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                                                <div className="text-2xl mb-1">🚗</div>
                                                 <div className="text-sm font-medium text-gray-600">Car Fund</div>
                                                 <div className="text-lg font-bold text-orange-700">
                                                     ₹{userDashboardData.userFunds?.carFund?.toLocaleString() || '0'}

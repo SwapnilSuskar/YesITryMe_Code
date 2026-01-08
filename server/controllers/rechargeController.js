@@ -2034,8 +2034,8 @@ const processRechargeWithA1Topup = async (recharge) => {
         throw new Error("Valid DTH subscriber ID (10-12 digits) is required");
       }
     } else {
-      if (!recharge.mobileNumber || !/^[6-9]\d{9}$/.test(recharge.mobileNumber)) {
-        throw new Error("Valid mobile number is required");
+    if (!recharge.mobileNumber || !/^[6-9]\d{9}$/.test(recharge.mobileNumber)) {
+      throw new Error("Valid mobile number is required");
       }
     }
 

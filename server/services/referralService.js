@@ -1759,6 +1759,102 @@ class ReferralService {
       totalCount: directUniqueBuyers.size + indirectUniqueBuyers.size,
     };
   }
+
+  /**
+   * Get unique successful downline buyers (combining both regular and super packages, deduplicated)
+   * @param {string} userId - The user ID
+   * @returns {Object} Object with directCount (unique buyers who have either regular or super package)
+   */
+  async getUniqueSuccessfulDownlineBuyers(userId) {
+    // Get direct referrals
+    const directReferrals = await User.find({ sponsorId: userId }, "userId");
+    const directReferralIds = directReferrals.map((user) => user.userId);
+
+    if (directReferralIds.length === 0) {
+      return { directCount: 0 };
+    }
+
+    // Get all regular package purchases by direct referrals (active status)
+    const regularPackagePurchases = await Purchase.find({
+      purchaserId: { $in: directReferralIds },
+      status: "active",
+    });
+
+    // Get all super package purchases by direct referrals (active status)
+    const superPackagePurchases = await SuperPackagePurchase.find({
+      purchaserId: { $in: directReferralIds },
+      status: "active",
+    });
+
+    // Combine and deduplicate: get unique userIds who have either regular OR super package
+    const uniqueBuyers = new Set();
+    
+    // Add regular package buyers
+    regularPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+    
+    // Add super package buyers (Set automatically handles duplicates)
+    superPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+
+    return {
+      directCount: uniqueBuyers.size,
+    };
+  }
+
+  /**
+   * Get unique indirect successful downline buyers (combining both regular and super packages, deduplicated)
+   * @param {string} userId - The user ID
+   * @returns {Object} Object with indirectCount (unique indirect buyers who have either regular or super package)
+   */
+  async getUniqueIndirectSuccessfulDownlineBuyers(userId) {
+    // Get direct referrals
+    const directReferrals = await User.find({ sponsorId: userId }, "userId");
+    const directReferralIds = directReferrals.map((user) => user.userId);
+
+    // Get all downline userIds (direct + indirect)
+    const allDownlineUserIds = await this.getAllDownlineUserIds(userId);
+
+    // Calculate indirect referral IDs (all downline minus direct)
+    const indirectReferralIds = allDownlineUserIds.filter(
+      (id) => !directReferralIds.includes(id)
+    );
+
+    if (indirectReferralIds.length === 0) {
+      return { indirectCount: 0 };
+    }
+
+    // Get all regular package purchases by indirect referrals (active status)
+    const regularPackagePurchases = await Purchase.find({
+      purchaserId: { $in: indirectReferralIds },
+      status: "active",
+    });
+
+    // Get all super package purchases by indirect referrals (active status)
+    const superPackagePurchases = await SuperPackagePurchase.find({
+      purchaserId: { $in: indirectReferralIds },
+      status: "active",
+    });
+
+    // Combine and deduplicate: get unique userIds who have either regular OR super package
+    const uniqueBuyers = new Set();
+    
+    // Add regular package buyers
+    regularPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+    
+    // Add super package buyers (Set automatically handles duplicates)
+    superPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+
+    return {
+      indirectCount: uniqueBuyers.size,
+    };
+  }
 }
 
 export default new ReferralService();

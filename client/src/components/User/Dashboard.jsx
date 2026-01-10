@@ -1,6 +1,6 @@
 import { ArrowRight, BadgeCheck, CalendarDays, CheckCircle, Crown, Download, Gift, Image as ImageIcon, IndianRupee, Mail, Package, Quote, RefreshCw, Smartphone, User, UserCheck, User as UserIcon, Users, Wallet, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import DashboardCard from '../UI/DashboardCard';
@@ -15,7 +15,7 @@ import UserAvatar from '../UI/UserAvatar';
 import UserFunds from '../UI/UserFunds';
 
 const Dashboard = () => {
-  const { user, token, syncUserStatus } = useAuthStore();
+  const { user, token, syncUserStatus, setUser } = useAuthStore();
   const navigate = useNavigate();
   const [commissionSummary, setCommissionSummary] = useState({
     balance: 0,
@@ -43,6 +43,8 @@ const Dashboard = () => {
   const [totalPackageBuyers, setTotalPackageBuyers] = useState(0);
   const [directBuyers, setDirectBuyers] = useState(0);
   const [indirectBuyers, setIndirectBuyers] = useState(0);
+  const [uniqueSuccessfulDownline, setUniqueSuccessfulDownline] = useState(0);
+  const [uniqueIndirectSuccessfulDownline, setUniqueIndirectSuccessfulDownline] = useState(0);
   const [commissionTransactions, setCommissionTransactions] = useState([]);
   const [teamIncome, setTeamIncome] = useState(0);
   const [teamIncomeLoading, setTeamIncomeLoading] = useState(false);
@@ -82,6 +84,7 @@ const Dashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [refreshMessage, setRefreshMessage] = useState('');
+  const [mlmLevel, setMlmLevel] = useState(null);
 
   // Memoized calculations to prevent unnecessary recalculations
   const totalActiveIncome = useMemo(() => {
@@ -123,6 +126,48 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line
   }, [user, token]);
+
+  // Track last fetched downline count using refs (persists across re-renders but doesn't cause them)
+  const lastFetchedDownlineCountRef = useRef(null);
+  const fetchMLMLevelTimeoutRef = useRef(null);
+
+  // Fetch MLM level only when uniqueSuccessfulDownline count actually changes (not on every visit)
+  useEffect(() => {
+    // Clear any pending timeout
+    if (fetchMLMLevelTimeoutRef.current) {
+      clearTimeout(fetchMLMLevelTimeoutRef.current);
+      fetchMLMLevelTimeoutRef.current = null;
+    }
+
+    // Only proceed if we have data loaded and a valid count
+    if (user && token && !loading && uniqueSuccessfulDownline > 0) {
+      // Only fetch if the count has actually changed from what we last fetched
+      // This prevents fetching on every visit if the count hasn't changed
+      const countChanged = lastFetchedDownlineCountRef.current !== null &&
+        uniqueSuccessfulDownline !== lastFetchedDownlineCountRef.current;
+
+      // Fetch only if count changed (not on initial load unless count is different)
+      if (countChanged) {
+        // Delay to ensure other data is fully loaded
+        fetchMLMLevelTimeoutRef.current = setTimeout(() => {
+          fetchMLMLevel();
+          lastFetchedDownlineCountRef.current = uniqueSuccessfulDownline;
+          fetchMLMLevelTimeoutRef.current = null;
+        }, 2000);
+      } else if (lastFetchedDownlineCountRef.current === null) {
+        // First time: set the initial count but don't fetch (use stored level from user object)
+        lastFetchedDownlineCountRef.current = uniqueSuccessfulDownline;
+      }
+    }
+
+    return () => {
+      if (fetchMLMLevelTimeoutRef.current) {
+        clearTimeout(fetchMLMLevelTimeoutRef.current);
+        fetchMLMLevelTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line
+  }, [user, token, loading, uniqueSuccessfulDownline]);
 
 
   // Periodic refresh every 5 minutes
@@ -173,7 +218,6 @@ const Dashboard = () => {
 
         if (walletResponse.ok) {
           const walletData = await walletResponse.json();
-
           // Use the activeIncome and passiveIncome fields directly from the API response
           setActiveIncome(walletData.data?.activeIncome || 0);
           setTeamIncome(walletData.data?.passiveIncome || 0);
@@ -186,7 +230,6 @@ const Dashboard = () => {
         setActiveIncome(0);
         setTeamIncome(0);
       }
-
       setTeamIncomeLoading(false);
     };
     if (user && token && referralTree.directReferrals) fetchTeamIncome();
@@ -362,6 +405,10 @@ const Dashboard = () => {
         if (data.indirectBuyers !== undefined) {
           setIndirectBuyers(data.indirectBuyers);
         }
+        // Update unique successful downline count (combining regular + super packages, deduplicated)
+        if (data.uniqueSuccessfulDownline !== undefined) {
+          setUniqueSuccessfulDownline(data.uniqueSuccessfulDownline);
+        }
       } else {
         setDownlineStats([]);
       }
@@ -485,6 +532,28 @@ const Dashboard = () => {
       setTotalSuperPackageBuyers(0);
     }
   };
+
+  // Fetch MLM level (this recalculates the level on the server using unified successful downline count)
+  const fetchMLMLevel = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.mlm.level}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setMlmLevel(data.data.mlmLevel);
+          // Update user in auth store with new MLM level
+          if (user && data.data.mlmLevel) {
+            const updatedUser = { ...user, mlmLevel: data.data.mlmLevel };
+            setUser(updatedUser);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching MLM level:', error);
+    }
+  }, [token, user, setUser]);
 
   // Refetch super package downline stats when period changes
   useEffect(() => {
@@ -617,6 +686,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, fetchDashboardData]);
 
 
@@ -770,8 +840,18 @@ const Dashboard = () => {
         .filter(t => t.type === 'commission' && t.status === 'completed' && t.level === 1 && new Date(t.createdAt) >= date && new Date(t.createdAt) < nextDay)
         .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
-      // Only include actual transaction data, not static funds/special income
-      return regularCommissionSum;
+      // Include admin-added funds (fund_credit transactions with incomeType 'active')
+      const adminAddedActiveSum = periodTransactions
+        .filter(t =>
+          t.type === 'fund_credit' &&
+          t.status === 'completed' &&
+          t.incomeType === 'active' &&
+          new Date(t.createdAt) >= date &&
+          new Date(t.createdAt) < nextDay
+        )
+        .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+      return regularCommissionSum + adminAddedActiveSum;
     });
 
     const passiveIncomeData = periodDates.map(date => {
@@ -783,7 +863,18 @@ const Dashboard = () => {
         .filter(t => t.type === 'commission' && t.status === 'completed' && t.level >= 2 && t.level <= 120 && new Date(t.createdAt) >= date && new Date(t.createdAt) < nextDay)
         .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
-      return regularPassiveSum;
+      // Include admin-added funds (fund_credit transactions with incomeType 'passive')
+      const adminAddedPassiveSum = periodTransactions
+        .filter(t =>
+          t.type === 'fund_credit' &&
+          t.status === 'completed' &&
+          t.incomeType === 'passive' &&
+          new Date(t.createdAt) >= date &&
+          new Date(t.createdAt) < nextDay
+        )
+        .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+      return regularPassiveSum + adminAddedPassiveSum;
     });
 
     const labels = periodDates.map(date => date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }));
@@ -954,7 +1045,7 @@ const Dashboard = () => {
                   <span className="text-sm font-medium text-gray-600">Level</span>
                   <span className="flex items-center gap-1 text-sm font-semibold text-blue-600">
                     <Crown size={16} />
-                    {user.mlmLevel || 'Active Member'}
+                    {mlmLevel || user.mlmLevel || 'Active Member'}
                   </span>
                 </div>
               </div>
@@ -1075,10 +1166,10 @@ const Dashboard = () => {
             icon={Package}
             iconColor="text-red-500"
             title="My Successfully Downline"
-            value={directBuyers + directSuperPackageBuyers}
+            value={uniqueSuccessfulDownline || (directBuyers + directSuperPackageBuyers)}
             borderColor="border-red-100"
             textColor="text-red-700"
-            tooltip={`Direct Package Buyers: ${directBuyers} | Direct Super Package Buyers: ${directSuperPackageBuyers}`}
+            tooltip={`Unique Direct Buyers (Regular + Super Packages, deduplicated): ${uniqueSuccessfulDownline || (directBuyers + directSuperPackageBuyers)}`}
             onClick={() => navigate('/my-successfully-downline')}
             arrowIcon={ArrowRight}
           />
@@ -1236,17 +1327,17 @@ const Dashboard = () => {
           loadingText="Loading downline data..."
           summaryData={[
             {
-              value: directBuyers + directSuperPackageBuyers,
+              value: uniqueSuccessfulDownline || (directBuyers + directSuperPackageBuyers),
               label: 'Direct Package Buyers',
               color: 'text-amber-600'
             },
             {
-              value: indirectBuyers + indirectSuperPackageBuyers,
+              value: uniqueIndirectSuccessfulDownline || (indirectBuyers + indirectSuperPackageBuyers),
               label: 'Indirect Package Buyers',
               color: 'text-pink-600'
             },
             {
-              value: totalPackageBuyers + totalSuperPackageBuyers,
+              value: (uniqueSuccessfulDownline || (directBuyers + directSuperPackageBuyers)) + (uniqueIndirectSuccessfulDownline || (indirectBuyers + indirectSuperPackageBuyers)),
               label: 'Total Package Buyers',
               color: 'text-green-600'
             },

@@ -6,7 +6,7 @@ import {
   updateMLMLevel,
   getTeamStructure,
   getUsersByMLMLevel,
-  getMLMStats
+  getMLMStats  
 } from "../controllers/mlmController.js";
 
 const router = express.Router();

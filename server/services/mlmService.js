@@ -30,33 +30,45 @@ export const checkActiveMemberStatus = async (userId) => {
 };
 
 // Get direct active members count
+// Uses the same unified logic as successful downline count: checks for active purchases (both regular and super packages) with deduplication
 export const getDirectActiveMembers = async (userId) => {
   try {
-    const activeStatuses = ["active", "kyc_verified"];
+    // Get direct referrals
+    const directReferrals = await User.find({ sponsorId: userId }, "userId");
+    const directReferralIds = directReferrals.map((user) => user.userId);
 
-    // Count referrals already marked active/kyc_verified
-    const statusActiveCount = await User.countDocuments({
-      sponsorId: userId,
-      status: { $in: activeStatuses },
-    });
-
-    // Some legacy users might have valid purchases but status not updated
-    const remainingReferrals = await User.find({
-      sponsorId: userId,
-      status: { $nin: activeStatuses },
-    }).select("userId");
-
-    let purchaseActiveCount = 0;
-    if (remainingReferrals.length > 0) {
-      const activityChecks = await Promise.all(
-        remainingReferrals.map((referral) =>
-          checkActiveMemberStatus(referral.userId)
-        )
-      );
-      purchaseActiveCount = activityChecks.filter(Boolean).length;
+    if (directReferralIds.length === 0) {
+      return 0;
     }
 
-    return statusActiveCount + purchaseActiveCount;
+    // Get all regular package purchases by direct referrals (active status)
+    // This matches the logic used in getUniqueSuccessfulDownlineBuyers
+    const regularPackagePurchases = await Purchase.find({
+      purchaserId: { $in: directReferralIds },
+      status: "active",
+    });
+
+    // Get all super package purchases by direct referrals (active status)
+    const superPackagePurchases = await SuperPackagePurchase.find({
+      purchaserId: { $in: directReferralIds },
+      status: "active",
+    });
+
+    // Combine and deduplicate: get unique userIds who have either regular OR super package
+    // This ensures we count each user only once, matching the Dashboard and SuccessfulDownline display
+    const uniqueBuyers = new Set();
+    
+    // Add regular package buyers
+    regularPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+    
+    // Add super package buyers (Set automatically handles duplicates)
+    superPackagePurchases.forEach((purchase) => {
+      uniqueBuyers.add(purchase.purchaserId);
+    });
+
+    return uniqueBuyers.size;
   } catch (error) {
     console.error("Error getting direct active members:", error);
     return 0;

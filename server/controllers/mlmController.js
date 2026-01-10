@@ -11,9 +11,28 @@ import {
 } from "../services/mlmService.js";
 
 // Get user's MLM level and team structure
+// Only recalculates if the successful downline count has changed to avoid unnecessary refreshes
 export const getUserMLMLevel = async (req, res) => {
   try {
     const { userId } = req.user;
+    
+    // Get current user to check stored directActiveMembers count
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Get current successful downline count using unified logic
+    const currentCount = await getDirectActiveMembers(userId);
+    const storedCount = user.directActiveMembers || 0;
+    
+    // Only recalculate if the count has changed (to avoid unnecessary refreshes)
+    if (currentCount !== storedCount) {
+      await calculateAndUpdateMLMLevel(userId);
+    }
     
     const teamStructure = await getUserTeamStructure(userId);
     

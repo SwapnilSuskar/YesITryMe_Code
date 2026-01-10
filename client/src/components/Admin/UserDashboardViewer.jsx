@@ -394,7 +394,12 @@ const UserDashboardViewer = () => {
                                                     </div>
                                                     <div className="text-lg font-bold text-red-700">
                                                         {(() => {
-                                                            // Use directBuyers and directSuperPackageBuyers from backend to match Dashboard exactly
+                                                            // Use uniqueSuccessfulDownline if available (unified count), otherwise fallback to directBuyers + directSuperPackageBuyers
+                                                            const uniqueCount = parseInt(userDashboardData.uniqueSuccessfulDownline || 0, 10) || 0;
+                                                            if (uniqueCount > 0) {
+                                                                return uniqueCount.toLocaleString();
+                                                            }
+                                                            // Fallback: calculate from directBuyers + directSuperPackageBuyers
                                                             const directBuyers = parseInt(userDashboardData.directBuyers || 0, 10) || 0;
                                                             const directSuperPackageBuyers = parseInt(userDashboardData.directSuperPackageBuyers || 0, 10) || 0;
                                                             return (directBuyers + directSuperPackageBuyers).toLocaleString();
@@ -596,7 +601,9 @@ const UserDashboardViewer = () => {
                                                     </div>
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-sm font-medium text-gray-600">Active Downline:</span>
-                                                        <span className="text-sm font-semibold text-green-600">{userDashboardData.successfullyDownline || 0}</span>
+                                                        <span className="text-sm font-semibold text-green-600">
+                                                            {userDashboardData.uniqueSuccessfulDownline || userDashboardData.successfullyDownline || 0}
+                                                        </span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-sm font-medium text-gray-600">Referral Link:</span>

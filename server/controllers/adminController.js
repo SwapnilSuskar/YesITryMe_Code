@@ -1325,9 +1325,14 @@ export const getUserDashboardData = async (req, res) => {
     const directBuyers = regularTotals?.directCount || 0;
     const directSuperPackageBuyers = superTotals?.directCount || 0;
     
+    // Get unique successful downline count (combining regular + super packages, deduplicated)
+    const uniqueSuccessfulDownline =
+      await referralService.getUniqueSuccessfulDownlineBuyers(user.userId);
+    
     // Keep fallback values for backwards compatibility but use Dashboard values for display
     const finalRegularDirect = directBuyers;
     const finalSuperDirect = directSuperPackageBuyers;
+    const uniqueSuccessfulDownlineCount = uniqueSuccessfulDownline?.directCount || 0;
 
     // Calculate Super Package commissions exactly as Dashboard does
     // Filter wallet transactions for super package commissions
@@ -1377,11 +1382,12 @@ export const getUserDashboardData = async (req, res) => {
       wallet: commissionSummary?.balance || 0,
       withdrawn: withdrawn,
       referralLeads: directReferralsCount,
-      successfullyDownline: finalRegularDirect,
+      successfullyDownline: uniqueSuccessfulDownlineCount || finalRegularDirect,
       superSuccessfullyDownline: finalSuperDirect,
       // Direct buyers matching Dashboard calculation exactly
       directBuyers: directBuyers,
       directSuperPackageBuyers: directSuperPackageBuyers,
+      uniqueSuccessfulDownline: uniqueSuccessfulDownlineCount, // Unified count (regular + super, deduplicated)
       activeIncome: activeIncome,
       passiveIncome: passiveIncome,
       leadershipFund: leadershipFund,

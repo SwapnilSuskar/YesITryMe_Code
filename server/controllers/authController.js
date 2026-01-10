@@ -743,6 +743,14 @@ export const getDownlineStats7Days = async (req, res) => {
     const totalCategorized =
       await referralService.getTotalCategorizedPackageBuyers(userId);
 
+    // Get unique successful downline buyers (combining regular + super packages, deduplicated)
+    const uniqueSuccessfulDownline =
+      await referralService.getUniqueSuccessfulDownlineBuyers(userId);
+
+    // Get unique indirect successful downline buyers (combining regular + super packages, deduplicated)
+    const uniqueIndirectSuccessfulDownline =
+      await referralService.getUniqueIndirectSuccessfulDownlineBuyers(userId);
+
     // Combine direct and indirect package buyer stats
     const combinedStats = categorizedData.directBuyers.map(
       (directItem, index) => {
@@ -764,6 +772,8 @@ export const getDownlineStats7Days = async (req, res) => {
       totalUniqueBuyers: totalCategorized.totalCount,
       directBuyers: totalCategorized.directCount,
       indirectBuyers: totalCategorized.indirectCount,
+      uniqueSuccessfulDownline: uniqueSuccessfulDownline.directCount, // Unique count combining both package types
+      uniqueIndirectSuccessfulDownline: uniqueIndirectSuccessfulDownline.indirectCount, // Unique indirect count combining both package types
     });
   } catch (error) {
     console.error("Error getting downline package buyer stats:", error);

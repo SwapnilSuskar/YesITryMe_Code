@@ -13,6 +13,7 @@ const SuccessfulDownline = () => {
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [selectedDate, setSelectedDate] = useState('');
   const [isFiltering, setIsFiltering] = useState(false);
+  const [uniqueSuccessfulDownlineCount, setUniqueSuccessfulDownlineCount] = useState(0);
 
   const formatDate = (value) => {
     if (!value) return '-';
@@ -37,7 +38,13 @@ const SuccessfulDownline = () => {
       setLoading(true);
       setError('');
       try {
+        // Fetch referral tree for the list
         const regularRes = await fetch(API_ENDPOINTS.packages.referralTree, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Fetch unique successful downline count (combining regular + super packages)
+        const downlineStatsRes = await fetch(`${API_ENDPOINTS.packages.downlineStats7Days}?period=alltime`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -47,6 +54,14 @@ const SuccessfulDownline = () => {
           setRegularDirects(directReferrals.filter(isSuccessfulBuyer));
         } else {
           setRegularDirects([]);
+        }
+
+        // Update unique count from downline stats
+        if (downlineStatsRes.ok) {
+          const statsData = await downlineStatsRes.json();
+          if (statsData.uniqueSuccessfulDownline !== undefined) {
+            setUniqueSuccessfulDownlineCount(statsData.uniqueSuccessfulDownline);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch successful downline', e);
@@ -147,7 +162,8 @@ const SuccessfulDownline = () => {
     return sorted;
   }, [rows, sortOrder, selectedDate]);
 
-  const totalCount = rows.length;
+  // Use unique count from API if available, otherwise fall back to filtered list length
+  const totalCount = uniqueSuccessfulDownlineCount > 0 ? uniqueSuccessfulDownlineCount : rows.length;
   const regularCount = regularDirects.length;
 
   if (!user) {

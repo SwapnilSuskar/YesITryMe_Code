@@ -5,13 +5,17 @@
 **YesITryMe** is a comprehensive Multi-Level Marketing (MLM) platform with integrated social media earning features. The application enables users to earn through referrals, complete social media tasks, and manage their MLM business with advanced analytics and commission tracking.
 
 ### Core Functionality
-- **User Registration & Authentication** - JWT-based auth
-- **MLM System** - 120-level commission structure with automatic level progression
-- **Package Management** - Regular packages (₹799) and Super Diamond packages (₹2999, ₹4999)
-- **Social Media Tasks** - YouTube task completion with embedded videos and automatic claiming
-- **Coin Reward System** - 1000 coin welcome bonus, 20 coin referral bonus, task-based earnings
-- **Multiple Income Streams** - Active, Passive, Special Income, and Funds
-- **Admin Panel** - Complete user management, payment verification, and analytics dashboard
+- **User Registration & Authentication** - JWT-based auth with OTP verification and password reset
+- **MLM System** - 120-level commission structure with automatic level progression and unique downline tracking
+- **Package Management** - Regular packages (₹799) and Super Diamond packages (₹2999, ₹4999) with separate commission systems
+- **Multi-Wallet System** - Regular Wallet (active/passive income), Smart Wallet/Recharge Wallet (mobile recharges), Coin Wallet (social task rewards)
+- **Social Media Tasks** - YouTube task completion with embedded videos, automatic claiming, and coin rewards (currently disabled)
+- **Coin Reward System** - 1000 coin welcome bonus, 20 coin referral bonus, task-based earnings with active income tracking
+- **Mobile Recharge Service** - A1Topup integration for prepaid/postpaid recharges with discount system for active user only
+- **Payout System** - Withdrawal requests with eligibility checks, withdrawal charges, and payment gateway integration
+- **Special Income Management** - Leadership Fund, Royalty Income, and Reward Income tracking
+- **Analytics & Reporting** - Comprehensive dashboard with charts, downline statistics, earnings breakdown, and package buyer analytics
+- **Admin Panel** - Complete user management, payment verification, wallet management (add/deduct funds), analytics dashboard, and user dashboard viewer
 
 ### MLM Levels & Progression
 - **Free** → **Active Member** → **Team Leader** → **Assistant Manager** → **Manager** → **Zonal Head** → **National Head Promoter**
@@ -52,12 +56,17 @@ YesITryMe/
 ```
 
 ### Key Modules
-- **Authentication System** - JWT tokens, OTP verification, password reset
-- **MLM Engine** - 120-level commission structure, automatic level updates
-- **Payment Processing** - Package purchases, payment verification, commission distribution
-- **Social Integration** - YouTube API integration for task verification
-- **Notification System** - Real-time notifications
-- **Admin Dashboard** - User management, analytics, payment verification
+- **Authentication System** - JWT tokens, OTP verification, password reset, email notifications
+- **MLM Engine** - 120-level commission structure, automatic level updates, unique downline buyer tracking (deduplicated across regular and super packages)
+- **Payment Processing** - Package purchases, payment verification, commission distribution, withdrawal processing
+- **Multi-Wallet System** - Regular Wallet (active/passive income separation), Recharge Wallet (mobile recharges), Coin Wallet (social task rewards)
+- **Recharge Service** - Mobile recharge integration with A1Topup API, discount system, transaction tracking
+- **Payout System** - Withdrawal eligibility checks, withdrawal charges calculation, payment gateway integration
+- **Special Income Management** - Leadership Fund, Royalty Income, Reward Income tracking and distribution
+- **Social Integration** - YouTube API integration for task verification, embedded video player, automatic claim system
+- **Analytics Engine** - Dashboard charts (earnings breakdown, package buyers by referral level), downline statistics, 7-day/15-day/monthly/all-time period filters
+- **Notification System** - Real-time notifications for transactions, commissions, payouts, and admin actions
+- **Admin Dashboard** - User management, payment verification, wallet management (add/deduct funds), user dashboard viewer, analytics, and comprehensive reporting
 
 ### Configuration Files
 - **client/package.json** - Frontend dependencies and scripts

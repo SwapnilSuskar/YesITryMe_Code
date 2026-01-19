@@ -332,6 +332,61 @@ export const getPayoutHistory = async (req, res) => {
   }
 };
 
+// Get user's TDS history
+export const getTDSHistory = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    // Get all payouts with TDS (where tds > 0)
+    const payouts = await Payout.find({ 
+      userId,
+      tds: { $gt: 0 }
+    })
+      .sort({ requestDate: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Payout.countDocuments({ 
+      userId,
+      tds: { $gt: 0 }
+    });
+
+    // Calculate total TDS
+    const totalTDSResult = await Payout.aggregate([
+      { $match: { userId, tds: { $gt: 0 } } },
+      { $group: { _id: null, totalTDS: { $sum: "$tds" } } }
+    ]);
+    const totalTDS = totalTDSResult.length > 0 ? totalTDSResult[0].totalTDS : 0;
+
+    res.json({
+      success: true,
+      data: {
+        tdsHistory: payouts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit,
+        },
+        summary: {
+          totalTDS: totalTDS,
+          totalTransactions: total,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error getting TDS history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting TDS history",
+      error: error.message,
+    });
+  }
+};
+
 // Get user's wallet balance
 export const getWalletBalance = async (req, res) => {
   try {

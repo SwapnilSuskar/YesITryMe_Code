@@ -1,4 +1,4 @@
-import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging } from 'lucide-react';
+import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from "../assets/Logo.png";
@@ -31,6 +31,7 @@ const Navbar = () => {
     { name: 'Wallet Transactions', path: '/wallet-transactions', icon: ReceiptIndianRupee },
     { name: 'My Earnings', path: '/earnings', icon: IndianRupee },
     { name: 'Payout', path: '/payout', icon: Wallet },
+    { name: 'My TDS', path: '/tds-history', icon: FileText },
     { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
     { name: 'My Team', path: '/my-team', icon: Users },
     { name: 'Packages', path: '/packages', icon: BookOpen },

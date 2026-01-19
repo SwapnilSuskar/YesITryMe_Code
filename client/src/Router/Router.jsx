@@ -41,6 +41,7 @@ import Courses from '../components/Pages/Course';
 import KycDetailForm from '../components/User/KycDetailForm';
 import Payout from '../components/User/Payout';
 import WalletTransactions from '../components/User/WalletTransactions';
+import TDSHistory from '../components/User/TDSHistory';
 import Earnings from '../components/User/Earnings';
 import MyTeam from '../components/User/MyTeam';
 import DirectReferrals from '../components/User/DirectReferrals';
@@ -174,6 +175,7 @@ const AppRouter = () => {
         <Route path="/my-team" element={<MyTeam />} />
         <Route path="/kyc" element={<KycDetailForm />} />
         <Route path="/payout" element={<Payout />} />
+        <Route path="/tds-history" element={<TDSHistory />} />
         <Route path="wallet-transactions" element={<WalletTransactions />} />
         <Route path="/affiliate-link" element={<AffiliateLink />} />
         <Route path="/leaderboard" element={<Leaderboard />} />

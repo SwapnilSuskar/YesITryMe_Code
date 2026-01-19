@@ -176,6 +176,7 @@ export const API_ENDPOINTS = {
     eligibility: `${API_URL}/api/payout/eligibility`,
     request: `${API_URL}/api/payout/request`,
     history: `${API_URL}/api/payout/history`,
+    tdsHistory: `${API_URL}/api/payout/tds-history`,
     balance: `${API_URL}/api/payout/balance`,
     adminAll: `${API_URL}/api/payout/admin/all`,
     adminUpdateStatus: `${API_URL}/api/payout/admin/:payoutId/status`,

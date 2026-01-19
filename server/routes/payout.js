@@ -5,6 +5,7 @@ import {
   checkPayoutEligibility,
   requestPayout,
   getPayoutHistory,
+  getTDSHistory,
   getWalletBalance,
   getAllPayoutRequests,
   updatePayoutStatus
@@ -16,6 +17,7 @@ const router = express.Router();
 router.get("/eligibility", protect, checkPayoutEligibility);
 router.post("/request", protect, requestPayout);
 router.get("/history", protect, getPayoutHistory);
+router.get("/tds-history", protect, getTDSHistory);
 router.get("/balance", protect, getWalletBalance);
 
 // Admin routes

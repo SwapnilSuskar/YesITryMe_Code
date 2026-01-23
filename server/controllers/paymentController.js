@@ -274,20 +274,11 @@ export const getPaymentVerification = async (req, res) => {
 // Admin: Verify payment and activate user
 export const verifyPayment = async (req, res) => {
   try {
-    // console.log("Verify payment request received");
-    // console.log("Request params:", req.params);
-    // console.log("Request body:", req.body);
-    // console.log("User:", req.user);
-
     const { id } = req.params;
     const { adminNotes } = req.body;
     const adminId = req.user.userId;
 
-    // console.log("Verification ID:", id);
-    // console.log("Admin ID:", adminId);
-
     const verification = await PaymentVerification.findById(id);
-    // console.log("Found verification:", verification);
 
     if (!verification) {
       return res.status(404).json({
@@ -329,7 +320,7 @@ export const verifyPayment = async (req, res) => {
         );
       
     } catch (error) {
-      console.error("❌ Error creating activation notification:", error);
+      console.error("Error creating activation notification:", error);
       // Don't fail the payment verification if notification fails
     }
 
@@ -400,7 +391,7 @@ export const verifyPayment = async (req, res) => {
       }
     } catch (purchaseError) {
       console.error(
-        "❌ Error processing purchase and commission distribution:",
+        "Error processing purchase and commission distribution:",
         purchaseError
       );
 

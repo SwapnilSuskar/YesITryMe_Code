@@ -1,7 +1,7 @@
 import User from "../models/User.js";
-import { 
-  calculateAndUpdateMLMLevel, 
-  getUserTeamStructure, 
+import {
+  calculateAndUpdateMLMLevel,
+  getUserTeamStructure,
   checkActiveMemberStatus,
   getDirectActiveMembers,
   getTeamLeadersCount,
@@ -15,7 +15,7 @@ import {
 export const getUserMLMLevel = async (req, res) => {
   try {
     const { userId } = req.user;
-    
+
     // Get current user to check stored directActiveMembers count
     const user = await User.findOne({ userId });
     if (!user) {
@@ -24,18 +24,18 @@ export const getUserMLMLevel = async (req, res) => {
         message: 'User not found'
       });
     }
-    
+
     // Get current successful downline count using unified logic
     const currentCount = await getDirectActiveMembers(userId);
     const storedCount = user.directActiveMembers || 0;
-    
+
     // Only recalculate if the count has changed (to avoid unnecessary refreshes)
     if (currentCount !== storedCount) {
       await calculateAndUpdateMLMLevel(userId);
     }
-    
+
     const teamStructure = await getUserTeamStructure(userId);
-    
+
     if (!teamStructure) {
       return res.status(404).json({
         success: false,
@@ -61,9 +61,9 @@ export const getUserMLMLevel = async (req, res) => {
 export const updateMLMLevel = async (req, res) => {
   try {
     const { userId } = req.user;
-    
+
     const newLevel = await calculateAndUpdateMLMLevel(userId);
-    
+
     if (!newLevel) {
       return res.status(404).json({
         success: false,
@@ -95,7 +95,7 @@ export const updateMLMLevel = async (req, res) => {
 export const getTeamStructure = async (req, res) => {
   try {
     const { userId } = req.user;
-    
+
     const user = await User.findOne({ userId });
     if (!user) {
       return res.status(404).json({
@@ -169,9 +169,9 @@ export const getTeamStructure = async (req, res) => {
 export const getUsersByMLMLevel = async (req, res) => {
   try {
     const { level } = req.params;
-    
+
     const validLevels = ["Active Member", "Team Leader", "Assistant Manager", "Manager", "Zonal Head", "National Head Promoter"];
-    
+
     if (!validLevels.includes(level)) {
       return res.status(400).json({
         success: false,

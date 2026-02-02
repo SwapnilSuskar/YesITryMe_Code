@@ -180,9 +180,8 @@ export const requestFundWithdrawal = async (req, res) => {
       },
       status: "pending",
       requestDate: new Date(),
-      adminNotes: `Fund withdrawal request from ${fundType}: ${
-        adminNotes || "User requested withdrawal"
-      }`,
+      adminNotes: `Fund withdrawal request from ${fundType}: ${adminNotes || "User requested withdrawal"
+        }`,
       withdrawalType: "fund", // Add withdrawal type to distinguish from regular payouts
       fundType: fundType, // Store which fund type this withdrawal is from
     });

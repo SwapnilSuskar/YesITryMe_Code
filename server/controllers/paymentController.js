@@ -311,14 +311,14 @@ export const verifyPayment = async (req, res) => {
 
     // Create activation notification
     try {
-     
+
       const notification =
         await notificationService.createActivationNotification(
           verification.userId,
           verification.packageName,
           verification.packagePrice
         );
-      
+
     } catch (error) {
       console.error("Error creating activation notification:", error);
       // Don't fail the payment verification if notification fails

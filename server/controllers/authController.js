@@ -668,7 +668,7 @@ export const resetPasswordWithOtp = async (req, res) => {
 // Debug endpoint to check OTP store status
 export const debugOtpStore = async (req, res) => {
   try {
-    const storeStatus = getOtpStoreStatus();
+    const storeStatus = await getOtpStoreStatus();
     res.json({
       success: true,
       data: storeStatus,

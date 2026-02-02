@@ -1,16 +1,6 @@
 import nodemailer from "nodemailer";
 import "dotenv/config";
-
-// In-memory OTP store for demo (replace with DB or cache in production)
-const emailOtpStore = {};
-
-// Add a simple persistence check
-let storeInitialized = false;
-const initializeStore = () => {
-  if (!storeInitialized) {
-    storeInitialized = true;
-  }
-};
+import EmailOtp from "../models/EmailOtp.js";
 
 // Email transporter configuration
 const createTransporter = () => {
@@ -25,27 +15,25 @@ const createTransporter = () => {
 
 export const generateAndSendEmailOtp = async (email) => {
   try {
-    initializeStore();
-    
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Valid email address is required.");
     }
 
+    // Normalize email to ensure consistent lookup
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP in memory (expires in 10 min)
-    emailOtpStore[email] = {
-      otp,
-      expires: Date.now() + 10 * 60 * 1000,
-      attempts: 0,
-    };
-    
-    // Verify the OTP was actually stored
-    const storedRecord = emailOtpStore[email];
-    if (!storedRecord || storedRecord.otp !== otp) {
-      throw new Error("Failed to store OTP");
-    }
+    // Calculate expiration (10 minutes from now)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Upsert OTP record in MongoDB so it works reliably in serverless/production
+    await EmailOtp.findOneAndUpdate(
+      { email: normalizedEmail },
+      { otp, expiresAt, attempts: 0 },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     const transporter = createTransporter();
 
@@ -101,48 +89,63 @@ export const generateAndSendEmailOtp = async (email) => {
 };
 
 // Function to check OTP store status
-export const getOtpStoreStatus = () => {
-  return {
-    keys: Object.keys(emailOtpStore),
-    count: Object.keys(emailOtpStore).length,
-    entries: Object.entries(emailOtpStore).map(([email, data]) => ({
-      email,
-      attempts: data.attempts,
-      expires: new Date(data.expires).toISOString(),
-      isExpired: Date.now() > data.expires
-    }))
-  };
+export const getOtpStoreStatus = async () => {
+  try {
+    const records = await EmailOtp.find().lean();
+    return {
+      count: records.length,
+      entries: records.map((record) => ({
+        email: record.email,
+        attempts: record.attempts,
+        expiresAt: record.expiresAt?.toISOString(),
+        isExpired: record.expiresAt
+          ? Date.now() > record.expiresAt.getTime()
+          : null,
+        createdAt: record.createdAt?.toISOString(),
+      })),
+    };
+  } catch (error) {
+    return {
+      count: 0,
+      entries: [],
+      error: error.message,
+    };
+  }
 };
 
-export const verifyEmailOtp = (email, otp) => {
-  initializeStore();
-  
-  const record = emailOtpStore[email];
+export const verifyEmailOtp = async (email, otp) => {
+  if (!email || !otp) {
+    return false;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const record = await EmailOtp.findOne({ email: normalizedEmail });
   if (!record) {
     return false;
   }
-  
+
   // Check attempts limit (max 3 attempts)
   if (record.attempts >= 3) {
-    delete emailOtpStore[email];
+    await EmailOtp.deleteOne({ _id: record._id });
     return false;
   }
-  
+
   // Check expiration first
-  if (Date.now() > record.expires) {
-    delete emailOtpStore[email];
+  if (!record.expiresAt || Date.now() > record.expiresAt.getTime()) {
+    await EmailOtp.deleteOne({ _id: record._id });
     return false;
   }
-  
+
   // Check OTP match
   if (record.otp !== otp) {
-    // Increment attempts only on mismatch
-    record.attempts++;
+    record.attempts += 1;
+    await record.save();
     return false;
   }
-  
+
   // OTP is valid, remove it
-  delete emailOtpStore[email];
+  await EmailOtp.deleteOne({ _id: record._id });
   return true;
 };
 

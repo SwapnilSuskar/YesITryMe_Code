@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 const faqs = [
   {
     q: 'What is YesITryMe?',
-    a: `YesITryMe is a digital platform focused on affiliate and network marketing education. It helps individuals learn digital skills, build networks, and earn income through referrals and promotions. Our model is based on “First Learn, Implement, Refer & Then Earn.”`,
+    a: `YesITryMe is a digital platform focused on affiliate and network marketing education. It helps individuals learn practical digital skills, build networks, and earn income by promoting our training programs and tools. Our model is based on “First Learn, Implement, Refer & Then Earn.”`,
   },
   {
     q: 'What is Affiliate Marketing?',
@@ -16,7 +16,7 @@ const faqs = [
     a: `Anyone above the age of 18 can join YesITryMe—whether you're a student, job seeker, professional, homemaker, or entrepreneur. No prior experience is required. All you need is a smartphone, internet connection, and willingness to learn and grow.`,
   },
   {
-    q: 'How does I earn with YesITryMe?',
+    q: 'How do I earn with YesITryMe?',
     a: `You earn through:\n\n- Direct referrals of training packages\n- Team commissions from your network growth\n- Performance-based bonuses and ranks\n- Leadership and mentoring rewards (if applicable)`
   },
   {
@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: 'Is YesITryMe a legal business?',
-    a: `Yes. YesITryMe is a legally registered LLP (Limited Liability Partnership) under Indian government laws and operates as per standard affiliate and business guidelines. All transactions and payouts are transparent and tracked.`,
+    a: `Yes. YesITryMe operates as a legally registered business in India and follows standard affiliate and business guidelines. All transactions, commissions, and payouts are recorded and can be tracked from your dashboard.`,
   },
   {
     q: 'How can I join YesITryMe?',
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     q: 'When and how will I get paid?',
-    a: `Payouts are made daily, weekly/monthly, depending on your plan and commission structure. Payments are transferred to your bank account or UPI after verification and minimum payout threshold is met.`,
+    a: `Payouts are processed as per the company’s payout schedule (for example, weekly or monthly) and according to your plan and commission structure. Once your earnings cross the minimum payout threshold and are verified, payments are transferred to your registered bank account or UPI ID.`,
   },
   {
     q: 'Can I work from home?',
@@ -45,7 +45,7 @@ const faqs = [
   },
   {
     q: 'Is support available if I have doubts or technical issues?',
-    a: `Yes. We offer:\n\n- Customer support via email or chat\n- Mentorship from your upline/team leader\n- Live sessions and webinars\n- FAQs and training videos on the platform`,
+    a: `Yes. We offer:\n\n- Customer support via email or contact form\n- Guidance and mentorship from your upline/team leader\n- Live or recorded training sessions and webinars (as per schedule)\n- FAQs and training videos on the platform`,
   },
   {
     q: 'Can I grow a team under me?',
@@ -53,14 +53,11 @@ const faqs = [
   },
   {
     q: 'Is there any income guarantee?',
-    a: `No, income is not guaranteed. Your earnings depend on your effort, skills, and consistency. YesITryMe is a legitimate opportunity, not a get-rich-quick scheme.`,
+    a: `No, income is not guaranteed. Your earnings depend entirely on your personal effort, skills, consistency, and how effectively you use the training. YesITryMe is a legitimate opportunity, not a get-rich-quick scheme or investment plan.`,
   },
   {
     q: 'How can I contact YesITryMe for support?',
-    a: `You can reach us via:\n\n` +
-      `<div class='flex items-center gap-2 mt-2'><Mail class='w-5 h-5 text-orange-500'/> <span class='font-medium'>YesITryMeofficial@gmail.com</span></div>` +
-      `<div class='flex items-center gap-2 mt-2'><Globe class='w-5 h-5 text-orange-500'/> <span class='font-medium'>www.YesITryMe.com</span></div>` +
-      `<div class='flex items-center gap-2 mt-2'><Phone class='w-5 h-5 text-orange-500'/> <span class='font-medium'>CUSTOMARE CARE NO- +91-9876543210</span></div>`
+    a: `You can reach us via:\n\n- Email: YesITryMeofficial@gmail.com\n- Website: www.YesITryMe.com\n- Customer care: +91-7066916324`
   },
 ];
 
@@ -102,14 +99,9 @@ const FAQ = () => {
                   style={{}}
                 >
                   <div className="px-6 pb-2 text-gray-700 text-base leading-relaxed">
-                    {/* Render HTML for the last answer, plain text for others */}
-                    {idx === faqs.length - 1 ? (
-                      <span dangerouslySetInnerHTML={{ __html: faq.a }} />
-                    ) : (
-                      faq.a.split('\n').map((line, i) => (
-                        <div key={i} className="mb-2">{line}</div>
-                      ))
-                    )}
+                    {faq.a.split('\n').map((line, i) => (
+                      <div key={i} className="mb-2">{line}</div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -135,7 +127,7 @@ const FAQ = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-6 h-6 text-orange-500" />
-                <span className="text-gray-700 font-medium">CUSTOMARE CARE NO- +91-7066916324</span>
+                <span className="text-gray-700 font-medium">Customer Care No. +91-7066916324</span>
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@ const ForgotPassword = () => {
         newPassword: '',
         confirmPassword: ''
     });
+    const [resetUserId, setResetUserId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -80,11 +81,9 @@ const ForgotPassword = () => {
             });
 
             if (response.data.success) {
-                setSuccess('Password reset successful! Redirecting to login...');
+                setResetUserId(response.data.userId || '');
+                setSuccess('Password reset successful! Please use the User ID below to log in with your new password.');
                 setStep(4);
-                setTimeout(() => {
-                    navigate('/login');
-                }, 2000);
             } else {
                 setError(response.data.message || 'Failed to reset password');
             }
@@ -285,9 +284,17 @@ const ForgotPassword = () => {
                 <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Password Reset Successful!</h3>
-            <p className="text-sm text-gray-600 mb-6">
-                Your password has been successfully reset. You can now log in with your new password.
+            <p className="text-sm text-gray-600 mb-2">
+                Your password has been successfully reset.
             </p>
+            {resetUserId && (
+                <p className="text-sm text-gray-800 mb-4">
+                    Your <span className="font-semibold">User ID</span> is{" "}
+                    <span className="font-mono font-semibold bg-gray-100 px-2 py-1 rounded">
+                        {resetUserId}
+                    </span>. Use this User ID with your new password on the login page.
+                </p>
+            )}
             <Link
                 to="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#FF4E00] hover:bg-[#E64500] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF4E00]"

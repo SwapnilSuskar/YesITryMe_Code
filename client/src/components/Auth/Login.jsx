@@ -15,11 +15,23 @@ const Login = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // If identifier is all digits and 10 digits, treat as mobile, else as userId
-        const isMobile = /^\d{10}$/.test(formData.identifier);
+        const rawIdentifier = formData.identifier.trim();
+        const digitsOnly = rawIdentifier.replace(/\D/g, '');
+
+        // If user typed country code (+91 etc.), use the last 10 digits as mobile
+        let mobileForLogin = '';
+        if (digitsOnly.length === 10) {
+            mobileForLogin = digitsOnly;
+        } else if (digitsOnly.length > 10) {
+            mobileForLogin = digitsOnly.slice(-10);
+        }
+
+        const isMobile = /^\d{10}$/.test(mobileForLogin);
+
         const payload = isMobile
-            ? { mobile: formData.identifier, password: formData.password }
-            : { userId: formData.identifier, password: formData.password };
+            ? { mobile: mobileForLogin, password: formData.password }
+            : { userId: rawIdentifier, password: formData.password };
+
         login(payload, navigate);
     };
 
@@ -64,7 +76,7 @@ const Login = () => {
                                 autoComplete="username"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-[#FF4E00] focus:border-[#FF4E00] focus:z-10 sm:text-sm"
-                                placeholder="User ID or Mobile Number"
+                                placeholder="User ID or Mobile Number (10 digits)"
                                 value={formData.identifier}
                                 onChange={handleChange}
                             />

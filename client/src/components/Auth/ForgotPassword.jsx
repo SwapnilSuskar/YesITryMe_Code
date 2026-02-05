@@ -320,10 +320,10 @@ const ForgotPassword = () => {
                         {step === 4 && 'Success'}
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
-                        {step === 1 && 'Enter your email to receive a password reset OTP'}
+                        {step === 1 && 'Enter your registered email address to receive a password reset OTP'}
                         {step === 2 && 'Enter the 6-digit OTP sent to your email'}
                         {step === 3 && 'Create a new password for your account'}
-                        {step === 4 && 'Your password has been reset successfully'}
+                        {step === 4 && 'Use your User ID or registered mobile number with the new password to log in'}
                     </p>
                 </div>
 

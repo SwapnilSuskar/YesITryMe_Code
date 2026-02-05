@@ -349,7 +349,16 @@ export const login = async (req, res) => {
     if (userId) {
       user = await User.findOne({ userId });
     } else if (mobile) {
-      user = await User.findOne({ mobile });
+      // Normalize mobile: strip non-digits and use last 10 digits
+      const digitsOnly = String(mobile).replace(/\D/g, "");
+      const lastTen =
+        digitsOnly.length === 10
+          ? digitsOnly
+          : digitsOnly.length > 10
+          ? digitsOnly.slice(-10)
+          : digitsOnly;
+
+      user = await User.findOne({ mobile: lastTen });
     }
     if (!user) {
       return res
@@ -531,9 +540,8 @@ export const toggleMotivationQuoteStatus = async (req, res) => {
     await quote.save();
 
     res.json({
-      message: `Quote ${
-        quote.isActive ? "activated" : "deactivated"
-      } successfully`,
+      message: `Quote ${quote.isActive ? "activated" : "deactivated"
+        } successfully`,
       quote,
     });
   } catch (error) {
@@ -595,7 +603,10 @@ export const sendForgotPasswordOtp = async (req, res) => {
     });
   }
 
-  const user = await User.findOne({ email });
+  // Normalize email for consistent lookup (handles case differences and spaces)
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await User.findOne({ email: normalizedEmail });
   if (!user) {
     return res.status(404).json({
       success: false,
@@ -604,7 +615,7 @@ export const sendForgotPasswordOtp = async (req, res) => {
   }
 
   // Generate and send OTP via email
-  const otpSent = await generateAndSendEmailOtp(email);
+  const otpSent = await generateAndSendEmailOtp(normalizedEmail);
 
   if (!otpSent) {
     return res.status(500).json({
@@ -617,7 +628,7 @@ export const sendForgotPasswordOtp = async (req, res) => {
     success: true,
     message:
       "OTP sent to your email address. Please check your inbox and spam folder.",
-    email: email, // Return email for confirmation
+    email: normalizedEmail, // Return email for confirmation
   });
 };
 
@@ -632,8 +643,11 @@ export const resetPasswordWithOtp = async (req, res) => {
     });
   }
 
+  // Normalize email to match how it is stored and how OTPs are recorded
+  const normalizedEmail = email.trim().toLowerCase();
+
   // Verify OTP using email service
-  const isOtpValid = verifyEmailOtp(email, otp);
+  const isOtpValid = await verifyEmailOtp(normalizedEmail, otp);
 
   if (!isOtpValid) {
     return res.status(400).json({
@@ -642,7 +656,7 @@ export const resetPasswordWithOtp = async (req, res) => {
     });
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: normalizedEmail });
   if (!user) {
     return res.status(404).json({
       success: false,
@@ -655,7 +669,7 @@ export const resetPasswordWithOtp = async (req, res) => {
   await user.save();
 
   // Send password reset confirmation email
-  await sendPasswordResetConfirmation(email, user.userId);
+  await sendPasswordResetConfirmation(normalizedEmail, user.userId);
 
   res.json({
     success: true,

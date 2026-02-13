@@ -57,12 +57,12 @@ export const getDirectActiveMembers = async (userId) => {
     // Combine and deduplicate: get unique userIds who have either regular OR super package
     // This ensures we count each user only once, matching the Dashboard and SuccessfulDownline display
     const uniqueBuyers = new Set();
-    
+
     // Add regular package buyers
     regularPackagePurchases.forEach((purchase) => {
       uniqueBuyers.add(purchase.purchaserId);
     });
-    
+
     // Add super package buyers (Set automatically handles duplicates)
     superPackagePurchases.forEach((purchase) => {
       uniqueBuyers.add(purchase.purchaserId);

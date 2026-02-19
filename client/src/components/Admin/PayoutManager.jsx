@@ -125,79 +125,79 @@ const PayoutManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6 mt-12">
+    <div className="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 mt-16 sm:mt-12">
       {/* Header */}
-      <div className="bg-white rounded-3xl shadow-2xl border-2 border-blue-100 p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-blue-100 p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           <div className="flex items-center gap-3">
-            <Wallet className="text-blue-500" size={32} />
-            <h1 className="text-3xl font-bold text-gray-800">Payout Manager</h1>
+            <Wallet className="text-blue-500 flex-shrink-0" size={28} />
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-800">Payout Manager</h1>
           </div>
           <button
             onClick={fetchPayouts}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+            className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg transition-colors text-sm sm:text-base"
           >
             Refresh
           </button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-            <div className="text-sm text-blue-600">Total Requests</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-blue-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-200">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-xs sm:text-sm text-blue-600">Total Requests</div>
           </div>
-          <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <div className="text-sm text-yellow-600">Pending</div>
+          <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-yellow-200">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-xs sm:text-sm text-yellow-600">Pending</div>
           </div>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-            <div className="text-2xl font-bold text-blue-600">{stats.approved}</div>
-            <div className="text-sm text-blue-600">Approved</div>
+          <div className="bg-blue-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-200">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">{stats.approved}</div>
+            <div className="text-xs sm:text-sm text-blue-600">Approved</div>
           </div>
-          <div className="bg-green-50 p-4 rounded-xl border border-green-200">
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-            <div className="text-sm text-green-600">Completed</div>
+          <div className="bg-green-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-green-200">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-xs sm:text-sm text-green-600">Completed</div>
           </div>
-          <div className="bg-red-50 p-4 rounded-xl border border-red-200">
-            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            <div className="text-sm text-red-600">Rejected</div>
+          <div className="bg-red-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-red-200">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">{stats.rejected}</div>
+            <div className="text-xs sm:text-sm text-red-600">Rejected</div>
           </div>
-          <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-            <div className="text-2xl font-bold text-purple-600">₹{stats.totalAmount.toLocaleString()}</div>
-            <div className="text-sm text-purple-600">Total Amount</div>
+          <div className="bg-purple-50 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-purple-200 col-span-2 sm:col-span-1">
+            <div className="text-base sm:text-2xl font-bold text-purple-600 truncate" title={`₹${stats.totalAmount.toLocaleString()}`}>₹{stats.totalAmount.toLocaleString()}</div>
+            <div className="text-xs sm:text-sm text-purple-600">Total Amount</div>
           </div>
         </div>
 
         {/* Admin Charges Summary */}
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-6 mb-6">
-          <h3 className="text-xl font-bold text-red-800 mb-4 text-center">Admin Charges Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg border border-red-200 text-center">
-              <div className="text-lg font-bold text-red-600">₹{adminCharges.totalAdminCharge.toFixed(2)}</div>
-              <div className="text-sm text-red-600">Admin Charge (10%)</div>
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-xl font-bold text-red-800 mb-3 sm:mb-4 text-center">Admin Charges Summary</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-white p-3 sm:p-4 rounded-lg border border-red-200 text-center">
+              <div className="text-sm sm:text-lg font-bold text-red-600 truncate" title={`₹${adminCharges.totalAdminCharge.toFixed(2)}`}>₹{adminCharges.totalAdminCharge.toFixed(2)}</div>
+              <div className="text-xs sm:text-sm text-red-600">Admin (10%)</div>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-orange-200 text-center">
-              <div className="text-lg font-bold text-orange-600">₹{adminCharges.totalTDS.toFixed(2)}</div>
-              <div className="text-sm text-orange-600">TDS (2%)</div>
+            <div className="bg-white p-3 sm:p-4 rounded-lg border border-orange-200 text-center">
+              <div className="text-sm sm:text-lg font-bold text-orange-600 truncate" title={`₹${adminCharges.totalTDS.toFixed(2)}`}>₹{adminCharges.totalTDS.toFixed(2)}</div>
+              <div className="text-xs sm:text-sm text-orange-600">TDS (2%)</div>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-red-300 text-center">
-              <div className="text-lg font-bold text-red-700">₹{adminCharges.totalCharges.toFixed(2)}</div>
-              <div className="text-sm text-red-700">Total Charges (12%)</div>
+            <div className="bg-white p-3 sm:p-4 rounded-lg border border-red-300 text-center">
+              <div className="text-sm sm:text-lg font-bold text-red-700 truncate" title={`₹${adminCharges.totalCharges.toFixed(2)}`}>₹{adminCharges.totalCharges.toFixed(2)}</div>
+              <div className="text-xs sm:text-sm text-red-700">Total (12%)</div>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-green-200 text-center">
-              <div className="text-lg font-bold text-green-600">₹{adminCharges.netAmountPaid.toFixed(2)}</div>
-              <div className="text-sm text-green-600">Net Amount Paid (88%)</div>
+            <div className="bg-white p-3 sm:p-4 rounded-lg border border-green-200 text-center col-span-2 lg:col-span-1">
+              <div className="text-sm sm:text-lg font-bold text-green-600 truncate" title={`₹${adminCharges.netAmountPaid.toFixed(2)}`}>₹{adminCharges.netAmountPaid.toFixed(2)}</div>
+              <div className="text-xs sm:text-sm text-green-600">Net (88%)</div>
             </div>
           </div>
         </div>
 
         {/* Filter */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -223,42 +223,41 @@ const PayoutManager = () => {
       </div>
 
       {/* Payouts List */}
-      <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-100 p-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Payout Requests</h2>
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-gray-100 p-4 sm:p-6 md:p-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Payout Requests</h2>
 
         {filteredPayouts.length === 0 ? (
-          <div className="text-center py-12">
-            <Wallet className="text-gray-400 mx-auto mb-4" size={48} />
-            <p className="text-gray-500 text-lg">No payout requests found</p>
+          <div className="text-center py-8 sm:py-12">
+            <Wallet className="text-gray-400 mx-auto mb-4" size={40} />
+            <p className="text-gray-500 text-base sm:text-lg">No payout requests found</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {filteredPayouts.map((payout) => (
-              <div key={payout._id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
+              <div key={payout._id} className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(payout.status)}
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(payout.status)}`}>
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${getStatusColor(payout.status)}`}>
                         {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
                       </span>
                     </div>
-                    <div>
-                      <div className="font-semibold text-lg text-gray-800">₹{payout.amount.toLocaleString()}</div>
-                      <div className="text-sm text-gray-500">Requested by {payout.userName}</div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-base sm:text-lg text-gray-800">₹{payout.amount.toLocaleString()}</div>
+                      <div className="text-xs sm:text-sm text-gray-500 truncate">Requested by {payout.userName}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openModal(payout)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                    >
-                      <Edit size={16} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => openModal(payout)}
+                    className="self-start sm:self-center bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors flex-shrink-0"
+                    aria-label="Edit payout"
+                  >
+                    <Edit size={16} />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <div>
                     <strong>User ID:</strong> {payout.userId}
                   </div>
@@ -271,9 +270,9 @@ const PayoutManager = () => {
                 </div>
 
                 {/* Admin Charges Breakdown */}
-                <div className="mt-4 bg-gray-100 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">Charges Breakdown:</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="mt-3 sm:mt-4 bg-gray-100 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-gray-800 mb-2 sm:mb-3 text-sm sm:text-base">Charges Breakdown:</h4>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="bg-white p-3 rounded border border-gray-200">
                       <div className="text-gray-600">Requested Amount</div>
                       <div className="font-bold text-gray-800">₹{payout.amount.toLocaleString()}</div>
@@ -313,9 +312,9 @@ const PayoutManager = () => {
 
       {/* Modal */}
       {showModal && selectedPayout && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Update Payout Status</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Update Payout Status</h3>
 
             <div className="mb-4">
               <div className="text-sm text-gray-600 mb-2">User: {selectedPayout.userName}</div>
@@ -353,25 +352,25 @@ const PayoutManager = () => {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => handleStatusUpdate(selectedPayout._id, 'approved')}
                 disabled={updating || selectedPayout.status === 'approved'}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white py-2.5 px-4 rounded-lg transition-colors text-sm sm:text-base"
               >
                 {updating ? 'Updating...' : 'Approve'}
               </button>
               <button
                 onClick={() => handleStatusUpdate(selectedPayout._id, 'completed')}
                 disabled={updating || selectedPayout.status === 'completed'}
-                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white py-2.5 px-4 rounded-lg transition-colors text-sm sm:text-base"
               >
                 {updating ? 'Updating...' : 'Complete'}
               </button>
               <button
                 onClick={() => handleStatusUpdate(selectedPayout._id, 'rejected')}
                 disabled={updating || selectedPayout.status === 'rejected'}
-                className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white py-2.5 px-4 rounded-lg transition-colors text-sm sm:text-base"
               >
                 {updating ? 'Updating...' : 'Reject'}
               </button>

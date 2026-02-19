@@ -175,38 +175,39 @@ const UserDashboardViewer = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4 mt-16">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-4 sm:py-8 px-3 sm:px-4 pt-20 sm:pt-16 pb-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-6 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                             <Link
                                 to="/admin"
-                                className="p-2 rounded-lg bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                                className="p-2 rounded-lg bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors flex-shrink-0"
+                                aria-label="Back to admin"
                             >
                                 <ArrowLeft size={20} />
                             </Link>
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                                    <Eye className="w-8 h-8 text-orange-500" />
+                            <div className="min-w-0">
+                                <h1 className="text-xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3 truncate">
+                                    <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 flex-shrink-0" />
                                     User Dashboard Viewer
                                 </h1>
-                                <p className="text-gray-600 mt-1">View complete dashboard data for any user</p>
+                                <p className="text-gray-600 mt-1 text-xs sm:text-sm">View complete dashboard data for any user</p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div className="text-sm text-gray-500">Total Users</div>
-                            <div className="text-2xl font-bold text-orange-500">{users.length}</div>
+                        <div className="text-left sm:text-right flex-shrink-0">
+                            <div className="text-xs sm:text-sm text-gray-500">Total Users</div>
+                            <div className="text-xl sm:text-2xl font-bold text-orange-500">{users.length}</div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* User Selection Panel */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="lg:col-span-1 order-2 lg:order-1">
+                        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6">
+                            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
                                 <Users className="w-5 h-5 text-orange-500" />
                                 Select User
                             </h2>
@@ -226,7 +227,7 @@ const UserDashboardViewer = () => {
                             </div>
 
                             {/* User List */}
-                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                            <div className="space-y-2 max-h-64 sm:max-h-96 overflow-y-auto">
                                 {filteredUsers.map((user) => (
                                     <div
                                         key={user._id}
@@ -261,7 +262,7 @@ const UserDashboardViewer = () => {
                     </div>
 
                     {/* User Dashboard Data */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 order-1 lg:order-2">
                         {!selectedUser ? (
                             <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-12 text-center">
                                 <Eye className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -276,31 +277,33 @@ const UserDashboardViewer = () => {
                         ) : userDashboardData ? (
                             <div className="space-y-6">
                                 {/* User Info Header */}
-                                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                                            <User className="w-8 h-8 text-orange-600" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h2 className="text-2xl font-bold text-gray-800">
-                                                {userDashboardData.user.firstName} {userDashboardData.user.lastName}
-                                            </h2>
-                                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                                <span className="flex items-center gap-1">
-                                                    <Mail className="w-4 h-4" />
-                                                    {userDashboardData.user.email}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Phone className="w-4 h-4" />
-                                                    {userDashboardData.user.mobile}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Shield className="w-4 h-4" />
-                                                    ID: {userDashboardData.user.userId}
-                                                </span>
+                                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <User className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">
+                                                    {userDashboardData.user.firstName} {userDashboardData.user.lastName}
+                                                </h2>
+                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600 mt-1">
+                                                    <span className="flex items-center gap-1 truncate">
+                                                        <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                        <span className="truncate">{userDashboardData.user.email}</span>
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                        {userDashboardData.user.mobile}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Shield className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                                                        ID: {userDashboardData.user.userId}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="text-right space-y-2">
+                                        <div className="text-left sm:text-right space-y-2 flex-shrink-0">
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="w-4 h-4 text-blue-500" />
                                                 <span className="text-sm text-gray-600">
@@ -329,10 +332,10 @@ const UserDashboardViewer = () => {
                                     </div>
                                 </div>
                                 {/* User's Dashboard View - Exactly as they see it */}
-                                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-6 mb-6">
-                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                        <Eye className="w-5 h-5 text-orange-500" />
-                                        User's Dashboard View (What they see)
+                                <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+                                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+                                        <Eye className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                                        <span className="truncate">User's Dashboard View</span>
                                     </h3>
                                     {/* Stats Cards - Exactly as user sees */}
                                     {(() => {
@@ -479,9 +482,9 @@ const UserDashboardViewer = () => {
                                     })()}
 
                                     {/* Funds Section - Exactly as user sees */}
-                                    <div className="bg-gray-50 rounded-lg p-4">
-                                        <h4 className="text-lg font-bold text-gray-800 mb-3">Your Funds</h4>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                                        <h4 className="text-base sm:text-lg font-bold text-gray-800 mb-2 sm:mb-3">Your Funds</h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
                                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
                                                 <div className="text-sm font-medium text-gray-600">Mobile Fund</div>
                                                 <div className="text-lg font-bold text-blue-700">
@@ -539,15 +542,15 @@ const UserDashboardViewer = () => {
 
                                 {/* Referrer Information Section */}
                                 {userDashboardData.user.sponsorName && (
-                                    <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8">
-                                        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                    <div className="bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/20 p-4 sm:p-6 md:p-8">
+                                        <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
                                             <div className="p-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
                                                 <Users size={24} />
                                             </div>
                                             Referrer Information
                                         </h3>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                             <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                                                 <div className="flex items-center gap-3 mb-4">
                                                     <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -627,8 +630,8 @@ const UserDashboardViewer = () => {
                                 )}
 
                                 {/* Payout History Section */}
-                                <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                <div className="bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/20 p-4 sm:p-6 md:p-8">
+                                    <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
                                         <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white">
                                             <Receipt size={24} />
                                         </div>

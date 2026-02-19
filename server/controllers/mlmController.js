@@ -29,8 +29,10 @@ export const getUserMLMLevel = async (req, res) => {
     const currentCount = await getDirectActiveMembers(userId);
     const storedCount = user.directActiveMembers || 0;
 
-    // Only recalculate if the count has changed (to avoid unnecessary refreshes)
-    if (currentCount !== storedCount) {
+    // Recalculate when: count changed, or user has 10+ direct but level is still Active Member (fix stale level)
+    const countChanged = currentCount !== storedCount;
+    const shouldBeTeamLeaderButIsNot = currentCount >= 10 && user.mlmLevel === 'Active Member';
+    if (countChanged || shouldBeTeamLeaderButIsNot) {
       await calculateAndUpdateMLMLevel(userId);
     }
 

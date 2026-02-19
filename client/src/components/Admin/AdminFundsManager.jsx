@@ -208,7 +208,7 @@ const AdminFundsManager = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex flex-col items-center py-12 px-4 pt-20 overflow-x-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex flex-col items-center py-6 sm:py-12 px-3 sm:px-4 pt-16 sm:pt-20 overflow-x-hidden">
       {/* Blurred Gradient Blobs */}
       <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-[#FF4E00] to-orange-500 rounded-full blur-3xl opacity-20 z-0" />
       <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-20 z-0" />
@@ -216,16 +216,16 @@ const AdminFundsManager = () => {
 
       <div className="w-full max-w-7xl relative z-10">
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-4 sm:mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 sm:gap-6">
             <div>
-              <h1 className="text-4xl font-extrabold text-gray-800 drop-shadow-lg flex items-center gap-3">
-                <Wallet className="w-10 h-10 text-orange-500" /> Funds Management
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-800 drop-shadow-lg flex items-center gap-2 sm:gap-3">
+                <Wallet className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500 flex-shrink-0" /> Funds Management
               </h1>
-              <p className="text-gray-600 mt-2 text-sm">Manage user funds and special income across all categories</p>
+              <p className="text-gray-600 mt-2 text-xs sm:text-sm">Manage user funds and special income across all categories</p>
             </div>
             {fundsSummary && (
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-2 sm:gap-4 justify-center md:justify-end">
                 <div className="bg-white/90 backdrop-blur rounded-2xl px-6 py-3 flex flex-col items-center shadow border border-orange-100">
                   <span className="text-lg font-bold text-[#FF4E00]">{fundsSummary.totalUsers}</span>
                   <span className="text-xs text-gray-600">Total Users</span>
@@ -245,7 +245,7 @@ const AdminFundsManager = () => {
 
         {/* Combined Funds Summary Cards */}
         {fundsSummary && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-8">
             {allFundTypes.map((fundType) => {
               const Icon = fundType.icon;
               const isSpecial = fundType.category === 'special';
@@ -254,16 +254,16 @@ const AdminFundsManager = () => {
                 (fundsSummary.totalFunds[fundType.key] || 0);
 
               return (
-                <div key={fundType.key} className={`bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 p-6 ${isSpecial ? 'ring-2 ring-purple-200' : ''}`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <Icon className={`w-6 h-6 ${fundType.color}`} />
-                    <h3 className="font-semibold text-gray-800 text-sm">{fundType.label}</h3>
+                <div key={fundType.key} className={`bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 p-3 sm:p-6 ${isSpecial ? 'ring-2 ring-purple-200' : ''}`}>
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${fundType.color} flex-shrink-0`} />
+                    <h3 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">{fundType.label}</h3>
                     {isSpecial && <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">Special</span>}
                   </div>
-                  <div className="text-2xl font-bold text-gray-800">
+                  <div className="text-base sm:text-2xl font-bold text-gray-800 truncate" title={formatCurrency(value)}>
                     {formatCurrency(value)}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-[10px] sm:text-xs text-gray-500 mt-1">
                     {isSpecial ? 'Special Income' : 'Regular Fund'}
                   </div>
                 </div>
@@ -308,105 +308,113 @@ const AdminFundsManager = () => {
                   setSelectedUser(null);
                   setShowFundsModal(true);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg text-sm sm:text-base"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 Manage Funds
               </button>
             </div>
           </div>
         </div>
 
-        {/* Combined Users Table */}
+        {/* Combined Users Table - Desktop */}
         <div className="bg-white/80 backdrop-blur rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
           {loading || specialIncomeLoading ? (
-            <div className="p-8 text-center">
+            <div className="p-6 sm:p-8 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
-              <p className="text-gray-600 mt-2">Loading users...</p>
+              <p className="text-gray-600 mt-2 text-sm sm:text-base">Loading users...</p>
             </div>
           ) : error ? (
-            <div className="p-8 text-center">
+            <div className="p-6 sm:p-8 text-center">
               <AlertCircle className="w-8 h-8 mx-auto text-red-500" />
-              <p className="text-red-600 mt-2">{error}</p>
+              <p className="text-red-600 mt-2 text-sm sm:text-base">{error}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold">User</th>
-                    {/* Regular Funds */}
-                    <th className="px-6 py-4 text-left font-semibold">Mobile Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold">Laptop Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold">Bike Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold">Car Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold">House Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold">Travel Fund</th>
-                    {/* Special Income */}
-                    <th className="px-6 py-4 text-left font-semibold bg-purple-600">Leadership Fund</th>
-                    <th className="px-6 py-4 text-left font-semibold bg-purple-600">Royalty Income</th>
-                    <th className="px-6 py-4 text-left font-semibold bg-purple-600">Reward Income</th>
-                    <th className="px-6 py-4 text-left font-semibold">Total</th>
-                    <th className="px-6 py-4 text-left font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredUsers.map((user, index) => (
-                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-semibold text-gray-800">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                          <div className="text-xs text-gray-400">ID: {user.userId}</div>
-                        </div>
-                      </td>
-                      {/* Regular Funds */}
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.mobileFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.laptopFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.bikeFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.carFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.houseFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm">{formatCurrency(user.funds?.travelFund)}</td>
-                      {/* Special Income */}
-                      <td className="px-6 py-4 font-mono text-sm bg-purple-50">{formatCurrency(user.specialIncome?.leaderShipFund)}</td>
-                      <td className="px-6 py-4 font-mono text-sm bg-purple-50">{formatCurrency(user.specialIncome?.royaltyIncome)}</td>
-                      <td className="px-6 py-4 font-mono text-sm bg-purple-50">{formatCurrency(user.specialIncome?.rewardIncome)}</td>
-                      <td className="px-6 py-4 font-mono font-semibold text-green-600">
-                        {formatCurrency(calculateUserTotalFunds(user))}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowFundsModal(true);
-                          }}
-                          className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold hover:bg-orange-200 transition-colors"
-                        >
-                          Manage
-                        </button>
-                      </td>
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full min-w-[900px]">
+                  <thead className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                    <tr>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">User</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Mobile</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Laptop</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Bike</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Car</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">House</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Travel</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm bg-purple-600">Leadership</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm bg-purple-600">Royalty</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm bg-purple-600">Reward</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Total</th>
+                      <th className="px-4 lg:px-6 py-3 text-left font-semibold text-sm">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredUsers.map((user) => (
+                      <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 lg:px-6 py-3">
+                          <div>
+                            <div className="font-semibold text-gray-800 text-sm">{user.firstName} {user.lastName}</div>
+                            <div className="text-xs text-gray-500 truncate max-w-[140px]">{user.email}</div>
+                            <div className="text-xs text-gray-400">ID: {user.userId}</div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.mobileFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.laptopFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.bikeFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.carFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.houseFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs">{formatCurrency(user.funds?.travelFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs bg-purple-50">{formatCurrency(user.specialIncome?.leaderShipFund)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs bg-purple-50">{formatCurrency(user.specialIncome?.royaltyIncome)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-xs bg-purple-50">{formatCurrency(user.specialIncome?.rewardIncome)}</td>
+                        <td className="px-4 lg:px-6 py-3 font-mono text-sm font-semibold text-green-600">{formatCurrency(calculateUserTotalFunds(user))}</td>
+                        <td className="px-4 lg:px-6 py-3">
+                          <button onClick={() => { setSelectedUser(user); setShowFundsModal(true); }} className="px-2 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold hover:bg-orange-200 transition-colors">Manage</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile card view */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <div key={user._id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-gray-800 text-sm">{user.firstName} {user.lastName}</div>
+                        <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                        <div className="text-xs text-gray-400">ID: {user.userId}</div>
+                      </div>
+                      <button onClick={() => { setSelectedUser(user); setShowFundsModal(true); }} className="flex-shrink-0 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold hover:bg-orange-200">Manage</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex justify-between"><span className="text-gray-500">Mobile:</span><span className="font-mono">{formatCurrency(user.funds?.mobileFund)}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Laptop:</span><span className="font-mono">{formatCurrency(user.funds?.laptopFund)}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Leadership:</span><span className="font-mono">{formatCurrency(user.specialIncome?.leaderShipFund)}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">Royalty:</span><span className="font-mono">{formatCurrency(user.specialIncome?.royaltyIncome)}</span></div>
+                      <div className="col-span-2 flex justify-between border-t border-gray-100 pt-2 mt-1"><span className="font-semibold text-gray-700">Total</span><span className="font-semibold text-green-600">{formatCurrency(calculateUserTotalFunds(user))}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {filteredUsers.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-6 sm:p-8 text-center text-gray-500 text-sm sm:text-base">
                   No users found matching your search.
                 </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Pagination Controls */}
           {!loading && !error && pagination.totalPages > 1 && (
-            <div className="bg-white/50 backdrop-blur border-t border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalUsers)} of {pagination.totalUsers} users
+            <div className="bg-white/50 backdrop-blur border-t border-gray-200 px-3 sm:px-6 py-3 sm:py-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left order-2 sm:order-1">
+                  Showing {((pagination.currentPage - 1) * pagination.limit) + 1}–{Math.min(pagination.currentPage * pagination.limit, pagination.totalUsers)} of {pagination.totalUsers}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={!pagination.hasPrevPage || paginationLoading}
@@ -522,36 +530,33 @@ const CombinedFundsModal = ({ user, currentIncome, onClose, onSubmit, loading, a
   const isSpecialIncome = selectedFundType?.category === 'special';
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300 mt-20">
-      <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-200 overflow-hidden max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in duration-300 pt-20 sm:pt-24 pb-6">
+      <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-200 overflow-hidden max-h-[85vh] sm:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-300">
         {/* Enhanced Header */}
-        <div className="relative bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 p-6 text-white overflow-hidden">
+        <div className="relative bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 p-4 sm:p-6 text-white overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-orange-600/20"></div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
 
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-                <Wallet className="w-6 h-6 text-white" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg flex-shrink-0">
+                <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold mb-1">Funds Management</h2>
-                <p className="text-orange-100 text-sm opacity-90">Manage user funds and special income with precision</p>
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-2xl font-bold mb-0.5 sm:mb-1 truncate">Funds Management</h2>
+                <p className="text-orange-100 text-xs sm:text-sm opacity-90 hidden sm:block">Manage user funds and special income with precision</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-all backdrop-blur-sm shadow-lg hover:scale-110"
-            >
+            <button onClick={onClose} className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-all backdrop-blur-sm shadow-lg hover:scale-110 flex-shrink-0" aria-label="Close">
               <X className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
 
         {/* Enhanced Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Current Values Display */}
           {user && (
             <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl border border-blue-200 shadow-xl">

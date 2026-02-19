@@ -131,7 +131,7 @@ const Dashboard = () => {
   const lastFetchedDownlineCountRef = useRef(null);
   const fetchMLMLevelTimeoutRef = useRef(null);
 
-  // Fetch MLM level only when uniqueSuccessfulDownline count actually changes (not on every visit)
+  // Fetch MLM level when dashboard data is loaded: once on initial load (so level syncs with successful downline count), then only when count changes
   useEffect(() => {
     // Clear any pending timeout
     if (fetchMLMLevelTimeoutRef.current) {
@@ -139,24 +139,20 @@ const Dashboard = () => {
       fetchMLMLevelTimeoutRef.current = null;
     }
 
-    // Only proceed if we have data loaded and a valid count
-    if (user && token && !loading && uniqueSuccessfulDownline > 0) {
-      // Only fetch if the count has actually changed from what we last fetched
-      // This prevents fetching on every visit if the count hasn't changed
+    // Proceed when we have user, token, and downline data loaded (count is defined, can be 0 or more)
+    if (user && token && !loading && uniqueSuccessfulDownline >= 0) {
+      const isInitialLoad = lastFetchedDownlineCountRef.current === null;
       const countChanged = lastFetchedDownlineCountRef.current !== null &&
         uniqueSuccessfulDownline !== lastFetchedDownlineCountRef.current;
 
-      // Fetch only if count changed (not on initial load unless count is different)
-      if (countChanged) {
-        // Delay to ensure other data is fully loaded
+      // Fetch on initial load (so Level updates when e.g. 10+ successful downline => Team Leader) or when count changed
+      if (isInitialLoad || countChanged) {
+        const delay = isInitialLoad ? 800 : 2000; // Shorter delay on first load so level appears sooner
         fetchMLMLevelTimeoutRef.current = setTimeout(() => {
           fetchMLMLevel();
           lastFetchedDownlineCountRef.current = uniqueSuccessfulDownline;
           fetchMLMLevelTimeoutRef.current = null;
-        }, 2000);
-      } else if (lastFetchedDownlineCountRef.current === null) {
-        // First time: set the initial count but don't fetch (use stored level from user object)
-        lastFetchedDownlineCountRef.current = uniqueSuccessfulDownline;
+        }, delay);
       }
     }
 

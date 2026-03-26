@@ -34,7 +34,7 @@ const Profile = () => {
     try {
       const homepageUrl = `${window.location.origin}`;
       const profileUrl = `${window.location.origin}/profile/${user.userId}`;
-      const message = `We Love ❤ YesITryMe\n\n${user.firstName} ${user.lastName} (ID: ${user.userId}) is growing with YesITryMe!\n\n✓ YouTube earning opportunities\n✓ Premium courses and ebooks\n✓ AI tools for faster growth\n✓ Subscription and physical products\n\nJoin the movement — YesITryMe Try Karega India 🇮🇳\n\nProfile: ${profileUrl}\nWebsite: ${homepageUrl}`;
+      const message = `We Love ❤ YesITryMe\n\n${user.firstName} ${user.lastName} (ID: ${user.userId}) is growing with YesITryMe!\n\n✓ Coin rewards & earning opportunities\n✓ Premium courses and ebooks\n✓ AI tools for faster growth\n✓ Subscription and physical products\n\nJoin the movement — YesITryMe Try Karega India 🇮🇳\n\nProfile: ${profileUrl}\nWebsite: ${homepageUrl}`;
       if (navigator.share) {
         await navigator.share({ title: 'We Love YesITryMe', text: message, url: homepageUrl });
       } else if (navigator.clipboard) {
@@ -234,7 +234,7 @@ const Profile = () => {
   };
 
   const services = [
-    "YouTube earning",
+    "Coin rewards",
     "Courses",
     "Ebook",
     "AI tools",
@@ -567,7 +567,7 @@ const Profile = () => {
 
                 {/* Promo bullets */}
                 <div className="grid grid-cols-2 gap-2 text-left max-w-sm mx-auto">
-                  <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-800 text-xs font-semibold rounded-lg px-3 py-2">🎬 YouTube earning</div>
+                  <div className="flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-800 text-xs font-semibold rounded-lg px-3 py-2">🪙 Coin rewards</div>
                   <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 text-pink-800 text-xs font-semibold rounded-lg px-3 py-2">📚 Courses & Ebooks</div>
                   <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-800 text-xs font-semibold rounded-lg px-3 py-2">🤖 AI Tools</div>
                   <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 text-rose-800 text-xs font-semibold rounded-lg px-3 py-2">🛍️ Products & Subscriptions</div>

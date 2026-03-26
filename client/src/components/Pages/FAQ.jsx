@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: 'What kind of training do I get?',
-    a: `We provide step-by-step training on:\n\n- Affiliate & network marketing strategies\n- Social Media Optimization (SMO)\n- Facebook & Instagram Mastery\n- YouTube Marketing\n- Lead Generation & Funnels\n- Relationship building & personal branding`,
+    a: `We provide step-by-step training on:\n\n- Affiliate & network marketing strategies\n- Social Media Optimization (SMO)\n- Facebook & Instagram Mastery\n- Video Marketing\n- Lead Generation & Funnels\n- Relationship building & personal branding`,
   },
   {
     q: 'Is YesITryMe a legal business?',

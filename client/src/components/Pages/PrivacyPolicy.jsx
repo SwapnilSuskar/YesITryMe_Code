@@ -79,21 +79,18 @@ const PrivacyPolicy = () => {
                 <div className="w-9 h-9 bg-green-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
                   3
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">YouTube API & OAuth Data</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Third-Party Integrations</h2>
               </div>
               <p className="text-gray-700 leading-relaxed">
-                When you connect your YouTube account, we request the scopes{" "}
-                <code className="bg-white px-2 py-1 rounded-md text-sm">youtube.readonly</code> and{" "}
-                <code className="bg-white px-2 py-1 rounded-md text-sm">youtube.force-ssl</code> to verify task activity.
-                We only read public channel details, video identifiers, and engagement state (view/like/comment/subscribe)
-                to validate rewards. We do not store your Google password and you may revoke access at any time from your
-                Google security console or by disconnecting inside YesITryMe.
+                If we add optional third-party integrations in the future, we will request only the minimum data needed to
+                provide the feature, and we will never ask for your passwords. You can revoke access whenever the provider
+                allows, or by disconnecting the integration inside YesITryMe (if available).
               </p>
               <div className="mt-4 grid md:grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-green-200">
                   <h4 className="font-semibold text-green-800 mb-2">How we use this data</h4>
                   <ul className="text-gray-700 text-sm space-y-1">
-                    <li>• Confirm that assigned YouTube actions were completed</li>
+                    <li>• Confirm that assigned actions were completed</li>
                     <li>• Prevent fraud and duplicate rewards</li>
                     <li>• Maintain audit logs for Trust & Safety</li>
                   </ul>
@@ -108,16 +105,8 @@ const PrivacyPolicy = () => {
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-3">
-                Our use of Google data complies with the{" "}
-                <a
-                  href="https://developers.google.com/terms/api-services-user-data-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-orange-600 font-semibold underline"
-                >
-                  Google API Services User Data Policy
-                </a>{" "}
-                and Limited Use requirements.
+                If an integration uses a third-party API, we will comply with that provider’s applicable policies and any
+                limited-use requirements.
               </p>
             </section>
 

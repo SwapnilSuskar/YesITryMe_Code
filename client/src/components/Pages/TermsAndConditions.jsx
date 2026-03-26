@@ -251,67 +251,26 @@ const TermsAndConditions = () => {
               </p>
             </section>
 
-            {/* YouTube API and Data Usage */}
+            {/* Third-party Integrations */}
             <section className="bg-gradient-to-r from-red-50 to-pink-50 p-6 rounded-2xl border border-red-200 shadow-sm">
               <div className="flex items-center mb-4">
                 <div className="w-9 h-9 bg-red-500 text-white font-bold rounded-lg flex items-center justify-center mr-3 shadow-sm">
                   9
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">YouTube API and Data Usage</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Third-Party Integrations</h2>
               </div>
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
-                  YesITryMe uses the YouTube API Services to provide task-based earning opportunities. By using our platform, you acknowledge and agree to the following:
+                  If we offer optional third-party integrations, we will request only the minimum permissions required to
+                  provide the feature. We do not ask for your third-party account passwords.
                 </p>
-
-                <div className="bg-white p-4 rounded-lg border border-red-200">
-                  <h3 className="font-semibold text-gray-800 mb-3">YouTube API Services Agreement</h3>
-                  <p className="text-gray-700 text-sm mb-3">
-                    Our use of information received from Google APIs will adhere to the
-                    <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline ml-1">
-                      Google API Services User Data Policy
-                    </a>, including the Limited Use requirements.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-white p-4 rounded-lg border border-red-200">
-                    <h4 className="font-semibold text-red-800 mb-2">Data We Collect</h4>
-                    <ul className="text-gray-700 text-sm space-y-1">
-                      <li>• YouTube channel information (public data only)</li>
-                      <li>• Task completion status and progress</li>
-                      <li>• User engagement metrics for task verification</li>
-                      <li>• Account linking for reward distribution</li>
-                    </ul>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-red-200">
-                    <h4 className="font-semibold text-red-800 mb-2">How We Use Data</h4>
-                    <ul className="text-gray-700 text-sm space-y-1">
-                      <li>• Verify task completion and engagement</li>
-                      <li>• Calculate and distribute rewards</li>
-                      <li>• Provide personalized task recommendations</li>
-                      <li>• Improve platform functionality</li>
-                    </ul>
-                  </div>
-                </div>
-
                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                   <h4 className="font-semibold text-yellow-800 mb-2">Important Notes</h4>
                   <ul className="text-gray-700 text-sm space-y-1">
-                    <li>• We do not store your YouTube login credentials</li>
-                    <li>• We only access public YouTube data and your task-related activities</li>
-                    <li>• You can revoke access to your YouTube data at any time</li>
-                    <li>• We comply with YouTube's Terms of Service and Community Guidelines</li>
-                    <li>• All data usage is limited to providing our task-based earning services</li>
+                    <li>• You can revoke access whenever the provider allows, or by disconnecting inside YesITryMe (if available).</li>
+                    <li>• We use integration data only to deliver the requested feature and for basic fraud prevention.</li>
+                    <li>• Policies and scopes may vary by provider and may change over time.</li>
                   </ul>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 mb-2">Your Rights</h4>
-                  <p className="text-gray-700 text-sm">
-                    You have the right to access, modify, or delete your data. You can also revoke our access to your YouTube data through your Google Account settings.
-                    For any data-related requests, contact us at <a href="mailto:YesITryMeofficial@gmail.com" className="text-blue-600 hover:underline">YesITryMeofficial@gmail.com</a>.
-                  </p>
                 </div>
               </div>
             </section>

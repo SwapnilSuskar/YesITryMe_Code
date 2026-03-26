@@ -11,7 +11,6 @@ import {
   Phone,
   Send,
   Users,
-  Youtube
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Logo from "../../assets/Logo2.png";
@@ -41,9 +40,6 @@ const Footer = () => {
               Join thousands of students who have transformed their careers with YesITryMe.
             </p>
             <div className="flex space-x-4">
-              <Link to="https://youtube.com/@swapnilsuskar?si=StUp1DtoCfnXpIMc" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300">
-                <Youtube className="w-5 h-5" />
-              </Link>
               <Link to="https://t.me/yesitrymeofficial" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300">
                 <Send className="w-5 h-5" />
               </Link>

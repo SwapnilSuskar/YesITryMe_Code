@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Represents a social task: a YouTube video/channel link and required action type
+// Represents a social task and the required action type
 const socialTaskSchema = new mongoose.Schema(
   {
     createdByAdminId: {
@@ -10,8 +10,8 @@ const socialTaskSchema = new mongoose.Schema(
     },
     platform: {
       type: String,
-      enum: ["youtube"],
-      default: "youtube",
+      enum: ["social"],
+      default: "social",
     },
     action: {
       type: String,

@@ -1070,10 +1070,10 @@ const WalletTransactions = () => {
                                                                 }
                                                             </div>
                                                             <div className="text-sm text-gray-600 mt-1">
-                                                                {transaction.type === 'view' && '📺 YouTube View Task'}
-                                                                {transaction.type === 'like' && '👍 YouTube Like Task'}
-                                                                {transaction.type === 'comment' && '💬 YouTube Comment Task'}
-                                                                {transaction.type === 'subscribe' && '🔔 YouTube Subscribe Task'}
+                                                                {transaction.type === 'view' && '📺 View Task'}
+                                                                {transaction.type === 'like' && '👍 Like Task'}
+                                                                {transaction.type === 'comment' && '💬 Comment Task'}
+                                                                {transaction.type === 'subscribe' && '🔔 Subscribe Task'}
                                                                 {transaction.type === 'activation_bonus' && '🎁 Activation Bonus'}
                                                                 {transaction.type === 'withdrawal' && '💸 Withdrawal Request'}
                                                             </div>

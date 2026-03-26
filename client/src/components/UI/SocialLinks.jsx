@@ -1,4 +1,4 @@
-import { MessageCircle, Send, Youtube } from 'lucide-react';
+import { MessageCircle, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const SocialLinks = ({
@@ -9,21 +9,6 @@ const SocialLinks = ({
   cardClassName = '',
 }) => {
   const socialLinks = [
-    {
-      id: 'youtube',
-      name: 'YouTube Channel',
-      description: 'Subscribe for updates, tutorials, and more!',
-      url: 'https://www.youtube.com/@yesitryme',
-      icon: Youtube,
-      iconColor: 'text-white drop-shadow',
-      bgGradient: 'from-red-500 to-red-400',
-      borderColor: 'border-red-200',
-      cardGradient: 'from-red-100/60 via-white/80 to-red-200/60',
-      textColor: 'text-red-600',
-      buttonGradient: 'from-red-500 to-red-400',
-      buttonHover: 'hover:from-red-400 hover:to-red-500',
-      shadowHover: 'hover:shadow-red-200/60'
-    },
     {
       id: 'telegram',
       name: 'Telegram Group',

@@ -244,18 +244,6 @@ export const API_ENDPOINTS = {
     byId: `${API_URL}/api/course-content/:id`,
     byCourseId: `${API_URL}/api/course-content/course/:courseId`,
   },
-  social: {
-    youtubeOAuthStart: `${API_URL}/api/social/youtube/oauth/start`,
-    youtubeOAuthCallback: `${API_URL}/api/social/youtube/oauth/callback`,
-    youtubeStatus: `${API_URL}/api/social/youtube/status`,
-    youtubeChannel: `${API_URL}/api/social/youtube/channel`,
-    youtubeDisconnect: `${API_URL}/api/social/youtube/disconnect`,
-    tasks: `${API_URL}/api/social/tasks`,
-    verify: `${API_URL}/api/social/verify`,
-    publicVerify: `${API_URL}/api/social/public/verify`,
-    adminTasks: `${API_URL}/api/social/admin/tasks`,
-    adminToggleTask: `${API_URL}/api/social/admin/tasks/:taskId/toggle`,
-  },
   coins: {
     balance: `${API_URL}/api/coins/balance`,
     activationBonus: `${API_URL}/api/coins/activation-bonus`,

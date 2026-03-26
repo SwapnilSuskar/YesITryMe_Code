@@ -2,7 +2,7 @@ import WelComeBanner from "../../assets/Images/Banner.webp";
 import { TypeAnimation } from 'react-type-animation';
 import CountUp from 'react-countup';
 import { Link } from "react-router-dom";
-import { Zap, BookOpen, CheckCircle, Youtube, Coins, Smartphone, Wallet } from 'lucide-react';
+import { Zap, BookOpen, CheckCircle, Coins, Smartphone, Wallet } from 'lucide-react';
 const WelcomeBanner = () => {
     return (
         <div className="min-h-screen bg-orange-50  pt-8">
@@ -45,7 +45,7 @@ const WelcomeBanner = () => {
                         sequence={[
                             'Affiliate Marketing Platform',
                             1500, // Waits 1s after typing
-                            'YouTube Task Platform',
+                            'Rewards Platform',
                             1500, // Waits 1s after typing
                             'Earn Coins & Rewards',
                             1500, // Waits 1s after typing
@@ -87,7 +87,7 @@ const WelcomeBanner = () => {
                                 WebkitTextFillColor: 'transparent',
                                 backgroundClip: 'text',
                             }}>
-                            Transform Your Future With Cutting-Edge Digital Skills, Complete YouTube Tasks, Earn Coins & Rewards, And Unlock Unlimited Earning Opportunities In the Digital Economy.
+                            Transform Your Future With Cutting-Edge Digital Skills, Earn Coins & Rewards, And Unlock Unlimited Earning Opportunities In the Digital Economy.
                         </p>
                     </div>
                     {/* Features Grid */}
@@ -145,13 +145,13 @@ const WelcomeBanner = () => {
                                 Earn Recognized Certificates To Boost Your Career Prospects.</p>
                         </div>
 
-                        {/* Feature 4 - YouTube Tasks */}
+                        {/* Feature 4 - Reward Tasks */}
                         <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-center">
                             <div className="flex items-center gap-4 mb-4">
-                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-red-500 to-red-600 rounded-xl">
-                                    <Youtube className="w-10 h-10 text-white" />
+                                <span className="flex items-center justify-center w-14 h-14 bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl">
+                                    <Wallet className="w-10 h-10 text-white" />
                                 </span>
-                                <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">YouTube Tasks</h3>
+                                <h3 className="text-3xl font-bold text-gray-800 m-0 flex-1 text-left">Reward Tasks</h3>
                             </div>
                             <p className="text-gray-600" style={{
                                 fontFamily: "Lato",
@@ -160,7 +160,7 @@ const WelcomeBanner = () => {
                                 lineHeight: '1.3',
                                 textAlign: 'left',
                             }}>
-                                Complete YouTube Tasks And Earn Rewards For Your Engagement.</p>
+                                Complete Tasks And Earn Rewards For Your Engagement.</p>
                         </div>
 
                         {/* Feature 5 - Earn Coins */}
@@ -243,7 +243,7 @@ const WelcomeBanner = () => {
                             <div className="text-3xl font-bold text-[#FF4E00] mb-2">
                                 <CountUp end={500} duration={2} />+
                             </div>
-                            <div className="text-sm text-gray-600 font-medium">YouTube Tasks</div>
+                            <div className="text-sm text-gray-600 font-medium">Reward Tasks</div>
                         </div>
                         <div className="text-center">
                             <div className="text-3xl font-bold text-[#FF4E00] mb-2">

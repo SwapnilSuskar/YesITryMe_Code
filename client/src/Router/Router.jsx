@@ -61,9 +61,10 @@ import AiToolsDetailer from '../components/Pages/AiToolsDetailer';
 import WithdrawalRequests from '../components/Admin/WithdrawalRequests';
 import AiToolManager from '../components/Admin/AiToolManager';
 import SocialEarning from '../components/User/SocialEarning';
-import SocialTasks from '../components/Admin/SocialTasks';
+import VideoTasks from '../components/Admin/VideoTasks';
 import CourseContentManager from '../components/Admin/CourseContentManager';
 import PublicTask from '../components/Pages/PublicTask';
+import VideoTaskDetail from '../components/User/VideoTaskDetail';
 import Nominee from '../components/User/Nominee';
 import Recharge from '../components/User/Recharge';
 import MobileRecharge from '../components/User/MobileRecharge';
@@ -170,6 +171,7 @@ const AppRouter = () => {
         <Route path="/direct-referrals" element={<DirectReferrals />} />
         <Route path="/my-successfully-downline" element={<SuccessfulDownline />} />
         <Route path="/socialearning" element={<SocialEarning />} />
+        <Route path="/video-tasks/:videoId" element={<VideoTaskDetail />} />
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-team" element={<MyTeam />} />
@@ -213,7 +215,8 @@ const AppRouter = () => {
         <Route path="ai-tools" element={<AiToolManager />} />
         <Route path="super-packages" element={<SuperPackageManager />} />
         <Route path="super-package-payments" element={<SuperPackagePaymentManager />} />
-        <Route path="admin-social-tasks" element={<SocialTasks />} />
+        <Route path="admin-social-tasks" element={<VideoTasks />} />
+        <Route path="video-tasks" element={<VideoTasks />} />
         <Route path="coin-withdrawal-requests" element={<WithdrawalRequests />} />
         <Route path="wallet-manager" element={<WalletManager />} />
         <Route path="recharge-analysis" element={<AdminRechargeAnalysis />} />

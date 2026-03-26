@@ -116,7 +116,14 @@ const WalletTransactions = () => {
                 const allTransactions = transactionsResponse.data.data.transactions || [];
                 // Include both earning and withdrawal transactions in pagination
                 const allCoinTransactions = allTransactions.filter(t =>
-                    t.type === 'view' || t.type === 'like' || t.type === 'comment' || t.type === 'subscribe' || t.type === 'activation_bonus' || t.type === 'referral_bonus' || t.type === 'withdrawal'
+                    t.type === 'view' ||
+                    t.type === 'like' ||
+                    t.type === 'comment' ||
+                    t.type === 'share' ||
+                    t.type === 'subscribe' || // legacy
+                    t.type === 'activation_bonus' ||
+                    t.type === 'referral_bonus' ||
+                    t.type === 'withdrawal'
                 );
 
                 // Sort by date (newest first)
@@ -1073,6 +1080,7 @@ const WalletTransactions = () => {
                                                                 {transaction.type === 'view' && '📺 View Task'}
                                                                 {transaction.type === 'like' && '👍 Like Task'}
                                                                 {transaction.type === 'comment' && '💬 Comment Task'}
+                                                                {transaction.type === 'share' && '🔁 Share Task'}
                                                                 {transaction.type === 'subscribe' && '🔔 Subscribe Task'}
                                                                 {transaction.type === 'activation_bonus' && '🎁 Activation Bonus'}
                                                                 {transaction.type === 'withdrawal' && '💸 Withdrawal Request'}
@@ -1101,6 +1109,11 @@ const WalletTransactions = () => {
                                                             {transaction.type === 'comment' && (
                                                                 <div className="text-xs text-orange-600 font-semibold mt-1">
                                                                     💬 Comment Task Completed
+                                                                </div>
+                                                            )}
+                                                            {transaction.type === 'share' && (
+                                                                <div className="text-xs text-violet-600 font-semibold mt-1">
+                                                                    🔁 Share Task Completed
                                                                 </div>
                                                             )}
                                                             {transaction.type === 'subscribe' && (

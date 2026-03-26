@@ -263,14 +263,14 @@ export const signup = async (req, res) => {
 
         // If we get here, user creation was successful
 
-        // Award referral bonus (20 coins) to sponsor's coin wallet
+        // Award referral bonus (100 coins) to sponsor's coin wallet
         try {
           const sponsorWallet = await CoinWallet.getOrCreateWallet(
             finalSponsorId
           );
           await sponsorWallet.addCoins(
             "referral_bonus",
-            20,
+            100,
             {
               referredUserId: userId,
               referredUserName: `${firstName} ${lastName}`,

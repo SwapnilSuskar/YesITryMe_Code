@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, Tv, User, Wallet, YoutubeIcon } from "lucide-react";
+import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, Tv, User, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import api, { API_ENDPOINTS } from "../../config/api";
@@ -492,19 +492,19 @@ const AdminDashboard = () => {
               </div>
             </Link>
             <Link
-              to="/admin/admin-social-tasks"
-              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/admin-social-tasks"
+              to="/admin/video-tasks"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/video-tasks"
                 ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
                 : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
                 }`}
             >
               <div className="flex flex-col items-center text-center gap-3">
-                <div className={`p-3 rounded-xl ${location.pathname === "/admin/admin-social-tasks" ? "bg-white/20" : "bg-violet-100 group-hover:bg-violet-200"}`}>
-                  <YoutubeIcon className={`w-8 h-8 ${location.pathname === "/admin/admin-social-tasks" ? "text-white" : "text-violet-600"}`} />
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/video-tasks" ? "bg-white/20" : "bg-violet-100 group-hover:bg-violet-200"}`}>
+                  <Tv className={`w-8 h-8 ${location.pathname === "/admin/video-tasks" ? "text-white" : "text-violet-600"}`} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">Social Tasks</h3>
-                  <p className="text-xs opacity-75 mt-1">Manage social tasks</p>
+                  <h3 className="font-bold text-sm">Video Tasks</h3>
+                  <p className="text-xs opacity-75 mt-1">Manage videos</p>
                 </div>
               </div>
             </Link>

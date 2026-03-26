@@ -8,6 +8,7 @@ const coinTransactionSchema = new mongoose.Schema(
         "view",
         "like",
         "comment",
+        "share",
         "subscribe",
         "activation_bonus",
         "withdrawal",

@@ -23,6 +23,7 @@ import rechargeRoutes from "./routes/recharge.js";
 import walletTopUpRoutes from "./routes/walletTopUp.js";
 import courseContentRoutes from "./routes/courseContent.js";
 import categoryRoutes from "./routes/categories.js";
+import videoTasksRoutes from "./routes/videoTasks.js";
 
 const app = express();
 
@@ -225,6 +226,7 @@ app.use("/api/recharge", rechargeRoutes);
 app.use("/api/wallet-topup", walletTopUpRoutes);
 app.use("/api/course-content", courseContentRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/video-tasks", videoTasksRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

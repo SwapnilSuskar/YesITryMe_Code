@@ -138,14 +138,54 @@ export const createVideoShareToken = async (req, res) => {
       return res.status(404).json({ success: false, message: "Video not found or inactive" });
     }
 
+    // Award "share" coins ONLY when a share link is generated (one-time per video)
+    const exists = await VideoEngagement.findOne({ userId, videoId, action: "share" }).lean();
+    if (!exists) {
+      await VideoEngagement.create({
+        userId,
+        videoId,
+        action: "share",
+        metadata: { shareLinkCreatedAt: new Date().toISOString() },
+      });
+
+      const wallet = await CoinWallet.getOrCreateWallet(userId);
+      const coins = COIN_REWARDS.share || 0;
+      await wallet.addCoins(
+        "share",
+        coins,
+        { videoId: video._id, action: "share" },
+        `VIDEO_SHARE_${video._id}_${userId}`
+      );
+    }
+
     const token = jwt.sign(
       { videoId: String(video._id), mode: "view_only", issuedBy: userId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    return res.json({ success: true, data: { token, videoId: String(video._id), mode: "view_only" } });
+    return res.json({
+      success: true,
+      data: {
+        token,
+        videoId: String(video._id),
+        mode: "view_only",
+        shareCoinsEarned: exists ? 0 : (COIN_REWARDS.share || 0),
+      },
+    });
   } catch (error) {
+    if (error && error.code === 11000) {
+      // share engagement already exists (race) - still issue token
+      try {
+        const video = await EngagementVideo.findById(req.params.videoId).select("_id").lean();
+        const token = video
+          ? jwt.sign({ videoId: String(video._id), mode: "view_only", issuedBy: req.user?.userId }, process.env.JWT_SECRET, { expiresIn: "7d" })
+          : null;
+        return res.status(200).json({ success: true, data: { token, shareCoinsEarned: 0 } });
+      } catch (_) {
+        return res.status(200).json({ success: true, data: { token: null, shareCoinsEarned: 0 } });
+      }
+    }
     return res.status(500).json({ success: false, message: "Failed to create share link", error: error.message });
   }
 };

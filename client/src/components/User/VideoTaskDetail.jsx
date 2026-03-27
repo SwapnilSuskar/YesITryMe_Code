@@ -226,6 +226,10 @@ const VideoTaskDetail = () => {
       navigate(referrer ? `/signup?referrer_code=${encodeURIComponent(referrer)}` : '/signup');
       return;
     }
+    if (action === 'share') {
+      toast.info('Use the Share button to earn share reward');
+      return;
+    }
     if (claimedActions.has(action)) {
       toast.info('Already claimed');
       return;
@@ -294,10 +298,6 @@ const VideoTaskDetail = () => {
     if (sharing) return;
     try {
       setSharing(true);
-      // Claim share reward (one-time) if not already claimed
-      if (!claimedActions.has('share')) {
-        await claim('share');
-      }
       const token = await createShareToken();
       const shareUrl = `${window.location.origin}/video-tasks/${videoId}?shareToken=${encodeURIComponent(token)}`;
 
@@ -315,6 +315,10 @@ const VideoTaskDetail = () => {
       } else {
         window.prompt('Copy this link:', shareUrl);
       }
+
+      // Mark share as claimed (reward is granted when token is created on backend)
+      setClaimedActions((prev) => new Set([...prev, 'share']));
+      setStats((p) => ({ ...p, share: (Number(p.share) || 0) + 1 }));
     } catch (e) {
       toast.error(e.response?.data?.message || e.message || 'Failed to share');
     } finally {
@@ -391,8 +395,8 @@ const VideoTaskDetail = () => {
                         onClick={() => claim('like')}
                         disabled={isViewOnlyShared || claiming.like || claimedActions.has('like')}
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-extrabold border transition ${claiming.like || claimedActions.has('like')
-                            ? 'bg-gray-200 text-gray-700 border-gray-200 cursor-not-allowed'
-                            : 'bg-white/80 text-gray-900 border-white/60 hover:bg-white'
+                          ? 'bg-gray-200 text-gray-700 border-gray-200 cursor-not-allowed'
+                          : 'bg-white/80 text-gray-900 border-white/60 hover:bg-white'
                           }`}
                         title="Like (one-time reward)"
                       >
@@ -415,11 +419,10 @@ const VideoTaskDetail = () => {
                         type="button"
                         onClick={handleShare}
                         disabled={isViewOnlyShared || sharing}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-extrabold border transition ${
-                          isViewOnlyShared || sharing
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-extrabold border transition ${isViewOnlyShared || sharing
                             ? 'bg-gray-200 text-gray-700 border-gray-200 cursor-not-allowed'
                             : 'bg-white/80 text-gray-900 border-white/60 hover:bg-white'
-                        }`}
+                          }`}
                         title="Share (view-only link)"
                       >
                         <Share2 className="w-4 h-4 text-violet-700" />
@@ -480,8 +483,8 @@ const VideoTaskDetail = () => {
                           onClick={() => claim('comment')}
                           disabled={claiming.comment || claimedActions.has('comment')}
                           className={`px-4 py-2 rounded-xl font-extrabold text-white ${claiming.comment || claimedActions.has('comment')
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
                             }`}
                         >
                           {claimedActions.has('comment') ? 'Claimed' : claiming.comment ? 'Claiming…' : 'Post & Claim +30'}
@@ -553,16 +556,25 @@ const VideoTaskDetail = () => {
                   <div className="mt-4 space-y-2">
                     {rewardInfo.map((r) => {
                       const Icon = r.icon;
-                      const disabled = claiming[r.key] || claimedActions.has(r.key) || (r.key === 'view' && !canClaimView);
-                      const label = claimedActions.has(r.key)
-                        ? 'Claimed'
-                        : claiming[r.key]
-                          ? 'Claiming…'
-                          : `Claim +${r.coins}`;
+                      const isShare = r.key === 'share';
+                      const disabled = isShare
+                        ? isViewOnlyShared || sharing || claimedActions.has('share')
+                        : claiming[r.key] || claimedActions.has(r.key) || (r.key === 'view' && !canClaimView);
+                      const label = isShare
+                        ? claimedActions.has('share')
+                          ? 'Shared'
+                          : sharing
+                            ? 'Sharing…'
+                            : `Share +${r.coins}`
+                        : claimedActions.has(r.key)
+                          ? 'Claimed'
+                          : claiming[r.key]
+                            ? 'Claiming…'
+                            : `Claim +${r.coins}`;
                       return (
                         <button
                           key={r.key}
-                          onClick={() => claim(r.key)}
+                          onClick={() => (isShare ? handleShare() : claim(r.key))}
                           disabled={disabled}
                           className={`w-full px-4 py-3 rounded-xl font-extrabold text-white flex items-center justify-between gap-3 transition ${disabled
                             ? 'bg-gray-400 cursor-not-allowed'

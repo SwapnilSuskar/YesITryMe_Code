@@ -1,6 +1,5 @@
 import ServiceConfig from "../models/ServiceConfig.js";
 import ServiceRequest from "../models/ServiceRequest.js";
-import nodemailer from "nodemailer";
 
 const DEFAULT_CONFIGS = [
   { serviceKey: "insurance", title: "Insurance", actionType: "contact_form" },
@@ -50,37 +49,6 @@ export const createServiceRequest = async (req, res) => {
       email: String(email || req.user?.email || "").slice(0, 120),
       notes: String(notes).slice(0, 1000),
     });
-
-    // Send email to admin (same pattern as contact form)
-    try {
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD,
-        },
-      });
-
-      const safe = (v) => String(v || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-      await transporter.sendMail({
-        from: `"YesITryMe Services" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER,
-        subject: `New Service Request: ${cfg.title || cfg.serviceKey} (${request.userId})`,
-        html: `
-          <h3>New Service Request</h3>
-          <p><strong>Service:</strong> ${safe(cfg.title || cfg.serviceKey)} (${safe(cfg.serviceKey)})</p>
-          <p><strong>User ID:</strong> ${safe(request.userId)}</p>
-          <p><strong>Name:</strong> ${safe(request.name)}</p>
-          <p><strong>Mobile:</strong> ${safe(request.mobile)}</p>
-          <p><strong>Email:</strong> ${safe(request.email)}</p>
-          <p><strong>Notes:</strong><br/>${safe(request.notes).replace(/\n/g, "<br/>")}</p>
-          <p><strong>Submitted At:</strong> ${new Date(request.createdAt).toLocaleString("en-IN")}</p>
-        `,
-      });
-    } catch (emailErr) {
-      console.error("Service request email failed:", emailErr?.message || emailErr);
-    }
 
     res.status(201).json({ success: true, data: request, message: "Request submitted" });
   } catch (error) {

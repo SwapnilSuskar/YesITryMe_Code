@@ -164,8 +164,8 @@ const MyServices = () => {
                         type="button"
                         onClick={() => setSelectedKey(c.serviceKey)}
                         className={`w-full text-left px-4 py-3 rounded-2xl border transition flex items-center justify-between gap-3 ${isActive
-                            ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white border-orange-200 shadow-md'
-                            : 'bg-white/85 text-gray-900 border-white/60 hover:bg-white shadow-sm'
+                          ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white border-orange-200 shadow-md'
+                          : 'bg-white/85 text-gray-900 border-white/60 hover:bg-white shadow-sm'
                           }`}
                       >
                         <span className="inline-flex items-center gap-2 min-w-0">
@@ -224,8 +224,8 @@ const MyServices = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-extrabold text-white ${selected.linkUrl
-                            ? 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
-                            : 'bg-gray-400 cursor-not-allowed pointer-events-none'
+                          ? 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
+                          : 'bg-gray-400 cursor-not-allowed pointer-events-none'
                           }`}
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -290,8 +290,8 @@ const MyServices = () => {
                         onClick={submitRequest}
                         disabled={sending}
                         className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-extrabold text-white ${sending
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md'
                           }`}
                       >
                         <Send className="w-4 h-4" />

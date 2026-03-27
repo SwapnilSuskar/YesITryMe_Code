@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Save, Link2, PhoneCall, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Save, Link2, PhoneCall, RefreshCw, Plus, Trash2, X } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../../styles/toast.css';
@@ -8,6 +8,9 @@ import api, { API_ENDPOINTS } from '../../config/api';
 const ServiceManager = () => {
   const [loading, setLoading] = useState(true);
   const [configs, setConfigs] = useState({});
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [openRequest, setOpenRequest] = useState(null);
   const [savingKey, setSavingKey] = useState('');
   const [creating, setCreating] = useState(false);
   const [newService, setNewService] = useState({
@@ -43,7 +46,26 @@ const ServiceManager = () => {
     }
   };
 
-  useEffect(() => { fetchConfigs(); }, []);
+  const fetchRequests = async () => {
+    try {
+      setRequestsLoading(true);
+      const res = await api.get(API_ENDPOINTS.services.adminRequests);
+      if (res.data?.success) {
+        setRequests(res.data.data || []);
+      } else {
+        toast.error(res.data?.message || 'Failed to load requests');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to load requests');
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConfigs();
+    fetchRequests();
+  }, []);
 
   const update = (key, patch) => {
     setConfigs((p) => ({ ...p, [key]: { ...p[key], ...patch } }));
@@ -150,10 +172,13 @@ const ServiceManager = () => {
               <p className="text-sm text-gray-600">Decide what users see for each service.</p>
             </div>
             <button
-              onClick={fetchConfigs}
+              onClick={() => {
+                fetchConfigs();
+                fetchRequests();
+              }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white border border-gray-200 hover:bg-gray-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${(loading || requestsLoading) ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
@@ -361,6 +386,148 @@ const ServiceManager = () => {
             </div>
           )}
         </div>
+
+        <div className="mt-6 bg-white/70 border border-white/60 rounded-2xl p-6 shadow-[0_10px_30px_-12px_rgba(59,130,246,0.25)]">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Service Requests</h2>
+              <p className="text-sm text-gray-600">Submissions from users appear here (no email needed).</p>
+            </div>
+            <div className="text-sm font-semibold text-gray-700">Total: {requests.length}</div>
+          </div>
+
+          {requestsLoading ? (
+            <div className="text-center py-10 text-gray-600">Loading requests…</div>
+          ) : requests.length === 0 ? (
+            <div className="text-center py-10 text-gray-600">No requests submitted yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-white/80 border border-white/60">
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Submitted</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Service</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">User ID</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Name</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Mobile</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Email</th>
+                    <th className="text-left px-3 py-2 font-bold text-gray-700">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((r) => (
+                    <tr key={r._id} className="border-b border-white/60 bg-white/60 hover:bg-white/80">
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
+                        {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-gray-900 font-semibold whitespace-nowrap">{r.serviceKey || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.userId || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.name || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.mobile || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.email || '—'}</td>
+                      <td className="px-3 py-2 text-gray-700 min-w-[260px] max-w-[520px]">
+                        {r.notes ? (
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="text-gray-700 break-words line-clamp-2">{r.notes}</div>
+                            <button
+                              type="button"
+                              onClick={() => setOpenRequest(r)}
+                              className="flex-shrink-0 px-3 py-1 rounded-lg text-xs font-extrabold bg-white border border-gray-200 hover:bg-gray-50"
+                            >
+                              View
+                            </button>
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {openRequest ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setOpenRequest(null)}
+              role="button"
+              tabIndex={0}
+            />
+            <div className="relative w-full max-w-2xl rounded-2xl border border-white/60 bg-white/90 backdrop-blur-xl shadow-xl p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-gray-600">Service request</div>
+                  <div className="text-lg font-extrabold text-gray-900 truncate">
+                    {openRequest.serviceKey || 'Service'}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {openRequest.createdAt ? new Date(openRequest.createdAt).toLocaleString() : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenRequest(null)}
+                  className="p-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl border border-white/60 bg-white/80 p-3">
+                  <div className="text-xs text-gray-600 font-semibold">User ID</div>
+                  <div className="font-extrabold text-gray-900 break-words">{openRequest.userId || '—'}</div>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/80 p-3">
+                  <div className="text-xs text-gray-600 font-semibold">Name</div>
+                  <div className="font-extrabold text-gray-900 break-words">{openRequest.name || '—'}</div>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/80 p-3">
+                  <div className="text-xs text-gray-600 font-semibold">Mobile</div>
+                  <div className="font-extrabold text-gray-900 break-words">{openRequest.mobile || '—'}</div>
+                </div>
+                <div className="rounded-xl border border-white/60 bg-white/80 p-3">
+                  <div className="text-xs text-gray-600 font-semibold">Email</div>
+                  <div className="font-extrabold text-gray-900 break-words">{openRequest.email || '—'}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-white/60 bg-white/80 p-4">
+                <div className="text-xs font-semibold text-gray-600">Notes</div>
+                <div className="mt-2 text-sm text-gray-900 whitespace-pre-wrap break-words max-h-[50vh] overflow-auto">
+                  {openRequest.notes || '—'}
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.clipboard?.writeText) {
+                      navigator.clipboard.writeText(openRequest.notes || '');
+                      toast.success('Notes copied');
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-extrabold bg-white border border-gray-200 hover:bg-gray-50"
+                >
+                  Copy notes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenRequest(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-extrabold text-white bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -266,11 +266,10 @@ const ServiceManager = () => {
                   <button
                     onClick={create}
                     disabled={creating}
-                    className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-white ${
-                      creating
+                    className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-white ${creating
                         ? 'bg-gray-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
-                    }`}
+                      }`}
                   >
                     <Plus className="w-4 h-4" />
                     {creating ? 'Creating…' : 'Create'}
@@ -361,11 +360,10 @@ const ServiceManager = () => {
                         <button
                           onClick={() => save(key)}
                           disabled={savingKey === key}
-                          className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-extrabold text-white ${
-                            savingKey === key
+                          className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-extrabold text-white ${savingKey === key
                               ? 'bg-gray-400 cursor-not-allowed'
                               : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
-                          }`}
+                            }`}
                         >
                           <Save className="w-4 h-4" />
                           {savingKey === key ? 'Saving…' : 'Save'}

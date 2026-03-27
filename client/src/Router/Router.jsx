@@ -72,6 +72,8 @@ import DTHRecharge from '../components/User/DTHRecharge';
 import PlanConfirmation from '../components/User/PlanConfirmation';
 import RechargeSuccess from '../components/User/RechargeSuccess';
 import NotFound from '../components/Pages/NotFound';
+import MyServices from '../components/User/MyServices';
+import ServiceManager from '../components/Admin/ServiceManager';
 
 const LayoutWithNavbar = () => {
   const location = useLocation();
@@ -172,6 +174,7 @@ const AppRouter = () => {
         <Route path="/my-successfully-downline" element={<SuccessfulDownline />} />
         <Route path="/socialearning" element={<SocialEarning />} />
         <Route path="/video-tasks/:videoId" element={<VideoTaskDetail />} />
+        <Route path="/my-services" element={<MyServices />} />
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/my-team" element={<MyTeam />} />
@@ -217,6 +220,7 @@ const AppRouter = () => {
         <Route path="super-package-payments" element={<SuperPackagePaymentManager />} />
         <Route path="admin-social-tasks" element={<VideoTasks />} />
         <Route path="video-tasks" element={<VideoTasks />} />
+        <Route path="service-manager" element={<ServiceManager />} />
         <Route path="coin-withdrawal-requests" element={<WithdrawalRequests />} />
         <Route path="wallet-manager" element={<WalletManager />} />
         <Route path="recharge-analysis" element={<AdminRechargeAnalysis />} />

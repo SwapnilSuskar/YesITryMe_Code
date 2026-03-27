@@ -180,6 +180,7 @@ export const getSharedEngagementVideo = async (req, res) => {
         videoUrl: video.videoUrl,
         createdAt: video.createdAt,
         isSharedViewOnly: true,
+        sharedByUserId: payload.issuedBy || "",
       },
     });
   } catch (error) {

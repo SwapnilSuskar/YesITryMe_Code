@@ -269,6 +269,15 @@ export const API_ENDPOINTS = {
     adminToggle: `${API_URL}/api/video-tasks/admin/:videoId/toggle`,
     adminDelete: `${API_URL}/api/video-tasks/admin/:videoId`,
   },
+  services: {
+    list: `${API_URL}/api/services`,
+    request: `${API_URL}/api/services/request`,
+    adminConfigs: `${API_URL}/api/services/admin/configs`,
+    adminConfigByKey: `${API_URL}/api/services/admin/configs/:serviceKey`,
+    adminCreate: `${API_URL}/api/services/admin/configs`,
+    adminDelete: `${API_URL}/api/services/admin/configs/:serviceKey`,
+    adminRequests: `${API_URL}/api/services/admin/requests`,
+  },
   nominee: {
     get: `${API_URL}/api/nominee/:userId`,
     createOrUpdate: `${API_URL}/api/nominee/:userId`,

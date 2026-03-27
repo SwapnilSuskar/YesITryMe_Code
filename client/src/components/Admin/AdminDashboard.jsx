@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, Tv, User, Wallet } from "lucide-react";
+import { BarChart3, BookOpen, CreditCard, Edit, Eye, FileText, Image as ImageIcon, MoreVertical, Package, Quote, Search, ShieldCheck, ShoppingCart, Trash2, Tv, User, Wallet, Briefcase } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import api, { API_ENDPOINTS } from "../../config/api";
@@ -505,6 +505,24 @@ const AdminDashboard = () => {
                 <div>
                   <h3 className="font-bold text-sm">Video Tasks</h3>
                   <p className="text-xs opacity-75 mt-1">Manage videos</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              to="/admin/service-manager"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/service-manager"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/service-manager" ? "bg-white/20" : "bg-orange-100 group-hover:bg-orange-200"}`}>
+                  <Briefcase className={`w-8 h-8 ${location.pathname === "/admin/service-manager" ? "text-white" : "text-orange-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">My Services</h3>
+                  <p className="text-xs opacity-75 mt-1">Configure user flow</p>
                 </div>
               </div>
             </Link>

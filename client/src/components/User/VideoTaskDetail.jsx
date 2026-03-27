@@ -36,6 +36,7 @@ const VideoTaskDetail = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [sharing, setSharing] = useState(false);
+  const [sharedByUserId, setSharedByUserId] = useState('');
 
   const tickRef = useRef(null);
   const isMountedRef = useRef(false);
@@ -114,6 +115,7 @@ const VideoTaskDetail = () => {
           if (!isMountedRef.current) return;
           setVideo(v);
           setClaimedActions(new Set());
+          setSharedByUserId(String(v?.sharedByUserId || ''));
           return;
         }
         if (!isAuthed) return;
@@ -220,7 +222,8 @@ const VideoTaskDetail = () => {
   const claim = async (action) => {
     if (!videoId) return;
     if (isViewOnlyShared) {
-      toast.info('Shared link: tasks are disabled');
+      const referrer = sharedByUserId || '';
+      navigate(referrer ? `/signup?referrer_code=${encodeURIComponent(referrer)}` : '/signup');
       return;
     }
     if (claimedActions.has(action)) {
@@ -446,6 +449,18 @@ const VideoTaskDetail = () => {
                   {isViewOnlyShared ? (
                     <div className="mt-3 rounded-xl border border-white/60 bg-white/80 p-3 text-sm text-gray-700">
                       This is a <span className="font-extrabold text-orange-700">shared view-only</span> link. Comments and tasks are disabled.
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const referrer = sharedByUserId || '';
+                            navigate(referrer ? `/signup?referrer_code=${encodeURIComponent(referrer)}` : '/signup');
+                          }}
+                          className="inline-flex items-center justify-center px-4 py-2 rounded-xl font-extrabold text-white bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-md"
+                        >
+                          Sign up to earn coins
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="mt-3 rounded-xl border border-white/60 bg-white/80 p-3">

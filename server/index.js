@@ -24,6 +24,7 @@ import walletTopUpRoutes from "./routes/walletTopUp.js";
 import courseContentRoutes from "./routes/courseContent.js";
 import categoryRoutes from "./routes/categories.js";
 import videoTasksRoutes from "./routes/videoTasks.js";
+import servicesRoutes from "./routes/services.js";
 
 const app = express();
 
@@ -227,6 +228,7 @@ app.use("/api/wallet-topup", walletTopUpRoutes);
 app.use("/api/course-content", courseContentRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/video-tasks", videoTasksRoutes);
+app.use("/api/services", servicesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

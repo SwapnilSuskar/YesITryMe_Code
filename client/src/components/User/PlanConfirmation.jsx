@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, IndianRupee, Sparkles, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, IndianRupee, Sparkles, AlertCircle, X, Coins } from 'lucide-react';
 import { initiateRecharge, getWalletBalance } from '../../services/rechargeService';
 import useToast from '../../hooks/useToast';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -187,6 +187,16 @@ const PlanConfirmation = () => {
 		const net = discountDetails?.net ?? planAmount;
 		return Number.isNaN(net) ? planAmount : net;
 	}, [discountDetails, planAmount]);
+
+	/** Same rule as backend: 10% of plan/recharge face amount (₹) → coins at 100 coins = ₹1 */
+	const rechargeCoinReward = useMemo(() => {
+		const face = planAmount;
+		if (!face || face <= 0) return null;
+		const bonusRupees = Math.round(face * 0.1 * 100) / 100;
+		const coins = Math.round(bonusRupees * 100);
+		if (coins <= 0) return null;
+		return { coins, bonusRupees, face };
+	}, [planAmount]);
 
 	const isProcessing = loading || checkingWallet || checkingKyc;
 
@@ -460,12 +470,39 @@ const PlanConfirmation = () => {
 										: 'Active members only'}
 								</span>
 							</div>
+							{rechargeCoinReward && (
+								<div className="flex justify-between items-start gap-2 pt-1">
+									<span className="text-gray-600">Coin reward (after success)</span>
+									<span className="text-right text-amber-800 font-semibold text-sm">
+										+{rechargeCoinReward.coins.toLocaleString('en-IN')} coins
+										<span className="block text-xs font-normal text-gray-500">
+											10% of ₹{rechargeCoinReward.face.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ≈ ₹
+											{rechargeCoinReward.bonusRupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (100 coins = ₹1)
+										</span>
+									</span>
+								</div>
+							)}
 						</div>
 
 						<div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3">
 							<span className="text-sm font-semibold text-gray-700">You pay</span>
 							<span className="text-2xl font-semibold text-gray-900">₹{netPayable.toFixed(2)}</span>
 						</div>
+
+						{rechargeCoinReward && (
+							<div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-3 text-sm text-amber-900">
+								<Coins className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+								<div className="space-y-1">
+									<p className="font-bold">You will receive {rechargeCoinReward.coins.toLocaleString('en-IN')} coins</p>
+									<p className="text-xs text-amber-800/90 leading-relaxed">
+										Awarded when the recharge completes successfully: <strong>10%</strong> of your plan amount (₹
+										{rechargeCoinReward.face.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) → ₹
+										{rechargeCoinReward.bonusRupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+										in coin value (100 coins = ₹1). Shown in <strong>Wallet → Wallet Transactions → Coins</strong> and on the recharge success screen.
+									</p>
+								</div>
+							</div>
+						)}
 
 						{!isActiveMember && (
 							<div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-800">
@@ -481,6 +518,11 @@ const PlanConfirmation = () => {
 							<li>• Instant status updates after payment</li>
 							<li>• Wallet protection in case of provider failure</li>
 							<li>• Eligible for commission distribution automatically</li>
+							{rechargeCoinReward && (
+								<li>
+									• +{rechargeCoinReward.coins.toLocaleString('en-IN')} coins on successful recharge (10% of plan amount)
+								</li>
+							)}
 						</ul>
 					</div>
 
@@ -575,6 +617,17 @@ const PlanConfirmation = () => {
 										<span className="text-sm font-medium text-gray-700">Amount to Pay:</span>
 										<span className="text-lg font-bold text-orange-600">₹{netPayable.toFixed(2)}</span>
 									</div>
+									{rechargeCoinReward && (
+										<div className="flex justify-between items-start gap-2 pt-2 border-t border-amber-100">
+											<span className="text-sm text-amber-900 font-medium">Coins after success</span>
+											<span className="text-sm font-bold text-amber-800 text-right">
+												+{rechargeCoinReward.coins.toLocaleString('en-IN')}
+												<span className="block text-xs font-normal text-amber-700/90">
+													10% of ₹{rechargeCoinReward.face.toFixed(2)} plan
+												</span>
+											</span>
+										</div>
+									)}
 								</div>
 
 								<div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -582,6 +635,15 @@ const PlanConfirmation = () => {
 										<strong>Note:</strong> Once confirmed, the amount will be deducted from your wallet balance.
 									</p>
 								</div>
+								{rechargeCoinReward && (
+									<div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+										<p className="text-xs text-amber-900">
+											<strong>Coins:</strong> When this recharge succeeds, you get{' '}
+											<strong>{rechargeCoinReward.coins.toLocaleString('en-IN')} coins</strong> (10% of the plan amount in coin value; 100 coins = ₹1). Check{' '}
+											<strong>Wallet → Wallet Transactions → Coins</strong> for the entry.
+										</p>
+									</div>
+								)}
 							</div>
 
 							<div className="flex gap-3">

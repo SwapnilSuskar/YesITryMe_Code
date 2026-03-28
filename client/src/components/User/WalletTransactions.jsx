@@ -1,9 +1,15 @@
-import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BookOpen, CheckCircle, Crown, Gift, IndianRupee, Star, Wallet, Smartphone } from 'lucide-react';
+import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BatteryCharging, BookOpen, CheckCircle, Coins, Crown, Gift, IndianRupee, Star, Wallet, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
 import { getRechargeHistory } from '../../services/rechargeService';
+
+/** Same as rest of app: 100 coins = ₹1 */
+const COINS_PER_RUPEE = 100;
+const coinsToRupeesValue = (coins) => (Math.abs(Number(coins)) || 0) / COINS_PER_RUPEE;
+const formatRupeesFromCoins = (coins) =>
+    coinsToRupeesValue(coins).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const WalletTransactions = () => {
     const { user } = useAuthStore();
@@ -123,6 +129,7 @@ const WalletTransactions = () => {
                     t.type === 'subscribe' || // legacy
                     t.type === 'activation_bonus' ||
                     t.type === 'referral_bonus' ||
+                    t.type === 'recharge_bonus' ||
                     t.type === 'withdrawal'
                 );
 
@@ -629,6 +636,7 @@ const WalletTransactions = () => {
             case 'subscribe': return <ArrowUpCircle className="text-red-600" size={16} />;
             case 'activation_bonus': return <Gift className="text-green-600" size={16} />;
             case 'referral_bonus': return <Gift className="text-indigo-600" size={16} />;
+            case 'recharge_bonus': return <BatteryCharging className="text-amber-600" size={16} />;
             default: return <Wallet className="text-gray-600" size={16} />;
         }
     };
@@ -654,6 +662,7 @@ const WalletTransactions = () => {
             case 'subscribe': return 'text-red-700';
             case 'activation_bonus': return 'text-green-700';
             case 'referral_bonus': return 'text-indigo-700';
+            case 'recharge_bonus': return 'text-amber-800';
             default: return 'text-gray-700';
         }
     };
@@ -679,6 +688,7 @@ const WalletTransactions = () => {
             case 'subscribe': return 'bg-red-50 border-red-200';
             case 'activation_bonus': return 'bg-green-50 border-green-200';
             case 'referral_bonus': return 'bg-indigo-50 border-indigo-200';
+            case 'recharge_bonus': return 'bg-amber-50 border-amber-200';
             default: return 'bg-gray-50 border-gray-200';
         }
     };
@@ -1024,6 +1034,12 @@ const WalletTransactions = () => {
                         </>
                     ) : tab === 'coins' ? (
                         <>
+                            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-yellow-200 bg-yellow-50/90 px-4 py-3 text-sm text-yellow-900">
+                                <IndianRupee className="w-4 h-4 shrink-0" />
+                                <span>
+                                    <strong>100 coins = ₹1</strong> — amounts below include the <strong>rupee equivalent</strong> (≈ ₹) for every coin total.
+                                </span>
+                            </div>
                             {/* Summary Cards for Coins */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-yellow-50/80 border-l-4 border-yellow-500 rounded-xl p-4 shadow">
@@ -1032,6 +1048,10 @@ const WalletTransactions = () => {
                                         <div>
                                             <div className="text-xs text-yellow-700 font-semibold flex items-center gap-1">💰 Available Coins</div>
                                             <div className="text-2xl font-extrabold text-yellow-700">{coinBalance?.balance?.toLocaleString() || '0'}</div>
+                                            <div className="text-sm font-semibold text-yellow-800/90 mt-0.5 flex items-center gap-1">
+                                                <IndianRupee className="w-3.5 h-3.5" />
+                                                ≈ {formatRupeesFromCoins(coinBalance?.balance)} value
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1041,6 +1061,10 @@ const WalletTransactions = () => {
                                         <div>
                                             <div className="text-xs text-green-700 font-semibold flex items-center gap-1">📈 Total Earned</div>
                                             <div className="text-2xl font-extrabold text-green-700">{coinBalance?.totalEarned?.toLocaleString() || '0'}</div>
+                                            <div className="text-sm font-semibold text-green-800/90 mt-0.5 flex items-center gap-1">
+                                                <IndianRupee className="w-3.5 h-3.5" />
+                                                ≈ {formatRupeesFromCoins(coinBalance?.totalEarned)} value
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1050,6 +1074,10 @@ const WalletTransactions = () => {
                                         <div>
                                             <div className="text-xs text-blue-700 font-semibold flex items-center gap-1">💎 Active Income</div>
                                             <div className="text-2xl font-extrabold text-blue-700">{coinBalance?.activeIncome?.toLocaleString() || '0'}</div>
+                                            <div className="text-sm font-semibold text-blue-800/90 mt-0.5 flex items-center gap-1">
+                                                <IndianRupee className="w-3.5 h-3.5" />
+                                                ≈ {formatRupeesFromCoins(coinBalance?.activeIncome)} value
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1076,6 +1104,12 @@ const WalletTransactions = () => {
                                                                     : `${transaction.amount.toLocaleString()} coins`
                                                                 }
                                                             </div>
+                                                            <div className="text-sm font-semibold text-gray-800 mt-0.5 flex items-center gap-1">
+                                                                <IndianRupee className="w-3.5 h-3.5 text-gray-600" />
+                                                                ≈{' '}
+                                                                {transaction.type === 'withdrawal' && Number(transaction.amount) < 0 ? '-' : ''}
+                                                                ₹{formatRupeesFromCoins(transaction.amount)}
+                                                            </div>
                                                             <div className="text-sm text-gray-600 mt-1">
                                                                 {transaction.type === 'view' && '📺 View Task'}
                                                                 {transaction.type === 'like' && '👍 Like Task'}
@@ -1083,6 +1117,7 @@ const WalletTransactions = () => {
                                                                 {transaction.type === 'share' && '🔁 Share Task'}
                                                                 {transaction.type === 'subscribe' && '🔔 Subscribe Task'}
                                                                 {transaction.type === 'activation_bonus' && '🎁 Activation Bonus'}
+                                                                {transaction.type === 'recharge_bonus' && '⚡ Recharge reward (10%)'}
                                                                 {transaction.type === 'withdrawal' && '💸 Withdrawal Request'}
                                                             </div>
                                                             {transaction.metadata?.taskTitle && (
@@ -1133,6 +1168,29 @@ const WalletTransactions = () => {
                                                             )}
                                                             {transaction.type === 'referral_bonus' && transaction.metadata?.referredUserName && (
                                                                 <div className="text-xs text-gray-500 mt-1">Referred: {transaction.metadata.referredUserName}</div>
+                                                            )}
+                                                            {transaction.type === 'recharge_bonus' && (
+                                                                <>
+                                                                    <div className="text-xs text-amber-800 font-semibold mt-1">
+                                                                        Successful recharge bonus — 10% of recharge amount as coins (100 coins = ₹1)
+                                                                    </div>
+                                                                    {transaction.metadata?.rechargeAmountRupees != null && (
+                                                                        <div className="text-xs text-gray-600 mt-1">
+                                                                            Recharge: ₹{Number(transaction.metadata.rechargeAmountRupees).toLocaleString('en-IN')}
+                                                                            {transaction.metadata?.bonusValueRupees != null && (
+                                                                                <> · Bonus value: ₹{Number(transaction.metadata.bonusValueRupees).toLocaleString('en-IN')}</>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    {transaction.metadata?.equivalentRupeesLabel && (
+                                                                        <div className="text-xs text-gray-500 mt-1">{transaction.metadata.equivalentRupeesLabel}</div>
+                                                                    )}
+                                                                    {(transaction.metadata?.mobileNumber || transaction.metadata?.operator) && (
+                                                                        <div className="text-xs text-gray-500 mt-1">
+                                                                            {[transaction.metadata?.operator, transaction.metadata?.mobileNumber].filter(Boolean).join(' · ')}
+                                                                        </div>
+                                                                    )}
+                                                                </>
                                                             )}
                                                             {transaction.type === 'withdrawal' && (
                                                                 <div className="text-xs text-red-600 font-semibold mt-1">
@@ -1461,7 +1519,7 @@ const WalletTransactions = () => {
                                                     <tr>
                                                         <th className="px-4 py-3 text-left font-semibold">Amount</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Type & Details</th>
-                                                        <th className="px-4 py-3 text-left font-semibold">Cashback</th>
+                                                        <th className="px-4 py-3 text-left font-semibold">Cashback &amp; coins</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Status</th>
                                                         <th className="px-4 py-3 text-left font-semibold">Date & Time</th>
                                                     </tr>
@@ -1560,12 +1618,40 @@ const WalletTransactions = () => {
                                                                 <td className="px-4 py-4 align-top">
                                                                     {isSmartWalletEvent ? (
                                                                         <span className="text-xs text-gray-400">N/A</span>
-                                                                    ) : cashback ? (
-                                                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold">
-                                                                            {transaction.discountPercentage}% • {cashback}
-                                                                        </span>
                                                                     ) : (
-                                                                        <span className="text-xs text-gray-400">No cashback</span>
+                                                                        <div className="space-y-2">
+                                                                            {cashback ? (
+                                                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-xs font-semibold">
+                                                                                    {transaction.discountPercentage}% • {cashback}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="text-xs text-gray-400">No cashback</span>
+                                                                            )}
+                                                                            {transaction.status === 'success' && (() => {
+                                                                                const face = parseFloat(transaction.amount || 0);
+                                                                                if (face <= 0) return null;
+                                                                                const coinsFromServer = parseInt(transaction.rechargeBonusCoins, 10);
+                                                                                const coins = Number.isFinite(coinsFromServer) && coinsFromServer > 0
+                                                                                    ? coinsFromServer
+                                                                                    : Math.round(face * 10);
+                                                                                const bonusRupees = Math.round(face * 0.1 * 100) / 100;
+                                                                                return (
+                                                                                    <div className="flex items-start gap-1.5 rounded-lg border border-amber-100 bg-amber-50/90 px-2 py-1.5 text-xs text-amber-900">
+                                                                                        <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                                                                        <div>
+                                                                                            <span className="font-bold">+{coins.toLocaleString('en-IN')} coins</span>
+                                                                                            <span className="flex items-center gap-1 text-xs font-semibold text-amber-900 mt-0.5">
+                                                                                                <IndianRupee className="w-3 h-3" />
+                                                                                                ≈ ₹{formatRupeesFromCoins(coins)} equivalent
+                                                                                            </span>
+                                                                                            <span className="block text-[11px] text-amber-800/95 mt-0.5">
+                                                                                                Recharge bonus: 10% of ₹{face.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (₹{bonusRupees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} value; 100 coins = ₹1). Full line item under <strong>Coins</strong> tab.
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
                                                                     )}
                                                                 </td>
                                                                 <td className="px-4 py-4 align-top">

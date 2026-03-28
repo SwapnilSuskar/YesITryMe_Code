@@ -94,6 +94,19 @@ const RechargeSuccess = () => {
 
     const dateTime = formatDateTime(rechargeTime);
 
+    const rechargeSucceeded = rechargeData?.status === 'success';
+    const rechargeAmountNum = Number(amount) || 0;
+    const coinBonusRupees =
+        rechargeSucceeded && rechargeAmountNum > 0
+            ? Math.round(rechargeAmountNum * 0.1 * 100) / 100
+            : 0;
+    const coinBonusAmount =
+        rechargeData?.rechargeBonusCoins > 0
+            ? rechargeData.rechargeBonusCoins
+            : rechargeSucceeded && coinBonusRupees > 0
+              ? Math.round(coinBonusRupees * 100)
+              : 0;
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-24 pb-12 flex items-center justify-center">
@@ -173,6 +186,27 @@ const RechargeSuccess = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {rechargeSucceeded && coinBonusAmount > 0 && (
+                            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
+                                <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-amber-600" />
+                                    Coin reward (10% of recharge)
+                                </h2>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                    You earned{' '}
+                                    <span className="font-extrabold text-amber-800">
+                                        {coinBonusAmount.toLocaleString('en-IN')} coins
+                                    </span>
+                                    — that is{' '}
+                                    <span className="font-semibold">10% of your ₹{rechargeAmountNum.toLocaleString('en-IN')}</span>{' '}
+                                    recharge (₹{coinBonusRupees.toLocaleString('en-IN')} value at 100 coins = ₹1). Check{' '}
+                                    <span className="font-semibold">Wallet → Wallet Transactions → Coins</span> for the full
+                                    entry.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Cashback Card */}
                         {cashbackPercentage > 0 && (
                             <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-6 border border-emerald-200">

@@ -2,6 +2,7 @@ import Recharge from "../models/Recharge.js";
 import User from "../models/User.js";
 import Wallet from "../models/Wallet.js";
 import RechargeWallet from "../models/RechargeWallet.js";
+import CoinWallet from "../models/Coin.js";
 import mongoose from "mongoose";
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
@@ -781,6 +782,61 @@ const buildVendorErrorResult = (recharge, parsedResponse, statusText = "") => {
   };
 };
 
+/** 10% of recharge amount (₹) as coin value: 100 coins = ₹1 (same as withdrawal math). Idempotent per recharge._id. */
+const grantRechargeCoinBonusIfNeeded = async (rechargeId) => {
+  try {
+    const doc = await Recharge.findById(rechargeId);
+    if (!doc || doc.status !== "success") return;
+
+    const ref = `RECHARGE_BONUS_${doc._id}`;
+    const wallet = await CoinWallet.getOrCreateWallet(doc.userId);
+    const alreadyCredited = (wallet.transactions || []).some(
+      (t) => t.reference === ref
+    );
+    if (alreadyCredited) {
+      if (!doc.rechargeBonusGranted) {
+        doc.rechargeBonusGranted = true;
+        await doc.save();
+      }
+      return;
+    }
+    if (doc.rechargeBonusGranted) return;
+
+    const amount = Number(doc.amount) || 0;
+    if (amount <= 0) return;
+
+    const bonusRupees = Math.round(amount * 0.1 * 100) / 100;
+    const coins = Math.round(bonusRupees * 100);
+    if (coins <= 0) return;
+
+    await wallet.addCoins(
+      "recharge_bonus",
+      coins,
+      {
+        rechargeAmountRupees: amount,
+        bonusPercent: 10,
+        bonusValueRupees: bonusRupees,
+        equivalentRupeesLabel: `10% of ₹${amount} = ₹${bonusRupees} (${coins} coins at 100 coins/₹1)`,
+        rechargeId: doc._id.toString(),
+        mobileNumber: doc.mobileNumber,
+        operator: doc.operator,
+        rechargeType: doc.rechargeType,
+      },
+      ref
+    );
+
+    doc.rechargeBonusGranted = true;
+    doc.rechargeBonusCoins = coins;
+    await doc.save();
+
+    console.log(
+      `[Recharge][CoinBonus] +${coins} coins (₹${bonusRupees}) for user ${doc.userId} recharge ${doc._id} (₹${amount})`
+    );
+  } catch (err) {
+    console.error("[Recharge][CoinBonus] Failed to grant recharge coin bonus:", err.message);
+  }
+};
+
 const markRechargeSuccess = async (recharge, context = {}) => {
   const now = new Date();
   const reason = context.reason || "provider_success";
@@ -809,6 +865,8 @@ const markRechargeSuccess = async (recharge, context = {}) => {
   if (!recharge.commissionDistributed) {
     await distributeCommissions(recharge);
   }
+
+  await grantRechargeCoinBonusIfNeeded(recharge._id);
 
   // Send email receipt
   try {

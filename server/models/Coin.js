@@ -13,7 +13,8 @@ const coinTransactionSchema = new mongoose.Schema(
         "activation_bonus",
         "withdrawal",
         "admin_adjust",
-        "referral_bonus"
+        "referral_bonus",
+        "recharge_bonus"
       ],
       required: true,
     },

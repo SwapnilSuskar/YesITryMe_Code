@@ -178,6 +178,16 @@ const rechargeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    /** One-time coin bonus (10% of recharge in coin value) after successful recharge */
+    rechargeBonusGranted: {
+      type: Boolean,
+      default: false,
+    },
+    rechargeBonusCoins: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     // Error handling
     failureReason: {
       type: String,

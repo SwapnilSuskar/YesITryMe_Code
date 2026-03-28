@@ -32,7 +32,7 @@ const Navbar = () => {
     { name: 'My Earnings', path: '/earnings', icon: IndianRupee },
     { name: 'Payout', path: '/payout', icon: Wallet },
     { name: 'My TDS', path: '/tds-history', icon: FileText },
-    // { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
+    { name: 'Social Earning', path: '/socialearning', icon: YoutubeIcon },
     { name: "My Services", path: '/my-services', icon: Server },
     { name: 'My Team', path: '/my-team', icon: Users },
     { name: 'Packages', path: '/packages', icon: BookOpen },

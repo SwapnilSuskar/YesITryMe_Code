@@ -20,7 +20,8 @@ const VideoTaskDetail = () => {
     const sp = new URLSearchParams(location.search || '');
     return sp.get('shareToken') || '';
   }, [location.search]);
-  const isViewOnlyShared = !!shareTokenFromUrl;
+  /** Guest preview only. Logged-in users get the full task page even if the URL still has ?shareToken= */
+  const isViewOnlyShared = !!shareTokenFromUrl && !isAuthed;
 
   const [loading, setLoading] = useState(true);
   const [video, setVideo] = useState(null);

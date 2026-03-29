@@ -100,10 +100,41 @@ coinWalletSchema.methods.addCoins = async function (type, amount, metadata = {},
 coinWalletSchema.methods.deductCoins = async function (type, amount, metadata = {}, reference) {
   const numericAmount = parseInt(amount, 10) || 0;
   if (numericAmount <= 0) throw new Error("Amount must be positive");
+  if (reference) {
+    const dup = this.transactions?.some(
+      (t) =>
+        t.reference === reference &&
+        t.type === type &&
+        typeof t.amount === "number" &&
+        t.amount < 0
+    );
+    if (dup) {
+      throw new Error("These coins were already applied for this order");
+    }
+  }
   if (this.balance < numericAmount) throw new Error("Insufficient coins");
   this.balance -= numericAmount;
   this.totalWithdrawn += numericAmount;
   this.transactions.push({ type, amount: -numericAmount, metadata, reference, status: "completed" });
+  await this.save();
+  return this;
+};
+
+/** Reverse a prior deductCoins (e.g. order rejected); does not increase totalEarned */
+coinWalletSchema.methods.restoreCoins = async function (type, amount, metadata = {}, reference) {
+  const numericAmount = parseInt(amount, 10) || 0;
+  if (numericAmount <= 0) throw new Error("Amount must be positive");
+  if (reference) {
+    const dup = this.transactions?.some(
+      (t) => t.reference === reference && t.type === type && t.amount > 0
+    );
+    if (dup) {
+      throw new Error("Refund already processed for this reference");
+    }
+  }
+  this.balance += numericAmount;
+  this.totalWithdrawn = Math.max(0, (this.totalWithdrawn || 0) - numericAmount);
+  this.transactions.push({ type, amount: numericAmount, metadata, reference, status: "completed" });
   await this.save();
   return this;
 };

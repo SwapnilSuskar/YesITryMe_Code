@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BatteryCharging, BookOpen, CheckCircle, Coins, Crown, Gift, IndianRupee, Star, Wallet, Smartphone } from 'lucide-react';
+import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BatteryCharging, BookOpen, CheckCircle, Coins, Crown, Gift, IndianRupee, ShoppingCart, Star, Wallet, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -130,7 +130,8 @@ const WalletTransactions = () => {
                     t.type === 'activation_bonus' ||
                     t.type === 'referral_bonus' ||
                     t.type === 'recharge_bonus' ||
-                    t.type === 'withdrawal'
+                    t.type === 'withdrawal' ||
+                    t.type === 'product_order'
                 );
 
                 // Sort by date (newest first)
@@ -637,6 +638,7 @@ const WalletTransactions = () => {
             case 'activation_bonus': return <Gift className="text-green-600" size={16} />;
             case 'referral_bonus': return <Gift className="text-indigo-600" size={16} />;
             case 'recharge_bonus': return <BatteryCharging className="text-amber-600" size={16} />;
+            case 'product_order': return <ShoppingCart className="text-orange-600" size={16} />;
             default: return <Wallet className="text-gray-600" size={16} />;
         }
     };
@@ -663,6 +665,7 @@ const WalletTransactions = () => {
             case 'activation_bonus': return 'text-green-700';
             case 'referral_bonus': return 'text-indigo-700';
             case 'recharge_bonus': return 'text-amber-800';
+            case 'product_order': return 'text-orange-800';
             default: return 'text-gray-700';
         }
     };
@@ -689,8 +692,18 @@ const WalletTransactions = () => {
             case 'activation_bonus': return 'bg-green-50 border-green-200';
             case 'referral_bonus': return 'bg-indigo-50 border-indigo-200';
             case 'recharge_bonus': return 'bg-amber-50 border-amber-200';
+            case 'product_order': return 'bg-orange-50 border-orange-200';
             default: return 'bg-gray-50 border-gray-200';
         }
+    };
+
+    const coinRowClass = (transaction) => {
+        if (transaction.type === 'product_order') {
+            const n = Number(transaction.amount);
+            if (n < 0) return 'bg-red-50 border-red-200';
+            if (n > 0) return 'bg-emerald-50 border-emerald-200';
+        }
+        return getTransactionTypeBg(transaction.type);
     };
 
     // Use the regular transactions (now includes admin transactions)
@@ -1088,18 +1101,32 @@ const WalletTransactions = () => {
                                     <div className="text-center py-8">
                                         <Star className="text-gray-400 mx-auto mb-4" size={48} />
                                         <p className="text-gray-500 text-lg">No coin transactions yet</p>
-                                        <p className="text-gray-400 text-sm mt-2">Your coin earnings and withdrawals will appear here</p>
+                                        <p className="text-gray-400 text-sm mt-2">Your coin earnings, withdrawals, and shop deductions (refunds) will appear here</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
                                         {allCoinTransactions.map((transaction) => (
-                                            <div key={transaction._id || transaction.id} className={`rounded-lg p-5 border ${getTransactionTypeBg(transaction.type)}`}>
+                                            <div key={transaction._id || transaction.id} className={`rounded-lg p-5 border ${coinRowClass(transaction)}`}>
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-4">
                                                         {getTransactionTypeIcon(transaction.type)}
                                                         <div>
-                                                            <div className={`font-semibold text-lg ${getTransactionTypeColor(transaction.type)}`}>
-                                                                {transaction.type === 'withdrawal'
+                                                            <div className={`font-semibold text-lg ${
+                                                                transaction.type === 'product_order' && Number(transaction.amount) < 0
+                                                                    ? 'text-red-700'
+                                                                    : transaction.type === 'product_order' && Number(transaction.amount) > 0
+                                                                        ? 'text-emerald-700'
+                                                                        : getTransactionTypeColor(transaction.type)
+                                                            }`}>
+                                                                {transaction.type === 'product_order' ? (
+                                                                    <>
+                                                                        {Number(transaction.amount) < 0 ? '−' : '+'}
+                                                                        {Math.abs(Number(transaction.amount)).toLocaleString()} coins
+                                                                        <span className="text-sm font-normal text-gray-600 ml-2">
+                                                                            {Number(transaction.amount) < 0 ? '(deducted)' : '(credited)'}
+                                                                        </span>
+                                                                    </>
+                                                                ) : transaction.type === 'withdrawal'
                                                                     ? `${Math.abs(transaction.amount).toLocaleString()} coins`
                                                                     : `${transaction.amount.toLocaleString()} coins`
                                                                 }
@@ -1107,10 +1134,12 @@ const WalletTransactions = () => {
                                                             <div className="text-sm font-semibold text-gray-800 mt-0.5 flex items-center gap-1">
                                                                 <IndianRupee className="w-3.5 h-3.5 text-gray-600" />
                                                                 ≈{' '}
-                                                                {transaction.type === 'withdrawal' && Number(transaction.amount) < 0 ? '-' : ''}
+                                                                {(transaction.type === 'withdrawal' && Number(transaction.amount) < 0) || (transaction.type === 'product_order' && Number(transaction.amount) < 0) ? '-' : ''}
                                                                 ₹{formatRupeesFromCoins(transaction.amount)}
                                                             </div>
                                                             <div className="text-sm text-gray-600 mt-1">
+                                                                {transaction.type === 'product_order' && Number(transaction.amount) < 0 && '🛒 Product shop — coins used at checkout'}
+                                                                {transaction.type === 'product_order' && Number(transaction.amount) > 0 && '↩️ Product shop — coins refunded to wallet'}
                                                                 {transaction.type === 'view' && '📺 View Task'}
                                                                 {transaction.type === 'like' && '👍 Like Task'}
                                                                 {transaction.type === 'comment' && '💬 Comment Task'}
@@ -1197,12 +1226,20 @@ const WalletTransactions = () => {
                                                                     💸 Withdrawal Request
                                                                 </div>
                                                             )}
+                                                            {transaction.type === 'product_order' && transaction.metadata?.orderNumber && (
+                                                                <div className="text-xs text-gray-600 mt-1 font-medium">
+                                                                    Order: {transaction.metadata.orderNumber}
+                                                                    {transaction.metadata?.reason && (
+                                                                        <span className="text-gray-500"> · {String(transaction.metadata.reason).replace(/_/g, ' ')}</span>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
-                                                        <div className={`inline-block text-xs font-semibold mt-2 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
-                                                            {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                                        <div className={`inline-block text-xs font-semibold mt-2 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status || 'completed')}`}>
+                                                            {(transaction.status || 'completed').charAt(0).toUpperCase() + (transaction.status || 'completed').slice(1)}
                                                         </div>
                                                     </div>
                                                 </div>

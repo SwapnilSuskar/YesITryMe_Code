@@ -27,6 +27,19 @@ async function generateOrderNumber() {
   return `${prefix}${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Return coins when an order is rejected/cancelled (not after confirmed fulfillment). */
+async function refundProductOrderCoins(order, reason) {
+  if (!order?.coinsDeducted || !order.coinsApplied || order.coinsApplied <= 0) return;
+  const w = await CoinWallet.findOne({ userId: order.userId });
+  if (!w) return;
+  await w.restoreCoins(
+    "product_order",
+    order.coinsApplied,
+    { orderNumber: order.orderNumber, reason: reason || "product_order_refund" },
+    `PRODUCT_ORDER_REFUND_${order.orderNumber}`
+  );
+}
+
 export const createProductOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -113,16 +126,17 @@ export const createProductOrder = async (req, res) => {
 
     const maxCoinDiscountRupees = roundMoney(productSubtotal * 0.2);
 
-    const wallet = await CoinWallet.getOrCreateWallet(userId);
-    const maxRupeesFromWallet = roundMoney(wallet.balance / COINS_PER_RUPEE);
-
     let requestedCoinRupees = roundMoney(parseFloat(rawCoinDiscount) || 0);
     if (requestedCoinRupees < 0) requestedCoinRupees = 0;
-    requestedCoinRupees = Math.min(
-      requestedCoinRupees,
-      maxCoinDiscountRupees,
-      maxRupeesFromWallet
-    );
+    requestedCoinRupees = Math.min(requestedCoinRupees, maxCoinDiscountRupees);
+
+    const orderNumber = await generateOrderNumber();
+    const coinReference = `PRODUCT_ORDER_${orderNumber}`;
+
+    // Fresh balance so users cannot attach the same coins to multiple open orders
+    const walletFresh = await CoinWallet.getOrCreateWallet(userId);
+    const maxRupeesFromWallet = roundMoney(walletFresh.balance / COINS_PER_RUPEE);
+    requestedCoinRupees = Math.min(requestedCoinRupees, maxRupeesFromWallet);
 
     const coinsApplied = Math.round(requestedCoinRupees * COINS_PER_RUPEE);
     const coinDiscountRupees = roundMoney(coinsApplied / COINS_PER_RUPEE);
@@ -131,8 +145,6 @@ export const createProductOrder = async (req, res) => {
       productSubtotal + deliveryTotal - coinDiscountRupees
     );
     if (amountPayable < 0) amountPayable = 0;
-
-    const orderNumber = await generateOrderNumber();
 
     let upiPayUri = null;
     if (amountPayable >= 0.01) {
@@ -148,44 +160,66 @@ export const createProductOrder = async (req, res) => {
 
     if (amountPayable < 0.01) {
       status = "confirmed";
-      if (coinsApplied > 0) {
-        try {
-          await wallet.deductCoins(
-            "product_order",
-            coinsApplied,
-            { orderNumber, reason: "product_checkout_zero_payable" },
-            `PRODUCT_ORDER_AUTO_${orderNumber}`
-          );
-          coinsDeducted = true;
-        } catch (err) {
-          return res.status(400).json({
-            success: false,
-            message: err.message || "Could not apply wallet coins",
-          });
-        }
+    }
+
+    if (coinsApplied > 0) {
+      try {
+        const w = await CoinWallet.findOne({ userId });
+        if (!w) throw new Error("Wallet not found");
+        await w.deductCoins(
+          "product_order",
+          coinsApplied,
+          {
+            orderNumber,
+            reason:
+              status === "confirmed"
+                ? "product_checkout_zero_payable"
+                : "product_checkout_reserved",
+          },
+          coinReference
+        );
+        coinsDeducted = true;
+      } catch (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || "Could not apply wallet coins",
+        });
       }
     }
 
-    const order = await ProductOrder.create({
-      orderNumber,
-      userId,
-      items: resolvedItems,
-      shipping: {
-        fullName: shipping.fullName.trim(),
-        mobile: String(shipping.mobile).replace(/\D/g, "").slice(-10),
-        pincode: String(shipping.pincode).trim(),
-        address: shipping.address.trim(),
-      },
-      productSubtotal,
-      deliveryTotal,
-      maxCoinDiscountRupees,
-      coinDiscountRupees,
-      coinsApplied,
-      amountPayable,
-      upiPayUri,
-      status,
-      coinsDeducted,
-    });
+    let order;
+    try {
+      order = await ProductOrder.create({
+        orderNumber,
+        userId,
+        items: resolvedItems,
+        shipping: {
+          fullName: shipping.fullName.trim(),
+          mobile: String(shipping.mobile).replace(/\D/g, "").slice(-10),
+          pincode: String(shipping.pincode).trim(),
+          address: shipping.address.trim(),
+        },
+        productSubtotal,
+        deliveryTotal,
+        maxCoinDiscountRupees,
+        coinDiscountRupees,
+        coinsApplied,
+        amountPayable,
+        upiPayUri,
+        status,
+        coinsDeducted,
+      });
+    } catch (createErr) {
+      if (coinsDeducted && coinsApplied > 0) {
+        try {
+          const tempOrder = { userId, orderNumber, coinsDeducted: true, coinsApplied };
+          await refundProductOrderCoins(tempOrder, "product_order_create_failed_refund");
+        } catch (refundErr) {
+          console.error("createProductOrder: refund after create failure:", refundErr);
+        }
+      }
+      throw createErr;
+    }
 
     if (status === "confirmed") {
       try {
@@ -477,6 +511,16 @@ export const adminRejectProductOrder = async (req, res) => {
       });
     }
 
+    try {
+      await refundProductOrderCoins(order, "product_order_rejected_refund");
+    } catch (refErr) {
+      console.error("adminRejectProductOrder: coin refund:", refErr);
+      return res.status(500).json({
+        success: false,
+        message: refErr.message || "Could not refund wallet coins for this order.",
+      });
+    }
+
     order.status = "rejected";
     order.verifiedAt = new Date();
     order.verifiedBy = adminId;
@@ -515,6 +559,19 @@ export const adminDeleteProductOrder = async (req, res) => {
         });
       } catch (cloudErr) {
         console.warn("adminDeleteProductOrder: Cloudinary cleanup:", cloudErr?.message || cloudErr);
+      }
+    }
+
+    // Do not refund coins for completed orders (buyer received goods); only for non-confirmed cleanup
+    if (order.status !== "confirmed") {
+      try {
+        await refundProductOrderCoins(order, "product_order_deleted_refund");
+      } catch (refErr) {
+        console.error("adminDeleteProductOrder: coin refund:", refErr);
+        return res.status(500).json({
+          success: false,
+          message: refErr.message || "Could not refund wallet coins; delete aborted.",
+        });
       }
     }
 

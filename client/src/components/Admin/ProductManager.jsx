@@ -16,28 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../../config/api';
-
-const STANDARD_POOL_REF = 500;
-
-/** Same 120-level shape as server (₹500 reference) for admin preview only */
-function scaleStandardDistributionPoolPreview(poolRupees) {
-  const pool = Math.max(0, Math.round(Number(poolRupees) * 100) / 100);
-  if (pool < 0.01) return [];
-  const template = [];
-  template.push(250, 100, 50, 10, 10);
-  for (let i = 0; i < 15; i++) template.push(5);
-  for (let i = 0; i < 100; i++) template.push(0.05);
-  const rows = template.map((amt, idx) => ({
-    level: idx + 1,
-    amount: Math.round((amt / STANDARD_POOL_REF) * pool * 100) / 100,
-  }));
-  const sum = rows.reduce((s, r) => s + r.amount, 0);
-  const diff = Math.round((pool - sum) * 100) / 100;
-  if (Math.abs(diff) >= 0.001 && rows.length) {
-    rows[0].amount = Math.round((rows[0].amount + diff) * 100) / 100;
-  }
-  return rows;
-}
+import { scaleDistributionPoolToLevels } from '../../utils/commissionDistributionPreview';
 
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
@@ -1086,7 +1065,7 @@ const ProductForm = ({
                 : 0;
               const poolOne = Math.round(rupees * 100) / 100;
               const poolThree = Math.round(rupees * 3 * 100) / 100;
-              const rows = scaleStandardDistributionPoolPreview(poolOne);
+              const rows = scaleDistributionPoolToLevels(poolOne);
               if (!formData.distributionEnabled || rupees <= 0 || rows.length === 0) {
                 return (
                   <p className="text-xs text-gray-500">

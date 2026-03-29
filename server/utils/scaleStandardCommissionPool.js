@@ -1,29 +1,29 @@
 /**
- * Same shape as super-package ₹500 reference: levels 1–120.
- * Amounts scale linearly to an arbitrary pool (e.g. % of product line subtotal).
+ * 120-level distribution — percentages of the pool (sums to 100%):
+ * L1: 50%, L2: 20%, L3: 10%, L4: 2%, L5: 2%,
+ * L6–L20: 1% each (15 levels),
+ * L21–L120: 0.01% each (100 levels).
  */
-const REFERENCE_POOL = 500;
-
 const roundMoney = (n) => Math.round(Number(n) * 100) / 100;
 
 export function generateStandardCommissionTemplate() {
-  const structure = [];
-  structure.push({ level: 1, percentage: 50, amount: 250 });
-  structure.push({ level: 2, percentage: 20, amount: 100 });
-  structure.push({ level: 3, percentage: 10, amount: 50 });
-  structure.push({ level: 4, percentage: 2, amount: 10 });
-  structure.push({ level: 5, percentage: 2, amount: 10 });
+  const rows = [];
+  rows.push({ level: 1, percentage: 50 });
+  rows.push({ level: 2, percentage: 20 });
+  rows.push({ level: 3, percentage: 10 });
+  rows.push({ level: 4, percentage: 2 });
+  rows.push({ level: 5, percentage: 2 });
   for (let i = 6; i <= 20; i++) {
-    structure.push({ level: i, percentage: 1, amount: 5 });
+    rows.push({ level: i, percentage: 1 });
   }
   for (let i = 21; i <= 120; i++) {
-    structure.push({ level: i, percentage: 0.01, amount: 0.05 });
+    rows.push({ level: i, percentage: 0.01 });
   }
-  return structure;
+  return rows;
 }
 
 /**
- * @param {number} poolRupees - Total rupees to split across 120 levels (same ratios as ₹500 ref).
+ * @param {number} poolRupees - Total rupees to split across 120 levels
  * @returns {Array<{ level: number, percentage: number, amount: number }>}
  */
 export function scaleCommissionStructureToPool(poolRupees) {
@@ -35,7 +35,7 @@ export function scaleCommissionStructureToPool(poolRupees) {
   const rows = template.map((t) => ({
     level: t.level,
     percentage: t.percentage,
-    amount: roundMoney((t.amount / REFERENCE_POOL) * pool),
+    amount: roundMoney((pool * t.percentage) / 100),
   }));
   const sum = rows.reduce((s, r) => s + r.amount, 0);
   const diff = roundMoney(pool - sum);
@@ -43,4 +43,9 @@ export function scaleCommissionStructureToPool(poolRupees) {
     rows[0].amount = roundMoney(rows[0].amount + diff);
   }
   return rows;
+}
+
+/** ₹500 reference snapshot (e.g. super packages stored in DB) — uses same % formula */
+export function buildCommissionStructureForReferenceRupees(referencePool = 500) {
+  return scaleCommissionStructureToPool(referencePool);
 }

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   Heart,
+  Layers,
   Loader2,
   Package,
   Phone,
@@ -25,6 +26,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import api from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
+import {
+  groupDistributionForDisplay,
+  scaleDistributionPoolToLevels,
+} from '../../utils/commissionDistributionPreview';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -263,6 +268,18 @@ const ProductDetail = () => {
     selectedPricing && !Number.isNaN(Number(selectedPricing.price))
       ? Number(selectedPricing.price)
       : fromPrice;
+
+  const nDist = Number(product.distributionRupeesPerUnit);
+  const distributionPoolPerUnit =
+    product.distributionEnabled && Number.isFinite(nDist) && nDist > 0
+      ? nDist
+      : 0;
+  const distributionDisplayRows =
+    distributionPoolPerUnit <= 0
+      ? []
+      : groupDistributionForDisplay(
+          scaleDistributionPoolToLevels(distributionPoolPerUnit)
+        );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 pt-16 pb-28 text-gray-900 lg:pb-14">
@@ -531,6 +548,57 @@ const ProductDetail = () => {
                       );
                     })}
                   </ul>
+                </div>
+              )}
+
+              {distributionPoolPerUnit > 0 && distributionDisplayRows.length > 0 && (
+                <div className="rounded-3xl border border-orange-200/80 bg-gradient-to-br from-orange-50/90 via-white to-pink-50/40 p-5 shadow-sm backdrop-blur-xl">
+                  <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-orange-700">
+                    <Layers className="h-5 w-5 text-orange-500" />
+                    Commission distribution (120 levels)
+                  </h2>
+                  <p className="mt-2 text-sm text-gray-600">
+                    When your order is <strong>paid and confirmed</strong>,{' '}
+                    <strong>
+                      ₹
+                      {distributionPoolPerUnit.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      per unit
+                    </strong>{' '}
+                    in your cart line (× quantity) funds this reward pool. Delivery charges are separate.
+                  </p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {distributionDisplayRows.map((row) => (
+                      <div
+                        key={row.key}
+                        className="flex justify-between gap-3 rounded-xl border border-orange-100/80 bg-white/90 px-3 py-2.5 text-sm"
+                      >
+                        <span className="text-gray-700">
+                          <span className="font-semibold text-gray-900">{row.label}</span>
+                          <span className="text-gray-500"> ({row.percentageLabel})</span>
+                        </span>
+                        <span className="font-bold tabular-nums text-orange-700">
+                          ₹
+                          {row.amount.toLocaleString('en-IN', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50/60 px-3 py-2.5 text-sm font-bold text-orange-900 sm:col-span-2">
+                      <span>Total pool (per unit)</span>
+                      <span className="tabular-nums">
+                        ₹
+                        {distributionPoolPerUnit.toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 

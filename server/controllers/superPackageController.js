@@ -11,38 +11,10 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
+import { buildCommissionStructureForReferenceRupees } from "../utils/scaleStandardCommissionPool.js";
 
-// Helper function to generate commission structure for ₹500 distribution
-const generateCommissionStructure = () => {
-  const structure = [];
-
-  // Level 1: ₹250 (50%)
-  structure.push({ level: 1, percentage: 50, amount: 250 });
-
-  // Level 2: ₹100 (20%)
-  structure.push({ level: 2, percentage: 20, amount: 100 });
-
-  // Level 3: ₹50 (10%)
-  structure.push({ level: 3, percentage: 10, amount: 50 });
-
-  // Level 4: ₹10 (2%)
-  structure.push({ level: 4, percentage: 2, amount: 10 });
-
-  // Level 5: ₹10 (2%)
-  structure.push({ level: 5, percentage: 2, amount: 10 });
-
-  // Levels 6-20: ₹5 each (1% each) - 15 levels
-  for (let i = 6; i <= 20; i++) {
-    structure.push({ level: i, percentage: 1, amount: 5 });
-  }
-
-  // Levels 21-120: ₹0.05 each (0.01% each) - 100 levels
-  for (let i = 21; i <= 120; i++) {
-    structure.push({ level: i, percentage: 0.01, amount: 0.05 });
-  }
-
-  return structure;
-};
+/** L1 50%, L2 20%, L3 10%, L4–L5 2%, L6–L20 1%, L21–L120 0.01% — ₹500 reference pool */
+const generateCommissionStructure = () => buildCommissionStructureForReferenceRupees(500);
 
 // Helper function to distribute commissions using the same logic as regular packages
 const distributeSuperPackageCommissions = async (

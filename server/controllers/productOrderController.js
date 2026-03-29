@@ -40,6 +40,22 @@ async function refundProductOrderCoins(order, reason) {
   );
 }
 
+/** Coins already earmarked on unpaid shop orders (not yet deducted from wallet). */
+async function sumPendingCoinsCommitted(userId) {
+  const result = await ProductOrder.aggregate([
+    {
+      $match: {
+        userId,
+        coinsDeducted: false,
+        coinsApplied: { $gt: 0 },
+        status: { $in: ["awaiting_payment", "payment_submitted"] },
+      },
+    },
+    { $group: { _id: null, total: { $sum: "$coinsApplied" } } },
+  ]);
+  return result[0]?.total || 0;
+}
+
 export const createProductOrder = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -133,9 +149,13 @@ export const createProductOrder = async (req, res) => {
     const orderNumber = await generateOrderNumber();
     const coinReference = `PRODUCT_ORDER_${orderNumber}`;
 
-    // Fresh balance so users cannot attach the same coins to multiple open orders
     const walletFresh = await CoinWallet.getOrCreateWallet(userId);
-    const maxRupeesFromWallet = roundMoney(walletFresh.balance / COINS_PER_RUPEE);
+    const pendingCommittedCoins = await sumPendingCoinsCommitted(userId);
+    const spendableCoins = Math.max(
+      0,
+      (walletFresh.balance || 0) - pendingCommittedCoins
+    );
+    const maxRupeesFromWallet = roundMoney(spendableCoins / COINS_PER_RUPEE);
     requestedCoinRupees = Math.min(requestedCoinRupees, maxRupeesFromWallet);
 
     const coinsApplied = Math.round(requestedCoinRupees * COINS_PER_RUPEE);
@@ -162,7 +182,9 @@ export const createProductOrder = async (req, res) => {
       status = "confirmed";
     }
 
-    if (coinsApplied > 0) {
+    // Only take coins from wallet when no UPI/QR payment is due (100% coins). Otherwise deduct after admin verifies payment.
+    const needsUpiPayment = amountPayable >= 0.01;
+    if (coinsApplied > 0 && !needsUpiPayment) {
       try {
         const w = await CoinWallet.findOne({ userId });
         if (!w) throw new Error("Wallet not found");
@@ -171,10 +193,7 @@ export const createProductOrder = async (req, res) => {
           coinsApplied,
           {
             orderNumber,
-            reason:
-              status === "confirmed"
-                ? "product_checkout_zero_payable"
-                : "product_checkout_reserved",
+            reason: "product_checkout_zero_payable",
           },
           coinReference
         );

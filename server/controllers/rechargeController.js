@@ -131,6 +131,12 @@ const RECHARGE_WALLET_PROMOTE_MIN_AGE_MS = parseInt(
   10
 );
 
+/** Legacy recharge POST can exceed 10s when the provider is slow; timeouts caused false failures + refunds while A1 succeeded. */
+const A1TOPUP_RECHARGE_REQUEST_TIMEOUT_MS = parseInt(
+  process.env.AITOPUP_RECHARGE_TIMEOUT_MS || "45000",
+  10
+);
+
 const CIRCLE_CODE_MAP = {
   ANDHRA_PRADESH: "AP",
   ANDHRA_PRADESH_TELANGANA: "AP",
@@ -574,7 +580,7 @@ const callA1TopupRechargeEndpoint = async (params) => {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    timeout: 10000,
+    timeout: A1TOPUP_RECHARGE_REQUEST_TIMEOUT_MS,
   };
 
   if (proxyAgent) {
@@ -1028,6 +1034,53 @@ const pollPendingRechargeStatus = async (recharge, options = {}) => {
     return walletFallback;
   }
 
+  return { outcome: "pending" };
+};
+
+/**
+ * If the HTTP request to A1 fails (timeout, ECONNRESET, etc.), the recharge may still
+ * complete on their side. Verify via status + polling before failing/refunding.
+ */
+const recoverRechargeAfterProviderRequestFailure = async (recharge, orderId) => {
+  const attempts = Math.max(RECHARGE_STATUS_POLL_ATTEMPTS, 5);
+  const delay = Math.max(RECHARGE_STATUS_POLL_DELAY_MS, 3000);
+
+  if (!orderId) {
+    return { outcome: "unrecoverable" };
+  }
+
+  const statusRecovery = await tryResolveRechargeAfterVendorError(
+    recharge,
+    orderId
+  );
+  if (statusRecovery === true) {
+    return { outcome: "success" };
+  }
+
+  const pollOptions = {
+    attempts,
+    delay,
+    waitBeforeFirstAttempt: true,
+  };
+
+  if (statusRecovery?.outcome === "pending") {
+    const pollOutcome = await pollPendingRechargeStatus(recharge, pollOptions);
+    if (pollOutcome.outcome === "success") {
+      return { outcome: "success" };
+    }
+    if (pollOutcome.outcome === "error") {
+      return { outcome: "error", pollOutcome };
+    }
+    return { outcome: "pending" };
+  }
+
+  const pollOutcome = await pollPendingRechargeStatus(recharge, pollOptions);
+  if (pollOutcome.outcome === "success") {
+    return { outcome: "success" };
+  }
+  if (pollOutcome.outcome === "error") {
+    return { outcome: "error", pollOutcome };
+  }
   return { outcome: "pending" };
 };
 
@@ -2313,10 +2366,66 @@ const processRechargeWithA1Topup = async (recharge) => {
 
     return true;
   } catch (error) {
+    const orderId =
+      recharge.aiTopUpOrderId ||
+      recharge.orderId ||
+      recharge._id?.toString();
+
     console.error(
-      "A1Topup recharge error:",
-      error.response?.data || error.message
+      "[A1Topup][Recharge] Request failed (may still have succeeded upstream):",
+      error.code || error.message,
+      error.response?.data || ""
     );
+
+    // Timeout / network errors: response never arrived but A1 may have processed the recharge.
+    if (orderId) {
+      try {
+        const recovery = await recoverRechargeAfterProviderRequestFailure(
+          recharge,
+          orderId
+        );
+        if (recovery.outcome === "success") {
+          console.log(
+            `[A1Topup][Recharge] Recovered via status after request error for order ${orderId}`
+          );
+          return true;
+        }
+        if (recovery.outcome === "error" && recovery.pollOutcome) {
+          return {
+            success: false,
+            errorCode: recovery.pollOutcome.errorCode,
+            message: recovery.pollOutcome.message,
+            vendorResponse: recovery.pollOutcome.vendorResponse,
+          };
+        }
+        if (recovery.outcome === "pending") {
+          recharge.status = "processing";
+          recharge.failureReason = undefined;
+          const prev =
+            recharge.aiTopUpResponse &&
+            typeof recharge.aiTopUpResponse === "object"
+              ? recharge.aiTopUpResponse
+              : {};
+          recharge.aiTopUpResponse = {
+            ...prev,
+            pendingVerification: true,
+            requestError: error.message,
+            requestErrorCode: error.code || null,
+          };
+          await recharge.save();
+          console.warn(
+            `[A1Topup][Recharge] Ambiguous after request error; left processing for order ${orderId} (no auto-refund)`
+          );
+          return true;
+        }
+      } catch (recoveryErr) {
+        console.error(
+          "[A1Topup][Recharge] Status recovery after request error failed:",
+          recoveryErr.message
+        );
+      }
+    }
+
     const providerError = error.response?.data;
     const errorMessage =
       providerError?.message ||
@@ -2324,7 +2433,6 @@ const processRechargeWithA1Topup = async (recharge) => {
       error.message ||
       "Recharge failed";
 
-    // Return error object for network/API errors
     return {
       success: false,
       errorCode: "VENDOR_API_ERROR",

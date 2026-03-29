@@ -11,12 +11,27 @@ import {
     XCircle,
     Wallet
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import PackagePaymentScanner from "../../assets/PackagePayment/PackagePaymentScanner.jpg";
 import api, { API_ENDPOINTS } from "../../config/api";
 import { useAuthStore } from "../../store/useAuthStore";
 
-const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
+const roundMoney = (n) => Math.round(Number(n) * 100) / 100;
+
+/**
+ * variant "topup" — Add money to Smart Wallet (wallet top-up API).
+ * variant "productOrder" — Pay for a product order (same QR + steps + proof → product-orders payment API).
+ */
+const WalletTopUpVerificationForm = ({
+    onClose,
+    onSuccess,
+    variant = "topup",
+    productOrderId,
+    fixedAmount,
+    orderNumber,
+    initialPayer,
+    embed = false,
+}) => {
     const { user } = useAuthStore();
     const fileInputRef = useRef(null);
 
@@ -40,6 +55,19 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+
+    const isProductOrder = variant === "productOrder";
+
+    useEffect(() => {
+        if (!isProductOrder || fixedAmount == null || Number.isNaN(Number(fixedAmount))) return;
+        setFormData((prev) => ({
+            ...prev,
+            paymentAmount: String(roundMoney(fixedAmount)),
+            payerName: initialPayer?.name ?? prev.payerName,
+            payerMobile: initialPayer?.mobile ?? prev.payerMobile,
+            payerEmail: initialPayer?.email ?? prev.payerEmail,
+        }));
+    }, [isProductOrder, fixedAmount, initialPayer?.name, initialPayer?.mobile, initialPayer?.email]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -75,44 +103,81 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
             return;
         }
 
-        // Validate minimum amount (₹300)
-        const MINIMUM_TOPUP_AMOUNT = 300;
-        if (amount < MINIMUM_TOPUP_AMOUNT) {
-            setError(`Minimum top-up amount is ₹${MINIMUM_TOPUP_AMOUNT}. Please enter a valid amount.`);
-            return;
+        if (isProductOrder) {
+            if (!productOrderId) {
+                setError("Missing order. Please refresh and try again.");
+                return;
+            }
+        } else {
+            const MINIMUM_TOPUP_AMOUNT = 300;
+            if (amount < MINIMUM_TOPUP_AMOUNT) {
+                setError(`Minimum top-up amount is ₹${MINIMUM_TOPUP_AMOUNT}. Please enter a valid amount.`);
+                return;
+            }
         }
 
         setLoading(true);
         setError("");
 
         try {
-            const formDataToSend = new FormData();
-            formDataToSend.append("paymentProof", paymentProof);
+            if (isProductOrder) {
+                const fd = new FormData();
+                fd.append("paymentProof", paymentProof);
+                fd.append("paymentMethod", formData.paymentMethod);
+                fd.append("transactionId", String(formData.transactionId || "").trim());
+                const payerNotes = [
+                    formData.additionalNotes?.trim(),
+                    `Order: ${orderNumber || ""} | Pay ₹${roundMoney(amount)}`,
+                    `Payer: ${formData.payerName} | ${formData.payerMobile} | ${formData.payerEmail}`,
+                ]
+                    .filter(Boolean)
+                    .join("\n");
+                fd.append("payerNotes", payerNotes);
 
-            // Append all form fields, ensuring paymentAmount is properly rounded
-            Object.keys(formData).forEach(key => {
-                if (key === 'paymentAmount') {
-                    // Round to 2 decimal places to avoid floating-point precision issues
-                    const amount = parseFloat(formData[key]);
-                    const roundedAmount = Math.round(amount * 100) / 100;
-                    formDataToSend.append(key, roundedAmount.toString());
-                } else {
-                    formDataToSend.append(key, formData[key]);
+                const response = await api.post(
+                    API_ENDPOINTS.productOrders.paymentProof(productOrderId),
+                    fd
+                );
+
+                if (response.data.success) {
+                    if (onSuccess) onSuccess(response.data.data);
+                    if (embed) {
+                        return;
+                    }
+                    setSuccess(true);
                 }
-            });
+            } else {
+                const formDataToSend = new FormData();
+                formDataToSend.append("paymentProof", paymentProof);
 
-            const response = await api.post(API_ENDPOINTS.walletTopUp.submit, formDataToSend, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
+                Object.keys(formData).forEach(key => {
+                    if (key === 'paymentAmount') {
+                        const amt = parseFloat(formData[key]);
+                        const roundedAmount = Math.round(amt * 100) / 100;
+                        formDataToSend.append(key, roundedAmount.toString());
+                    } else {
+                        formDataToSend.append(key, formData[key]);
+                    }
+                });
 
-            if (response.data.success) {
-                setSuccess(true);
-                if (onSuccess) onSuccess(response.data.data);
+                const response = await api.post(API_ENDPOINTS.walletTopUp.submit, formDataToSend, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+
+                if (response.data.success) {
+                    setSuccess(true);
+                    if (onSuccess) onSuccess(response.data.data);
+                }
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Failed to submit wallet top-up request");
+            setError(
+                err.response?.data?.message ||
+                    (isProductOrder
+                        ? "Failed to submit payment proof"
+                        : "Failed to submit wallet top-up request")
+            );
         } finally {
             setLoading(false);
         }
@@ -135,7 +200,19 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
             case 1: // QR Code & Payment
                 return true; // Always can proceed from step 1
             case 2: // Payment Details
-                return formData.paymentMethod && formData.transactionId && formData.paymentAmount && parseFloat(formData.paymentAmount) > 0;
+                if (isProductOrder) {
+                    return !!(
+                        formData.paymentMethod &&
+                        formData.transactionId?.trim() &&
+                        parseFloat(formData.paymentAmount) > 0
+                    );
+                }
+                return (
+                    formData.paymentMethod &&
+                    formData.transactionId &&
+                    formData.paymentAmount &&
+                    parseFloat(formData.paymentAmount) >= 300
+                );
             case 3: // Personal Details
                 return formData.payerName && formData.payerMobile && formData.payerEmail;
             case 4: // Payment Proof
@@ -145,7 +222,7 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
         }
     };
 
-    if (success) {
+    if (success && !embed) {
         return (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
                 <div className="bg-white rounded-2xl p-4 sm:p-8 max-w-md w-full text-center">
@@ -167,25 +244,40 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
         );
     }
 
+    const shellClass = embed
+        ? "w-full"
+        : "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4";
+
+    const panelClass = embed
+        ? "bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto border border-orange-100 shadow-xl"
+        : "bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto";
+
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className={shellClass}>
+            <div className={panelClass}>
                 {/* Header */}
                 <div className="p-4 sm:p-6 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
                             <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                            Add Money to Smart Wallet
+                            {isProductOrder
+                                ? "Pay for your order (Smart Wallet)"
+                                : "Add Money to Smart Wallet"}
                         </h2>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                        >
-                            <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </button>
+                        {onClose && !(embed && isProductOrder) && (
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            >
+                                <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </button>
+                        )}
                     </div>
                     <p className="text-sm sm:text-base text-gray-600 mt-2">
-                        Complete your payment and submit proof for verification
+                        {isProductOrder
+                            ? "Use the same Smart Wallet payment QR and verification steps as when you add money. Pay the exact amount shown, then submit your transaction details and proof."
+                            : "Complete your payment and submit proof for verification"}
                     </p>
                 </div>
 
@@ -246,8 +338,19 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                                                 Scan this QR code with your payment app
                                             </p>
                                             <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 max-w-xs mx-auto">
-                                                <p className="text-xs sm:text-sm text-gray-600 mb-1">Enter amount in next step</p>
-                                                <p className="text-lg sm:text-xl font-bold text-gray-800">Wallet Top-Up</p>
+                                                {isProductOrder ? (
+                                                    <>
+                                                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Pay exactly (order #{orderNumber})</p>
+                                                        <p className="text-lg sm:text-xl font-bold text-gray-800">
+                                                            ₹{roundMoney(parseFloat(formData.paymentAmount) || fixedAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Enter amount in next step</p>
+                                                        <p className="text-lg sm:text-xl font-bold text-gray-800">Wallet Top-Up</p>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -298,28 +401,39 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Payment Amount (₹)
                                         </label>
-                                        <input
-                                            type="number"
-                                            name="paymentAmount"
-                                            value={formData.paymentAmount}
-                                            onChange={handleInputChange}
-                                            className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base ${formData.paymentAmount && parseFloat(formData.paymentAmount) < 300
-                                                ? 'border-red-300 bg-red-50'
-                                                : 'border-gray-300'
-                                                }`}
-                                            placeholder="Enter amount (minimum ₹300)"
-                                            min="300"
-                                            step="0.01"
-                                            required
-                                        />
-                                        <p className="mt-1.5 text-xs text-gray-600">
-                                            <span className="font-semibold text-orange-600">Minimum amount: ₹300</span>
-                                        </p>
-                                        {formData.paymentAmount && parseFloat(formData.paymentAmount) < 300 && (
-                                            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3" />
-                                                Please enter at least ₹300 to proceed
-                                            </p>
+                                        {isProductOrder ? (
+                                            <>
+                                                <div className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-sm sm:text-base font-bold text-emerald-900">
+                                                    ₹{roundMoney(parseFloat(formData.paymentAmount) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                                                    <span className="font-normal text-emerald-700 text-xs">(fixed for this order)</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <input
+                                                    type="number"
+                                                    name="paymentAmount"
+                                                    value={formData.paymentAmount}
+                                                    onChange={handleInputChange}
+                                                    className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base ${formData.paymentAmount && parseFloat(formData.paymentAmount) < 300
+                                                        ? 'border-red-300 bg-red-50'
+                                                        : 'border-gray-300'
+                                                        }`}
+                                                    placeholder="Enter amount (minimum ₹300)"
+                                                    min="300"
+                                                    step="0.01"
+                                                    required
+                                                />
+                                                <p className="mt-1.5 text-xs text-gray-600">
+                                                    <span className="font-semibold text-orange-600">Minimum amount: ₹300</span>
+                                                </p>
+                                                {formData.paymentAmount && parseFloat(formData.paymentAmount) < 300 && (
+                                                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                                        <AlertCircle className="w-3 h-3" />
+                                                        Please enter at least ₹300 to proceed
+                                                    </p>
+                                                )}
+                                            </>
                                         )}
                                     </div>
 
@@ -534,7 +648,7 @@ const WalletTopUpVerificationForm = ({ onClose, onSuccess }) => {
                                         ) : (
                                             <>
                                                 <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                                                Submit Top-Up Request
+                                                {isProductOrder ? "Submit payment proof" : "Submit Top-Up Request"}
                                             </>
                                         )}
                                     </button>

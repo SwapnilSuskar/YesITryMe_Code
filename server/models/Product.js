@@ -64,6 +64,22 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  /** Delivery charge per unit (₹), set by admin — no GST in checkout */
+  deliveryCharge: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  /** When enabled, confirmed orders distribute this rupee pool per unit sold (× quantity) across 120 upline levels. */
+  distributionEnabled: {
+    type: Boolean,
+    default: false
+  },
+  distributionRupeesPerUnit: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   tags: [{
     type: String,
     trim: true

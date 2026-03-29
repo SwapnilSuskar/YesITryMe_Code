@@ -228,6 +228,82 @@ export const getSharedEngagementVideo = async (req, res) => {
   }
 };
 
+const ENGAGEMENT_VIDEO_FOLDER = "engagement-videos";
+
+/** Signed params for browser → Cloudinary upload (bypasses Vercel ~4.5MB body limit). */
+export const getEngagementVideoUploadSignature = async (req, res) => {
+  try {
+    const adminId = req.user?.userId;
+    if (!adminId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const paramsToSign = { timestamp, folder: ENGAGEMENT_VIDEO_FOLDER };
+    const signature = cloudinary.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET);
+
+    return res.json({
+      success: true,
+      data: {
+        signature,
+        timestamp,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        folder: ENGAGEMENT_VIDEO_FOLDER,
+      },
+    });
+  } catch (error) {
+    console.error("getEngagementVideoUploadSignature error:", error);
+    return res.status(500).json({ success: false, message: "Failed to create upload signature", error: error.message });
+  }
+};
+
+/** After direct Cloudinary upload, register DB row (validates asset on Cloudinary). */
+export const completeEngagementVideoUpload = async (req, res) => {
+  try {
+    const adminId = req.user?.userId;
+    const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+    const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
+    const publicId = typeof req.body?.publicId === "string" ? req.body.publicId.trim() : "";
+
+    if (!adminId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    if (!title) {
+      return res.status(400).json({ success: false, message: "title is required" });
+    }
+    if (!publicId || !publicId.startsWith(`${ENGAGEMENT_VIDEO_FOLDER}/`)) {
+      return res.status(400).json({ success: false, message: "Invalid or missing publicId" });
+    }
+
+    let resource;
+    try {
+      resource = await cloudinary.api.resource(publicId, { resource_type: "video" });
+    } catch (err) {
+      const code = err?.http_code || err?.error?.http_code;
+      if (code === 404) {
+        return res.status(400).json({ success: false, message: "Video not found on Cloudinary. Finish uploading first." });
+      }
+      throw err;
+    }
+
+    const video = await EngagementVideo.create({
+      title,
+      description,
+      videoUrl: resource.secure_url,
+      publicId: resource.public_id,
+      durationSeconds: typeof resource.duration === "number" ? Math.round(resource.duration) : null,
+      createdByAdminId: adminId,
+    });
+
+    return res.status(201).json({ success: true, data: video });
+  } catch (error) {
+    console.error("completeEngagementVideoUpload error:", error);
+    return res.status(500).json({ success: false, message: "Failed to register video", error: error.message });
+  }
+};
+
+/** Legacy: upload file through API (fine for local/large Node hosts; blocked by Vercel body limit for big files). */
 export const uploadEngagementVideo = async (req, res) => {
   try {
     const { title, description = "" } = req.body;
@@ -247,7 +323,7 @@ export const uploadEngagementVideo = async (req, res) => {
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: "engagement-videos",
+          folder: ENGAGEMENT_VIDEO_FOLDER,
           resource_type: "video",
         },
         (error, result) => {

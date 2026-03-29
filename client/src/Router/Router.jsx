@@ -50,6 +50,9 @@ import Gallery from '../components/Pages/Gallery';
 import CourseDetail from '../components/Pages/CourseDetail';
 import Products from '../components/Pages/Products';
 import ProductDetail from '../components/Pages/ProductDetail';
+import ProductCart from '../components/Pages/ProductCart';
+import ProductCheckout from '../components/Pages/ProductCheckout';
+import ProductOrders from '../components/Pages/ProductOrders';
 import ProductManager from '../components/Admin/ProductManager';
 import CategoryManager from '../components/Admin/CategoryManager';
 import SuperPackagePaymentManager from '../components/Admin/SuperPackagePaymentManager';
@@ -74,6 +77,7 @@ import RechargeSuccess from '../components/User/RechargeSuccess';
 import NotFound from '../components/Pages/NotFound';
 import MyServices from '../components/User/MyServices';
 import ServiceManager from '../components/Admin/ServiceManager';
+import AdminProductOrderManager from '../components/Admin/AdminProductOrderManager';
 
 const LayoutWithNavbar = () => {
   const location = useLocation();
@@ -166,6 +170,9 @@ const AppRouter = () => {
         <Route path="/super-packages" element={<SuperPackages />} />
         <Route path="/products" element={<Products />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/cart" element={<ProductCart />} />
+        <Route path="/checkout/products" element={<ProductCheckout />} />
+        <Route path="/my-product-orders" element={<ProductOrders />} />
         <Route path="/ai-tools/:toolName" element={<AiToolsDetailer />} />
         <Route path="/ai-tools" element={<AiTools />} />
         <Route path="/about" element={<About />} />
@@ -181,7 +188,7 @@ const AppRouter = () => {
         <Route path="/kyc" element={<KycDetailForm />} />
         <Route path="/payout" element={<Payout />} />
         <Route path="/tds-history" element={<TDSHistory />} />
-        <Route path="wallet-transactions" element={<WalletTransactions />} />
+        <Route path="/wallet-transactions" element={<WalletTransactions />} />
         <Route path="/affiliate-link" element={<AffiliateLink />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/team" element={<Team />} />
@@ -227,6 +234,7 @@ const AppRouter = () => {
         <Route path="dth-analysis" element={<AdminDTHAnalysis />} />
         <Route path="wallet-topup-manager" element={<AdminWalletTopUpManager />} />
         <Route path="course-content" element={<CourseContentManager />} />
+        <Route path="product-orders" element={<AdminProductOrderManager />} />
       </Route>
 
       {/* Catch-all route for 404 */}

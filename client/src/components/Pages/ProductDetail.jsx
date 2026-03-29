@@ -23,10 +23,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import api from '../../config/api';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useCartStore } from '../../store/useCartStore';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const addLine = useCartStore((s) => s.addLine);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -136,19 +140,28 @@ const ProductDetail = () => {
     toast.info('Contact options (phone, email, or form) can be wired here when ready.');
   };
 
-  const handleBuyNow = () => {
-    navigate('/super-packages', {
-      state: {
-        productInfo: {
-          _id: product._id,
-          title: product.title,
-          category: product.category?.name || product.category,
-          description: product.description,
-          images: product.images,
-          selectedPricing: selectedPricing
-        }
-      }
+  const handleAddToCart = () => {
+    if (!selectedPricing) {
+      toast.error('Please select a package option first.');
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.info('Please log in to add items to your cart.');
+      navigate('/login', { state: { from: `/products/${id}` } });
+      return;
+    }
+    const img =
+      product.images?.find((i) => i.isPrimary) || product.images?.[0];
+    addLine({
+      productId: product._id,
+      title: product.title,
+      imageUrl: img?.url || '',
+      packageName: selectedPricing.packageName,
+      unitPrice: Number(selectedPricing.price),
+      deliveryChargePerUnit: Number(product.deliveryCharge) || 0,
+      quantity: 1
     });
+    toast.success('Added to cart');
   };
 
   const handleShare = async () => {
@@ -363,11 +376,10 @@ const ProductDetail = () => {
                               openGallery(index);
                             }}
                             title="Tap to select · double-tap for fullscreen"
-                            className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-200 ${
-                              index === selectedImageIndex
-                                ? 'border-orange-500 shadow-md shadow-orange-500/20 ring-2 ring-orange-400/30'
-                                : 'border-transparent opacity-75 hover:opacity-100 hover:ring-2 hover:ring-gray-200'
-                            }`}
+                            className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-200 ${index === selectedImageIndex
+                              ? 'border-orange-500 shadow-md shadow-orange-500/20 ring-2 ring-orange-400/30'
+                              : 'border-transparent opacity-75 hover:opacity-100 hover:ring-2 hover:ring-gray-200'
+                              }`}
                           >
                             <img
                               src={image.url}
@@ -441,6 +453,15 @@ const ProductDetail = () => {
                     )}
                   </div>
                 )}
+                {Number(product.deliveryCharge) > 0 && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Delivery:{' '}
+                    <span className="font-semibold text-gray-800">
+                      ₹{Number(product.deliveryCharge).toLocaleString('en-IN')} per unit
+                    </span>{' '}
+                    (set by admin; no GST at checkout)
+                  </p>
+                )}
               </div>
 
               {product.pricing && product.pricing.length > 0 && (
@@ -457,19 +478,17 @@ const ProductDetail = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedPricing(option)}
-                            className={`w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
-                              selected
-                                ? 'border-orange-500 bg-gradient-to-br from-orange-50/90 via-white to-pink-50/50 shadow-[0_12px_40px_-12px_rgba(234,88,12,0.35)]'
-                                : 'border-orange-100/80 bg-white/80 hover:border-orange-300 hover:shadow-md'
-                            }`}
+                            className={`w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${selected
+                              ? 'border-orange-500 bg-gradient-to-br from-orange-50/90 via-white to-pink-50/50 shadow-[0_12px_40px_-12px_rgba(234,88,12,0.35)]'
+                              : 'border-orange-100/80 bg-white/80 hover:border-orange-300 hover:shadow-md'
+                              }`}
                           >
                             <div className="flex gap-4">
                               <div
-                                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                                  selected
-                                    ? 'border-orange-500 bg-orange-500 text-white'
-                                    : 'border-gray-300 bg-white'
-                                }`}
+                                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${selected
+                                  ? 'border-orange-500 bg-orange-500 text-white'
+                                  : 'border-gray-300 bg-white'
+                                  }`}
                               >
                                 {selected && <CheckCircle className="h-4 w-4" />}
                               </div>
@@ -537,11 +556,11 @@ const ProductDetail = () => {
               <div className="hidden gap-3 lg:grid lg:grid-cols-2">
                 <button
                   type="button"
-                  onClick={handleBuyNow}
+                  onClick={handleAddToCart}
                   className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 py-4 text-base font-bold text-white shadow-lg shadow-orange-500/30 transition hover:opacity-95 active:scale-[0.99]"
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Buy now
+                  Add to cart
                 </button>
                 <button
                   type="button"
@@ -554,11 +573,10 @@ const ProductDetail = () => {
                 <button
                   type="button"
                   onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`flex items-center justify-center gap-2 rounded-2xl border-2 py-3.5 text-sm font-bold transition ${
-                    isWishlisted
-                      ? 'border-rose-200 bg-rose-50 text-rose-700'
-                      : 'border-orange-100/90 bg-white text-gray-800 hover:bg-orange-50/50'
-                  }`}
+                  className={`flex items-center justify-center gap-2 rounded-2xl border-2 py-3.5 text-sm font-bold transition ${isWishlisted
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-orange-100/90 bg-white text-gray-800 hover:bg-orange-50/50'
+                    }`}
                 >
                   <Heart
                     className={`h-5 w-5 shrink-0 ${isWishlisted ? 'fill-rose-500 text-rose-500' : 'text-gray-500'}`}
@@ -634,11 +652,11 @@ const ProductDetail = () => {
           )}
           <button
             type="button"
-            onClick={handleBuyNow}
+            onClick={handleAddToCart}
             className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/30"
           >
             <ShoppingCart className="h-5 w-5" />
-            Buy
+            Add
           </button>
         </div>
         <div className="mx-auto mt-3 flex max-w-lg justify-center gap-2">
@@ -653,9 +671,8 @@ const ProductDetail = () => {
           <button
             type="button"
             onClick={() => setIsWishlisted(!isWishlisted)}
-            className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
-              isWishlisted ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-orange-100/90 bg-white text-gray-600'
-            }`}
+            className={`flex h-11 w-11 items-center justify-center rounded-xl border ${isWishlisted ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-orange-100/90 bg-white text-gray-600'
+              }`}
             aria-label="Wishlist"
           >
             <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -752,11 +769,10 @@ const ProductDetail = () => {
                     type="button"
                     key={index}
                     onClick={() => setGalleryImageIndex(index)}
-                    className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg ring-2 transition sm:h-16 sm:w-16 ${
-                      index === galleryImageIndex
-                        ? 'ring-orange-400'
-                        : 'ring-transparent opacity-60 hover:opacity-100'
-                    }`}
+                    className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg ring-2 transition sm:h-16 sm:w-16 ${index === galleryImageIndex
+                      ? 'ring-orange-400'
+                      : 'ring-transparent opacity-60 hover:opacity-100'
+                      }`}
                   >
                     <img src={image.url} alt="" className="h-full w-full object-cover" />
                   </button>

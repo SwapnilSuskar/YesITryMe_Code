@@ -3,6 +3,7 @@ import { Trash2, Eye, EyeOff, Upload, Video, BarChart3 } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../../styles/toast.css';
+import axios from 'axios';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -42,13 +43,34 @@ const VideoTasks = () => {
     if (!canUpload) return;
     try {
       setUploading(true);
-      const form = new FormData();
-      form.append('title', title.trim());
-      form.append('description', description.trim());
-      form.append('video', file);
+      const sigRes = await api.get(API_ENDPOINTS.videoTasks.adminUploadSignature);
+      if (!sigRes.data?.success || !sigRes.data?.data) {
+        toast.error(sigRes.data?.message || 'Could not start upload');
+        return;
+      }
+      const { signature, timestamp, apiKey, cloudName, folder } = sigRes.data.data;
 
-      const res = await api.post(API_ENDPOINTS.videoTasks.adminUpload, form, {
+      const cloudinaryForm = new FormData();
+      cloudinaryForm.append('file', file);
+      cloudinaryForm.append('api_key', apiKey);
+      cloudinaryForm.append('timestamp', String(timestamp));
+      cloudinaryForm.append('signature', signature);
+      cloudinaryForm.append('folder', folder);
+
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+      const upRes = await axios.post(uploadUrl, cloudinaryForm, {
         headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const publicId = upRes.data?.public_id;
+      if (!publicId) {
+        toast.error(upRes.data?.error?.message || 'Cloudinary upload failed');
+        return;
+      }
+
+      const res = await api.post(API_ENDPOINTS.videoTasks.adminCompleteUpload, {
+        title: title.trim(),
+        description: description.trim(),
+        publicId,
       });
       if (res.data?.success) {
         toast.success('Video uploaded');
@@ -60,7 +82,13 @@ const VideoTasks = () => {
         toast.error(res.data?.message || 'Upload failed');
       }
     } catch (e2) {
-      toast.error(e2.response?.data?.message || 'Upload failed');
+      const msg =
+        e2.response?.data?.error?.message ||
+        e2.response?.data?.message ||
+        (typeof e2.response?.data === 'string' ? e2.response.data : null) ||
+        e2.message ||
+        'Upload failed';
+      toast.error(msg);
     } finally {
       setUploading(false);
     }

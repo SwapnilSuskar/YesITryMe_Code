@@ -40,6 +40,12 @@ import {
   rejectWithdrawalRequest,
   completeWithdrawalRequest,
 } from "../controllers/coinsController.js";
+import {
+  listAdminProductOrders,
+  adminVerifyProductOrder,
+  adminRejectProductOrder,
+  adminDeleteProductOrder,
+} from "../controllers/productOrderController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -111,5 +117,11 @@ router.post("/users/:userId/wallet/deduct", deductMoneyFromWallet);
 router.post("/users/:userId/smart-wallet/add", addMoneyToSmartWallet);
 router.post("/users/:userId/smart-wallet/deduct", deductMoneyFromSmartWallet);
 router.get("/users/:userId/transactions", getUserTransactionHistory);
+
+// Product orders (cart checkout — Smart Wallet payment verification)
+router.get("/product-orders", listAdminProductOrders);
+router.patch("/product-orders/:id/verify", adminVerifyProductOrder);
+router.patch("/product-orders/:id/reject", adminRejectProductOrder);
+router.delete("/product-orders/:id", adminDeleteProductOrder);
 
 export default router;

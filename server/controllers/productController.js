@@ -93,7 +93,33 @@ export const createProduct = async (req, res) => {
       specifications,
       status = "draft",
       featured = false,
+      deliveryCharge: rawDelivery,
+      distributionEnabled: rawDistributionEnabled,
+      distributionRupeesPerUnit: rawDistributionRupees,
     } = req.body;
+
+    const deliveryCharge = Math.max(
+      0,
+      parseFloat(
+        typeof rawDelivery === "string" ? rawDelivery : rawDelivery ?? 0
+      ) || 0
+    );
+
+    const distRupeesRaw = parseFloat(
+      typeof rawDistributionRupees === "string"
+        ? rawDistributionRupees
+        : rawDistributionRupees ?? 0
+    );
+    const distributionRupeesPerUnit = Math.max(
+      0,
+      Number.isFinite(distRupeesRaw) ? distRupeesRaw : 0
+    );
+    const wantsDistribution =
+      rawDistributionEnabled === true ||
+      rawDistributionEnabled === "true" ||
+      String(rawDistributionEnabled).toLowerCase() === "true";
+    const distributionEnabled =
+      wantsDistribution && distributionRupeesPerUnit > 0;
 
     // Validate required fields
     if (!title || !description || !category) {
@@ -194,6 +220,11 @@ export const createProduct = async (req, res) => {
       images,
       status,
       featured,
+      deliveryCharge,
+      distributionEnabled,
+      distributionRupeesPerUnit: distributionEnabled
+        ? distributionRupeesPerUnit
+        : 0,
       tags: parsedTags || [],
       specifications: parsedSpecifications || {},
       createdBy: req.user.id,
@@ -458,6 +489,38 @@ export const updateProduct = async (req, res) => {
           success: false,
           message: "Invalid tags format",
         });
+      }
+    }
+
+    if (updateData.deliveryCharge !== undefined && updateData.deliveryCharge !== null) {
+      updateData.deliveryCharge = Math.max(
+        0,
+        parseFloat(updateData.deliveryCharge) || 0
+      );
+    }
+
+    if (
+      updateData.distributionRupeesPerUnit !== undefined &&
+      updateData.distributionRupeesPerUnit !== null
+    ) {
+      const r = parseFloat(updateData.distributionRupeesPerUnit) || 0;
+      updateData.distributionRupeesPerUnit = Math.max(0, r);
+      if (
+        updateData.distributionEnabled === undefined &&
+        updateData.distributionRupeesPerUnit <= 0
+      ) {
+        updateData.distributionEnabled = false;
+      }
+    }
+    if (updateData.distributionEnabled !== undefined) {
+      const wants =
+        updateData.distributionEnabled === true ||
+        updateData.distributionEnabled === "true" ||
+        String(updateData.distributionEnabled).toLowerCase() === "true";
+      const rupees = updateData.distributionRupeesPerUnit ?? 0;
+      updateData.distributionEnabled = wants && rupees > 0;
+      if (!updateData.distributionEnabled) {
+        updateData.distributionRupeesPerUnit = 0;
       }
     }
 

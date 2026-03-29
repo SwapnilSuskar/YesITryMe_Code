@@ -264,6 +264,8 @@ export const API_ENDPOINTS = {
     sharedGet: `${API_URL}/api/video-tasks/shared/:token`,
     claim: `${API_URL}/api/video-tasks/:videoId/claim`,
     adminAll: `${API_URL}/api/video-tasks/admin/all`,
+    adminUploadSignature: `${API_URL}/api/video-tasks/admin/upload-signature`,
+    adminCompleteUpload: `${API_URL}/api/video-tasks/admin/complete-upload`,
     adminUpload: `${API_URL}/api/video-tasks/admin/upload`,
     adminAnalytics: `${API_URL}/api/video-tasks/admin/:videoId/analytics`,
     adminToggle: `${API_URL}/api/video-tasks/admin/:videoId/toggle`,
@@ -306,5 +308,17 @@ export const API_ENDPOINTS = {
     adminApprove: `${API_URL}/api/wallet-topup/admin/:id/approve`,
     adminReject: `${API_URL}/api/wallet-topup/admin/:id/reject`,
     adminDelete: `${API_URL}/api/wallet-topup/admin/:id`,
+  },
+  productOrders: {
+    create: `${API_URL}/api/product-orders`,
+    mine: `${API_URL}/api/product-orders/mine`,
+    byId: (id) => `${API_URL}/api/product-orders/${id}`,
+    paymentProof: (id) => `${API_URL}/api/product-orders/${id}/payment-proof`,
+  },
+  adminProductOrders: {
+    list: `${API_URL}/api/admin/product-orders`,
+    verify: (id) => `${API_URL}/api/admin/product-orders/${id}/verify`,
+    reject: (id) => `${API_URL}/api/admin/product-orders/${id}/reject`,
+    delete: (id) => `${API_URL}/api/admin/product-orders/${id}`,
   },
 };

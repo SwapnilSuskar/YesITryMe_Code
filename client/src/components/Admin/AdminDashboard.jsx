@@ -380,6 +380,24 @@ const AdminDashboard = () => {
             </Link>
 
             <Link
+              to="/admin/product-orders"
+              className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/product-orders"
+                ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"
+                : "bg-gradient-to-br from-white to-gray-50 text-gray-700 hover:from-orange-50 hover:to-orange-100 border border-gray-200 hover:border-orange-300"
+                }`}
+            >
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`p-3 rounded-xl ${location.pathname === "/admin/product-orders" ? "bg-white/20" : "bg-rose-100 group-hover:bg-rose-200"}`}>
+                  <ShoppingCart className={`w-8 h-8 ${location.pathname === "/admin/product-orders" ? "text-white" : "text-rose-600"}`} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Product orders</h3>
+                  <p className="text-xs opacity-75 mt-1">Verify shop payments</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
               to="/admin/super-packages"
               className={`group relative p-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${location.pathname === "/admin/super-packages"
                 ? "bg-gradient-to-br from-[#FF4E00] to-orange-500 text-white shadow-lg"

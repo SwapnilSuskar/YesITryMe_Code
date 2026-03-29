@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   List,
   Loader2,
+  Layers,
   Package,
   Plus,
   Search,
@@ -15,6 +16,28 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../../config/api';
+
+const STANDARD_POOL_REF = 500;
+
+/** Same 120-level shape as server (₹500 reference) for admin preview only */
+function scaleStandardDistributionPoolPreview(poolRupees) {
+  const pool = Math.max(0, Math.round(Number(poolRupees) * 100) / 100);
+  if (pool < 0.01) return [];
+  const template = [];
+  template.push(250, 100, 50, 10, 10);
+  for (let i = 0; i < 15; i++) template.push(5);
+  for (let i = 0; i < 100; i++) template.push(0.05);
+  const rows = template.map((amt, idx) => ({
+    level: idx + 1,
+    amount: Math.round((amt / STANDARD_POOL_REF) * pool * 100) / 100,
+  }));
+  const sum = rows.reduce((s, r) => s + r.amount, 0);
+  const diff = Math.round((pool - sum) * 100) / 100;
+  if (Math.abs(diff) >= 0.001 && rows.length) {
+    rows[0].amount = Math.round((rows[0].amount + diff) * 100) / 100;
+  }
+  return rows;
+}
 
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
@@ -38,7 +61,10 @@ const ProductManager = () => {
     tags: [''],
     specifications: {},
     status: 'draft',
-    featured: false
+    featured: false,
+    deliveryCharge: 0,
+    distributionEnabled: false,
+    distributionRupeesPerUnit: 0
   });
 
   // Filters
@@ -133,6 +159,21 @@ const ProductManager = () => {
       formDataToSend.append('category', formData.category);
       formDataToSend.append('status', formData.status);
       formDataToSend.append('featured', formData.featured);
+      formDataToSend.append(
+        'deliveryCharge',
+        String(Math.max(0, parseFloat(formData.deliveryCharge) || 0))
+      );
+
+      const distRupees = Math.max(
+        0,
+        parseFloat(formData.distributionRupeesPerUnit) || 0
+      );
+      const distOn = Boolean(formData.distributionEnabled) && distRupees > 0;
+      formDataToSend.append('distributionEnabled', distOn ? 'true' : 'false');
+      formDataToSend.append(
+        'distributionRupeesPerUnit',
+        distOn ? String(distRupees) : '0'
+      );
 
       // Filter out empty pricing options and tags before sending
       const validPricing = formData.pricing.filter(option =>
@@ -202,7 +243,10 @@ const ProductManager = () => {
       tags: product.tags.length > 0 ? product.tags : [''],
       specifications: product.specifications || {},
       status: product.status,
-      featured: product.featured
+      featured: product.featured,
+      deliveryCharge: product.deliveryCharge ?? 0,
+      distributionEnabled: Boolean(product.distributionEnabled),
+      distributionRupeesPerUnit: product.distributionRupeesPerUnit ?? 0
     });
     setShowForm(true);
   };
@@ -216,7 +260,10 @@ const ProductManager = () => {
       tags: [''],
       specifications: {},
       status: 'draft',
-      featured: false
+      featured: false,
+      deliveryCharge: 0,
+      distributionEnabled: false,
+      distributionRupeesPerUnit: 0
     });
     setSelectedFiles([]);
     if (fileInputRef.current) {
@@ -457,6 +504,12 @@ const ProductCard = ({ product, onEdit, onDelete, viewMode }) => {
                       Featured
                     </span>
                   )}
+                  {product.distributionEnabled && product.distributionRupeesPerUnit > 0 && (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      ₹{product.distributionRupeesPerUnit}/u
+                    </span>
+                  )}
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     {product.category?.name || product.category}
                   </span>
@@ -515,7 +568,16 @@ const ProductCard = ({ product, onEdit, onDelete, viewMode }) => {
           </div>
         )}
 
-        <div className="absolute top-2 right-2 flex gap-1">
+        <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[85%]">
+          {product.distributionEnabled && product.distributionRupeesPerUnit > 0 && (
+            <span
+              className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-600 text-white flex items-center gap-1"
+              title="120-level wallet distribution (per unit)"
+            >
+              <Layers className="w-3 h-3" />
+              ₹{product.distributionRupeesPerUnit}/u
+            </span>
+          )}
           {product.featured && (
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500 text-white flex items-center gap-1">
               <Star className="w-3 h-3" />
@@ -971,6 +1033,87 @@ const ProductForm = ({
             </div>
           </div>
 
+          {/* 120-level wallet distribution on confirmed orders */}
+          <div className="border border-emerald-200/80 rounded-xl p-4 bg-emerald-50/50">
+            <div className="flex items-start gap-3 mb-3">
+              <Layers className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-gray-800">Commission distribution (120 levels)</h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  After admin confirms payment, the buyer&apos;s upline earns rupee-wallet commissions using the same ratios as super packages (levels 1–120). Enter the total commission pool in ₹ <strong>per unit</strong> sold; the line pool is that amount × quantity (delivery is not part of the pool).
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.distributionEnabled}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      distributionEnabled: e.target.checked
+                    }))
+                  }
+                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded"
+                />
+                <span className="text-sm font-medium text-gray-800">Enable distribution</span>
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-700 whitespace-nowrap">₹ per unit (pool)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  disabled={!formData.distributionEnabled}
+                  value={formData.distributionRupeesPerUnit}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      distributionRupeesPerUnit: Math.max(
+                        0,
+                        parseFloat(e.target.value) || 0
+                      )
+                    }))
+                  }
+                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                />
+              </div>
+            </div>
+            {(() => {
+              const rupees = formData.distributionEnabled
+                ? Math.max(0, parseFloat(formData.distributionRupeesPerUnit) || 0)
+                : 0;
+              const poolOne = Math.round(rupees * 100) / 100;
+              const poolThree = Math.round(rupees * 3 * 100) / 100;
+              const rows = scaleStandardDistributionPoolPreview(poolOne);
+              if (!formData.distributionEnabled || rupees <= 0 || rows.length === 0) {
+                return (
+                  <p className="text-xs text-gray-500">
+                    Example: ₹500 per unit → ₹500 pool for qty 1, ₹1500 for qty 3 (split across 120 levels).
+                  </p>
+                );
+              }
+              const l1 = rows[0]?.amount ?? 0;
+              const l2to5 = rows.slice(1, 5).reduce((s, r) => s + r.amount, 0);
+              const l6to20 = rows.slice(5, 20).reduce((s, r) => s + r.amount, 0);
+              const l21to120 = rows.slice(20).reduce((s, r) => s + r.amount, 0);
+              const total = rows.reduce((s, r) => s + r.amount, 0);
+              return (
+                <div className="text-xs text-gray-700 space-y-1 bg-white/80 rounded-lg p-3 border border-emerald-100">
+                  <p className="font-semibold text-emerald-800">
+                    Preview: qty 1 pool ₹{poolOne.toFixed(2)}
+                    {poolThree > poolOne ? ` · qty 3 pool ₹${poolThree.toFixed(2)}` : ''}
+                  </p>
+                  <p>
+                    Level 1: ₹{l1.toFixed(2)} · L2–5: ₹{l2to5.toFixed(2)} · L6–20: ₹{l6to20.toFixed(2)} · L21–120: ₹{l21to120.toFixed(2)}
+                  </p>
+                  <p className="text-gray-500">Per-unit split total: ₹{total.toFixed(2)} credited on verification (scales with quantity)</p>
+                </div>
+              );
+            })()}
+          </div>
+
           {/* Status and Featured */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -988,7 +1131,27 @@ const ProductForm = ({
               </select>
             </div>
 
-            <div className="flex items-center">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Delivery charge (₹ per unit)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.deliveryCharge}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    deliveryCharge: Math.max(0, parseFloat(e.target.value) || 0)
+                  }))
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Charged per quantity at checkout (no GST).</p>
+            </div>
+
+            <div className="flex items-center md:col-span-2">
               <input
                 type="checkbox"
                 id="featured"

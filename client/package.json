@@ -12,6 +12,7 @@
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.525.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-countup": "^6.5.3",
@@ -51,8 +52,8 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.3.0",
-    "cross-env": "^7.0.3"
+    "tailwindcss": "^3.3.0"
   }
 }

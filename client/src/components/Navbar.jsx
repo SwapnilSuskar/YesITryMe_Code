@@ -1,8 +1,9 @@
-import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging, FileText, Server } from 'lucide-react';
+import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging, FileText, Server, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from "../assets/Logo.png";
 import { useAuthStore } from '../store/useAuthStore';
+import { useCartStore } from '../store/useCartStore';
 import NotificationBell from './UI/NotificationBell';
 import UserAvatar from './UI/UserAvatar';
 
@@ -14,10 +15,14 @@ const Navbar = () => {
   const location = useLocation();
 
   const { isAuthenticated, logout, user } = useAuthStore();
+  const cartItemCount = useCartStore((s) =>
+    s.lines.reduce((sum, l) => sum + l.quantity, 0)
+  );
 
   // Navigation items for public pages
   const publicNavItems = [
     { name: 'HOME', path: '/' },
+    { name: 'SHOP', path: '/products' },
     { name: 'COURSES', path: '/courses' },
     { name: 'GALLERY', path: '/gallery' },
     { name: 'ABOUT US', path: '/about' },
@@ -40,7 +45,8 @@ const Navbar = () => {
     { name: 'Profile', path: '/profile', icon: User },
     { name: 'KYC', path: '/kyc', icon: LinkIcon },
     { name: 'AI Tools', path: '/ai-tools', icon: Brain },
-    { name: 'My Products', path: '/products', icon: Package },
+    { name: 'My orders', path: '/my-product-orders', icon: Package },
+    {name: "My shoping", path:"/products", icon: ShoppingCart},
     { name: 'My Ebooks', path: '/ebooks', icon: BookOpen },
     { name: 'Nominees', path: '/nominee', icon: UserCheck },
   ];
@@ -128,6 +134,18 @@ const Navbar = () => {
 
             {/* Desktop Auth/User Info */}
             <div className="hidden md:flex items-center space-x-2">
+              <Link
+                to="/cart"
+                className="relative flex items-center justify-center rounded-xl p-2 text-gray-800 hover:bg-orange-50 hover:text-[#FF4E00] transition"
+                aria-label="Shopping cart"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] flex items-center justify-center rounded-full bg-[#FF4E00] text-[10px] font-bold text-white px-1">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
+              </Link>
               {isAuthenticated && user && (
                 <NotificationBell />
               )}
@@ -264,6 +282,19 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
+              <Link
+                to="/cart"
+                className="relative inline-flex items-center justify-center p-2 rounded-xl text-black hover:text-[#FF4E00] hover:bg-orange-50/70 md:hidden"
+                aria-label="Shopping cart"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[1rem] h-4 flex items-center justify-center rounded-full bg-[#FF4E00] text-[9px] font-bold text-white px-1">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
+              </Link>
               <button
                 onClick={toggleMenu}
                 className="inline-flex items-center justify-center p-2 rounded-xl text-black hover:text-[#FF4E00] hover:bg-orange-50/70 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#FF4E00] transition-colors duration-200 shadow"
@@ -304,6 +335,19 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+              <Link
+                to="/cart"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold text-black/90 hover:bg-orange-50/60 hover:text-[#FF4E00]"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Cart
+                {cartItemCount > 0 && (
+                  <span className="ml-auto rounded-full bg-[#FF4E00] text-white text-[10px] font-bold px-2 py-0.5">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Link>
             </div>
             <div className="h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
             <div className="px-3 py-2">

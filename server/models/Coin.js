@@ -14,7 +14,8 @@ const coinTransactionSchema = new mongoose.Schema(
         "withdrawal",
         "admin_adjust",
         "referral_bonus",
-        "recharge_bonus"
+        "recharge_bonus",
+        "product_order",
       ],
       required: true,
     },

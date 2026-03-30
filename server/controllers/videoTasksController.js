@@ -133,6 +133,11 @@ export const createVideoShareToken = async (req, res) => {
     const { videoId } = req.params;
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
+    // Only active users can generate share links (and earn share reward).
+    if (req.user?.status !== "active") {
+      return res.status(403).json({ success: false, message: "Account must be active to share" });
+    }
+
     const video = await EngagementVideo.findById(videoId).select("_id isActive").lean();
     if (!video || !video.isActive) {
       return res.status(404).json({ success: false, message: "Video not found or inactive" });
@@ -439,6 +444,11 @@ export const claimVideoAction = async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
     if (!["view", "like", "comment", "share"].includes(action)) {
       return res.status(400).json({ success: false, message: "Invalid action" });
+    }
+
+    // Share reward is restricted to active users only.
+    if (action === "share" && req.user?.status !== "active") {
+      return res.status(403).json({ success: false, message: "Account must be active to share" });
     }
 
     // If a share token is provided, enforce view-only mode (no other tasks)

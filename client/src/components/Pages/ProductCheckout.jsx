@@ -78,7 +78,8 @@ const ProductCheckout = () => {
     () =>
       roundMoney(
         lines.reduce(
-          (s, l) => s + (l.deliveryChargePerUnit || 0) * l.quantity,
+          // Delivery is a flat fee per cart line (not multiplied by quantity).
+          (s, l) => s + (l.deliveryChargePerUnit || 0),
           0
         )
       ),

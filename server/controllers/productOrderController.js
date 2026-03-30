@@ -120,7 +120,8 @@ export const createProductOrder = async (req, res) => {
       const unitPrice = roundMoney(pricingOpt.price);
       const deliveryChargePerUnit = roundMoney(product.deliveryCharge || 0);
       const lineSubtotal = roundMoney(unitPrice * qty);
-      const lineDeliveryTotal = roundMoney(deliveryChargePerUnit * qty);
+      // Delivery is a flat fee for the entire cart line (constant even if quantity is large).
+      const lineDeliveryTotal = roundMoney(deliveryChargePerUnit);
 
       resolvedItems.push({
         productId: product._id,

@@ -474,7 +474,7 @@ const ProductDetail = () => {
                   <p className="mt-2 text-sm text-gray-600">
                     Delivery:{' '}
                     <span className="font-semibold text-gray-800">
-                      ₹{Number(product.deliveryCharge).toLocaleString('en-IN')} per unit
+                      ₹{Number(product.deliveryCharge).toLocaleString('en-IN')} (flat)
                     </span>{' '}
                     (set by admin; no GST at checkout)
                   </p>

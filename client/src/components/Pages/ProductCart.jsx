@@ -28,7 +28,8 @@ const ProductCart = () => {
     0
   );
   const delivery = lines.reduce(
-    (s, l) => s + (l.deliveryChargePerUnit || 0) * l.quantity,
+    // Delivery is a flat fee per cart line (not multiplied by quantity).
+    (s, l) => s + (l.deliveryChargePerUnit || 0),
     0
   );
 
@@ -116,7 +117,7 @@ const ProductCart = () => {
                       {(line.deliveryChargePerUnit || 0) > 0 && (
                         <span>
                           {" "}
-                          · Delivery ₹{money(line.deliveryChargePerUnit)} / unit
+                          · Delivery ₹{money(line.deliveryChargePerUnit)} (flat)
                         </span>
                       )}
                     </p>
@@ -133,7 +134,7 @@ const ProductCart = () => {
                         setLineQuantity(
                           line.productId,
                           line.packageName,
-                          line.quantity - 1
+                          line.quantity - 1 > 0 ? line.quantity - 1 : 1
                         )
                       }
                     >
@@ -162,7 +163,7 @@ const ProductCart = () => {
                       ₹
                       {money(
                         line.unitPrice * line.quantity +
-                          (line.deliveryChargePerUnit || 0) * line.quantity
+                        (line.deliveryChargePerUnit || 0)
                       )}
                     </p>
                     <button

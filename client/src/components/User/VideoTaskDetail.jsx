@@ -297,10 +297,6 @@ const VideoTaskDetail = () => {
     if (isViewOnlyShared) return;
     if (!videoId) return;
     if (!isAuthed) return;
-    if (!isActiveUser) {
-      toast.error('Account must be active to share');
-      return;
-    }
     if (sharing) return;
     try {
       setSharing(true);
@@ -564,7 +560,7 @@ const VideoTaskDetail = () => {
                       const Icon = r.icon;
                       const isShare = r.key === 'share';
                       const disabled = isShare
-                        ? isViewOnlyShared || sharing || !isActiveUser || claimedActions.has('share')
+                        ? isViewOnlyShared || sharing || claimedActions.has('share')
                         : claiming[r.key] || claimedActions.has(r.key) || (r.key === 'view' && !canClaimView);
                       const label = isShare
                         ? claimedActions.has('share')

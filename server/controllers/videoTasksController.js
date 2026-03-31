@@ -3,6 +3,7 @@ import EngagementVideo from "../models/EngagementVideo.js";
 import VideoEngagement from "../models/VideoEngagement.js";
 import CoinWallet from "../models/Coin.js";
 import User from "../models/User.js";
+import SuperPackagePurchase from "../models/SuperPackagePurchase.js";
 import jwt from "jsonwebtoken";
 
 const COIN_REWARDS = {
@@ -11,6 +12,26 @@ const COIN_REWARDS = {
   comment: 30,
   share: 10,
 };
+
+async function canUserShare(user) {
+  if (!user) return false;
+  if (user.status === "active") return true;
+
+  // Booster users are allowed even if their status isn't active yet.
+  // We treat an active super package purchase containing "booster" as eligible.
+  try {
+    const booster = await SuperPackagePurchase.findOne({
+      purchaserId: user.userId,
+      status: "active",
+      superPackageName: { $regex: "booster", $options: "i" },
+    })
+      .select("_id")
+      .lean();
+    return !!booster;
+  } catch (_) {
+    return false;
+  }
+}
 
 export const listVideoComments = async (req, res) => {
   try {
@@ -133,9 +154,10 @@ export const createVideoShareToken = async (req, res) => {
     const { videoId } = req.params;
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    // Only active users can generate share links (and earn share reward).
-    if (req.user?.status !== "active") {
-      return res.status(403).json({ success: false, message: "Account must be active to share" });
+    // Only active users or booster package users can generate share links.
+    const okToShare = await canUserShare(req.user);
+    if (!okToShare) {
+      return res.status(403).json({ success: false, message: "Account must be active (or have Booster package) to share" });
     }
 
     const video = await EngagementVideo.findById(videoId).select("_id isActive").lean();
@@ -446,9 +468,12 @@ export const claimVideoAction = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid action" });
     }
 
-    // Share reward is restricted to active users only.
-    if (action === "share" && req.user?.status !== "active") {
-      return res.status(403).json({ success: false, message: "Account must be active to share" });
+    // Share reward is restricted to active users or booster package users only.
+    if (action === "share") {
+      const okToShare = await canUserShare(req.user);
+      if (!okToShare) {
+        return res.status(403).json({ success: false, message: "Account must be active (or have Booster package) to share" });
+      }
     }
 
     // If a share token is provided, enforce view-only mode (no other tasks)

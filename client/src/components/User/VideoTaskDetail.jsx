@@ -301,7 +301,15 @@ const VideoTaskDetail = () => {
     try {
       setSharing(true);
       const token = await createShareToken();
+      if (!token) {
+        toast.error('Could not create share link');
+        return;
+      }
       const shareUrl = `${window.location.origin}/video-tasks/${videoId}?shareToken=${encodeURIComponent(token)}`;
+
+      // Reward is granted when the token is created on the backend — update UI immediately
+      setClaimedActions((prev) => new Set([...prev, 'share']));
+      setStats((p) => ({ ...p, share: (Number(p.share) || 0) + 1 }));
 
       const shareData = {
         title: video?.title || 'Video',
@@ -309,18 +317,29 @@ const VideoTaskDetail = () => {
         url: shareUrl,
       };
 
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success('Share link copied');
-      } else {
-        window.prompt('Copy this link:', shareUrl);
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success('Share link copied');
+        } else {
+          window.prompt('Copy this link:', shareUrl);
+        }
+      } catch (shareErr) {
+        // User cancelled the native share sheet — link is still valid
+        if (shareErr?.name === 'AbortError') return;
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Share link copied');
+          } catch (_) {
+            toast.info('Link created — copy it from the address bar if needed');
+          }
+        } else {
+          toast.info('Link created — copy it from the prompt if shown');
+        }
       }
-
-      // Mark share as claimed (reward is granted when token is created on backend)
-      setClaimedActions((prev) => new Set([...prev, 'share']));
-      setStats((p) => ({ ...p, share: (Number(p.share) || 0) + 1 }));
     } catch (e) {
       toast.error(e.response?.data?.message || e.message || 'Failed to share');
     } finally {

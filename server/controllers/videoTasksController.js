@@ -4,6 +4,7 @@ import VideoEngagement from "../models/VideoEngagement.js";
 import CoinWallet from "../models/Coin.js";
 import User from "../models/User.js";
 import SuperPackagePurchase from "../models/SuperPackagePurchase.js";
+import Purchase from "../models/Purchase.js";
 import jwt from "jsonwebtoken";
 
 const COIN_REWARDS = {
@@ -13,21 +14,45 @@ const COIN_REWARDS = {
   share: 10,
 };
 
-async function canUserShare(user) {
-  if (!user) return false;
-  if (user.status === "active") return true;
+const SHARE_ELIGIBLE_STATUSES = ["active", "kyc_verified"];
 
-  // Booster users are allowed even if their status isn't active yet.
-  // We treat an active super package purchase containing "booster" as eligible.
+async function canUserShare(user) {
+  if (!user?.userId) return false;
+  if (user.role === "admin") return true;
+
+  let status = String(user.status ?? "").trim().toLowerCase();
+  // Stale/missing status on session — re-read from DB (protect() usually has it)
+  if (!status) {
+    try {
+      const u = await User.findOne({ userId: user.userId }).select("status role").lean();
+      if (u?.role === "admin") return true;
+      status = String(u?.status ?? "").trim().toLowerCase();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  if (SHARE_ELIGIBLE_STATUSES.includes(status)) return true;
+
+  // Booster package (super or regular) — name contains "booster", purchase row still active
   try {
-    const booster = await SuperPackagePurchase.findOne({
-      purchaserId: user.userId,
-      status: "active",
-      superPackageName: { $regex: "booster", $options: "i" },
-    })
-      .select("_id")
-      .lean();
-    return !!booster;
+    const [superBooster, regularBooster] = await Promise.all([
+      SuperPackagePurchase.findOne({
+        purchaserId: user.userId,
+        status: "active",
+        superPackageName: { $regex: "booster", $options: "i" },
+      })
+        .select("_id")
+        .lean(),
+      Purchase.findOne({
+        purchaserId: user.userId,
+        status: "active",
+        packageName: { $regex: "booster", $options: "i" },
+      })
+        .select("_id")
+        .lean(),
+    ]);
+    return !!(superBooster || regularBooster);
   } catch (_) {
     return false;
   }
@@ -157,7 +182,10 @@ export const createVideoShareToken = async (req, res) => {
     // Only active users or booster package users can generate share links.
     const okToShare = await canUserShare(req.user);
     if (!okToShare) {
-      return res.status(403).json({ success: false, message: "Account must be active (or have Booster package) to share" });
+      return res.status(403).json({
+        success: false,
+        message: "Sharing requires an active or KYC-verified account, a Booster package, or admin access",
+      });
     }
 
     const video = await EngagementVideo.findById(videoId).select("_id isActive").lean();
@@ -472,7 +500,10 @@ export const claimVideoAction = async (req, res) => {
     if (action === "share") {
       const okToShare = await canUserShare(req.user);
       if (!okToShare) {
-        return res.status(403).json({ success: false, message: "Account must be active (or have Booster package) to share" });
+        return res.status(403).json({
+          success: false,
+          message: "Sharing requires an active or KYC-verified account, a Booster package, or admin access",
+        });
       }
     }
 

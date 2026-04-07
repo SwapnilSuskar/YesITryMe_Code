@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api, { API_ENDPOINTS } from "../config/api";
+import { useCartStore } from "./useCartStore";
 
 // Helper to load user and token from localStorage
 const getStoredUser = () => {
@@ -49,6 +50,10 @@ export const useAuthStore = create((set, get) => ({
     
     if (!storedUser || !storedToken) {
       set({ isAuthenticated: false, user: null, token: null });
+      // Ensure we don't show a previous user's cart when logged out
+      try {
+        useCartStore.getState().setCartOwner("guest");
+      } catch {}
       return;
     }
 
@@ -64,6 +69,11 @@ export const useAuthStore = create((set, get) => ({
       user: storedUser, 
       token: storedToken 
     });
+    // Switch to this user's cart
+    try {
+      const id = storedUser?.userId || storedUser?._id || storedUser?.id;
+      useCartStore.getState().setCartOwner(id ? `user:${id}` : "guest");
+    } catch {}
   },
 
   // Check if current token is valid
@@ -229,6 +239,13 @@ export const useAuthStore = create((set, get) => ({
         localStorage.setItem("authUser", JSON.stringify(response.data.user));
         localStorage.setItem("authToken", response.data.token);
 
+        // Switch to this user's cart immediately after login
+        try {
+          const u = response.data.user;
+          const id = u?.userId || u?._id || u?.id;
+          useCartStore.getState().setCartOwner(id ? `user:${id}` : "guest");
+        } catch {}
+
         // Sync user status after login
         setTimeout(async () => {
           await get().syncUserStatus();
@@ -326,5 +343,10 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem("authUser");
     localStorage.removeItem("authToken");
     localStorage.removeItem("adminSessionTimeout");
+    // Separate carts per user; on logout show empty guest cart
+    try {
+      useCartStore.getState().setCartOwner("guest");
+      useCartStore.getState().clearCart();
+    } catch {}
   },
 }));

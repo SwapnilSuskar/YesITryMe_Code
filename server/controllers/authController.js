@@ -263,6 +263,27 @@ export const signup = async (req, res) => {
 
         // If we get here, user creation was successful
 
+        // Grant new user activation bonus on registration (one-time).
+        // Non-blocking: signup should succeed even if wallet credit fails.
+        try {
+          const wallet = await CoinWallet.getOrCreateWallet(userId);
+          if (!wallet.activationBonusGranted) {
+            await wallet.addCoins(
+              "activation_bonus",
+              1000,
+              { bonusType: "account_activation", source: "registration" },
+              `ACTIVATION_BONUS_${userId}`
+            );
+            wallet.activationBonusGranted = true;
+            await wallet.save();
+          }
+        } catch (bonusErr) {
+          console.error(
+            "Failed to grant activation bonus on registration:",
+            bonusErr?.message || bonusErr
+          );
+        }
+
         // Award referral bonus (100 coins) to sponsor's coin wallet
         try {
           const sponsorWallet = await CoinWallet.getOrCreateWallet(

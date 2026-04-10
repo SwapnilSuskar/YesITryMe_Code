@@ -255,7 +255,8 @@ const ProductManager = () => {
       product.title.toLowerCase().includes(filters.search.toLowerCase()) ||
       product.description.toLowerCase().includes(filters.search.toLowerCase());
 
-    const categoryMatch = !filters.category || product.category === filters.category;
+    const productCategoryName = product.category?.name || product.category || '';
+    const categoryMatch = !filters.category || productCategoryName === filters.category;
     const statusMatch = !filters.status || product.status === filters.status;
     const featuredMatch = filters.featured === '' || product.featured === (filters.featured === 'true');
 

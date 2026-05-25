@@ -100,7 +100,6 @@ if (process.env.NODE_ENV === "development") {
 // Database connection middleware for serverless
 app.use(async (req, res, next) => {
   try {
-    // Skip database check for health and test routes
     if (
       req.path === "/health" ||
       req.path === "/test" ||

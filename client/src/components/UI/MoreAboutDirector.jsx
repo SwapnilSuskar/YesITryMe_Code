@@ -102,7 +102,7 @@ const MoreAboutDirector = () => {
         <DirectorCard
           image={Director3}
           title="Mr. Vikas Jadhav"
-          subtitle="Co-Founder | Director |CEO – YesITryMe Marketing LLP."
+          subtitle="Co-Founder | Director | COO – YesITryMe Marketing LLP."
           message={
             <>
               <span className="block font-semibold text-pink-700 mb-1">

@@ -27,9 +27,10 @@ const ProductCart = () => {
     (s, l) => s + l.unitPrice * l.quantity,
     0
   );
+  // Delivery is charged once per order (not per line, and not per unit).
+  // The highest delivery charge among the products in the cart wins.
   const delivery = lines.reduce(
-    // Delivery is a flat fee per cart line (not multiplied by quantity).
-    (s, l) => s + (l.deliveryChargePerUnit || 0),
+    (s, l) => Math.max(s, l.deliveryChargePerUnit || 0),
     0
   );
 
@@ -117,7 +118,8 @@ const ProductCart = () => {
                       {(line.deliveryChargePerUnit || 0) > 0 && (
                         <span>
                           {" "}
-                          · Delivery ₹{money(line.deliveryChargePerUnit)} (flat)
+                          · Delivery ₹{money(line.deliveryChargePerUnit)} (once
+                          per order)
                         </span>
                       )}
                     </p>
@@ -160,11 +162,7 @@ const ProductCart = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-lg font-black tabular-nums text-gray-900">
-                      ₹
-                      {money(
-                        line.unitPrice * line.quantity +
-                        (line.deliveryChargePerUnit || 0)
-                      )}
+                      ₹{money(line.unitPrice * line.quantity)}
                     </p>
                     <button
                       type="button"
@@ -189,7 +187,7 @@ const ProductCart = () => {
                 </span>
               </div>
               <div className="mt-2 flex justify-between text-sm text-gray-600">
-                <span>Delivery (all items)</span>
+                <span>Delivery (once per order)</span>
                 <span className="font-semibold tabular-nums">
                   ₹{money(delivery)}
                 </span>

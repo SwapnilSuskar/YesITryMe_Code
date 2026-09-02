@@ -74,12 +74,13 @@ const ProductCheckout = () => {
     [lines]
   );
 
+  // Delivery is charged once per order (not per line, and not per unit).
+  // The highest delivery charge among the products in the cart wins.
   const deliveryTotal = useMemo(
     () =>
       roundMoney(
         lines.reduce(
-          // Delivery is a flat fee per cart line (not multiplied by quantity).
-          (s, l) => s + (l.deliveryChargePerUnit || 0),
+          (s, l) => Math.max(s, l.deliveryChargePerUnit || 0),
           0
         )
       ),
@@ -210,7 +211,8 @@ const ProductCheckout = () => {
           Checkout
         </h1>
         <p className="text-sm text-gray-600 mb-8">
-          Charges are only product price and delivery (per product). Wallet
+          Charges are only product price and delivery (charged once per
+          order). Wallet
           coins may reduce the total up to 20% of the product subtotal. If you
           owe a balance, payment uses the same Smart Wallet flow as{" "}
           <Link to="/recharge" className="font-semibold text-orange-600 hover:underline">

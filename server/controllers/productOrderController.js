@@ -120,8 +120,6 @@ export const createProductOrder = async (req, res) => {
       const unitPrice = roundMoney(pricingOpt.price);
       const deliveryChargePerUnit = roundMoney(product.deliveryCharge || 0);
       const lineSubtotal = roundMoney(unitPrice * qty);
-      // Delivery is a flat fee for the entire cart line (constant even if quantity is large).
-      const lineDeliveryTotal = roundMoney(deliveryChargePerUnit);
 
       resolvedItems.push({
         productId: product._id,
@@ -131,11 +129,30 @@ export const createProductOrder = async (req, res) => {
         quantity: qty,
         lineSubtotal,
         deliveryChargePerUnit,
-        lineDeliveryTotal,
+        // Assigned after the loop: only the line carrying the order's single
+        // delivery charge keeps a non-zero value.
+        lineDeliveryTotal: 0,
       });
 
       productSubtotal += lineSubtotal;
-      deliveryTotal += lineDeliveryTotal;
+    }
+
+    // Delivery is charged once per order (not per line, and not per unit).
+    // The highest delivery charge among the ordered products wins.
+    let deliveryLineIndex = -1;
+    resolvedItems.forEach((item, i) => {
+      if (
+        item.deliveryChargePerUnit > 0 &&
+        (deliveryLineIndex === -1 ||
+          item.deliveryChargePerUnit >
+            resolvedItems[deliveryLineIndex].deliveryChargePerUnit)
+      ) {
+        deliveryLineIndex = i;
+      }
+    });
+    if (deliveryLineIndex >= 0) {
+      deliveryTotal = resolvedItems[deliveryLineIndex].deliveryChargePerUnit;
+      resolvedItems[deliveryLineIndex].lineDeliveryTotal = deliveryTotal;
     }
 
     productSubtotal = roundMoney(productSubtotal);

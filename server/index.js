@@ -30,9 +30,9 @@ import productOrderRoutes from "./routes/productOrders.js";
 const app = express();
 
 // Memory optimization settings
-app.set('trust proxy', 1);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.set("trust proxy", 1);
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // CORS configuration
 const corsOptions = {
@@ -53,7 +53,12 @@ const corsOptions = {
   ],
   credentials: true, // Allow credentials for authentication
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+  ],
   optionsSuccessStatus: 200, // Some legacy browsers choke on 204
 };
 
@@ -61,7 +66,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Handle preflight requests explicitly
-app.options('/{*splat}', cors(corsOptions), (req, res) => {
+app.options("/{*splat}", cors(corsOptions), (req, res) => {
   res.status(200).end();
 });
 
@@ -77,19 +82,20 @@ if (process.env.NODE_ENV === "development") {
 if (process.env.NODE_ENV === "development") {
   app.use((req, res, next) => {
     const startMemory = process.memoryUsage();
-    res.on('finish', () => {
+    res.on("finish", () => {
       const endMemory = process.memoryUsage();
       const memoryDiff = {
         rss: endMemory.rss - startMemory.rss,
         heapUsed: endMemory.heapUsed - startMemory.heapUsed,
         heapTotal: endMemory.heapTotal - startMemory.heapTotal,
-        external: endMemory.external - startMemory.external
+        external: endMemory.external - startMemory.external,
       };
 
-      if (Math.abs(memoryDiff.heapUsed) > 10 * 1024 * 1024) { // 10MB threshold
+      if (Math.abs(memoryDiff.heapUsed) > 10 * 1024 * 1024) {
+        // 10MB threshold
         console.log(`High memory usage on ${req.method} ${req.path}:`, {
           heapUsed: `${Math.round(memoryDiff.heapUsed / 1024 / 1024)}MB`,
-          rss: `${Math.round(memoryDiff.rss / 1024 / 1024)}MB`
+          rss: `${Math.round(memoryDiff.rss / 1024 / 1024)}MB`,
         });
       }
     });

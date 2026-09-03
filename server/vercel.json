@@ -1,6 +1,5 @@
 {
     "version": 2,
-    "name": "itryme-server",
     "builds": [
         {
             "src": "index.js",
@@ -64,6 +63,5 @@
     },
     "regions": [
         "bom1"
-    ],
-    "public": false
+    ]
 }

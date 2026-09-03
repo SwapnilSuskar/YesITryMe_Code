@@ -10,6 +10,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useCartStore } from "../../store/useCartStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import {
+  computeDeliveryTotal,
+  useFlatDeliveryCharge,
+} from "../../utils/deliveryCharge";
 
 const money = (n) =>
   (Math.round(Number(n) * 100) / 100).toLocaleString("en-IN", {
@@ -27,12 +31,10 @@ const ProductCart = () => {
     (s, l) => s + l.unitPrice * l.quantity,
     0
   );
-  // Delivery is charged once per order (not per line, and not per unit).
-  // The highest delivery charge among the products in the cart wins.
-  const delivery = lines.reduce(
-    (s, l) => Math.max(s, l.deliveryChargePerUnit || 0),
-    0
-  );
+  // One flat charge per order, regardless of product or quantity.
+  // See utils/deliveryCharge.
+  const flatDeliveryCharge = useFlatDeliveryCharge();
+  const delivery = computeDeliveryTotal(lines, flatDeliveryCharge);
 
   const goCheckout = () => {
     if (!lines.length) {
@@ -115,13 +117,6 @@ const ProductCart = () => {
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       ₹{money(line.unitPrice)} each
-                      {(line.deliveryChargePerUnit || 0) > 0 && (
-                        <span>
-                          {" "}
-                          · Delivery ₹{money(line.deliveryChargePerUnit)} (once
-                          per order)
-                        </span>
-                      )}
                     </p>
                   </div>
                 </div>
@@ -187,7 +182,7 @@ const ProductCart = () => {
                 </span>
               </div>
               <div className="mt-2 flex justify-between text-sm text-gray-600">
-                <span>Delivery (once per order)</span>
+                <span>Delivery (flat, once per order)</span>
                 <span className="font-semibold tabular-nums">
                   ₹{money(delivery)}
                 </span>

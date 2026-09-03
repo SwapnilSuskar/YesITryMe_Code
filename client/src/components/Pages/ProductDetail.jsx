@@ -26,6 +26,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import api from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
+import { useFlatDeliveryCharge } from '../../utils/deliveryCharge';
 import {
   groupDistributionForDisplay,
   scaleDistributionPoolToLevels,
@@ -36,6 +37,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const addLine = useCartStore((s) => s.addLine);
+  const flatDeliveryCharge = useFlatDeliveryCharge();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -470,15 +472,14 @@ const ProductDetail = () => {
                     )}
                   </div>
                 )}
-                {Number(product.deliveryCharge) > 0 && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Delivery:{' '}
-                    <span className="font-semibold text-gray-800">
-                      ₹{Number(product.deliveryCharge).toLocaleString('en-IN')} (once per order)
-                    </span>{' '}
-                    (set by admin; no GST at checkout)
-                  </p>
-                )}
+                <p className="mt-2 text-sm text-gray-600">
+                  Delivery:{' '}
+                  <span className="font-semibold text-gray-800">
+                    ₹{flatDeliveryCharge.toLocaleString('en-IN')} flat
+                  </span>{' '}
+                  (charged once per order, however many items; no GST at
+                  checkout)
+                </p>
               </div>
 
               {product.pricing && product.pricing.length > 0 && (

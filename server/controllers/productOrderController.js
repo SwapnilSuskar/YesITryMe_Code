@@ -10,6 +10,32 @@ const COINS_PER_RUPEE = 100;
 
 const roundMoney = (n) => Math.round(Number(n) * 100) / 100;
 
+/** Flat delivery charge (INR) when FLAT_DELIVERY_CHARGE is unset. */
+const FLAT_DELIVERY_CHARGE_DEFAULT = 75;
+
+/**
+ * Delivery is one flat charge per order, regardless of how many products or
+ * units the order contains. A product's own Product.deliveryCharge is recorded
+ * on the order line for audit but no longer affects the total.
+ * Set FLAT_DELIVERY_CHARGE=0 for free delivery.
+ */
+const getFlatDeliveryCharge = () => {
+  const raw = parseFloat(process.env.FLAT_DELIVERY_CHARGE);
+  if (!Number.isFinite(raw) || raw < 0) return FLAT_DELIVERY_CHARGE_DEFAULT;
+  return roundMoney(raw);
+};
+
+/**
+ * Public shop pricing config so cart/checkout estimates match what the server
+ * will actually charge. Delivery rules live on the server only.
+ */
+export const getShopConfig = async (req, res) => {
+  res.json({
+    success: true,
+    config: { flatDeliveryCharge: getFlatDeliveryCharge() },
+  });
+};
+
 const validateMobile = (m) => {
   const d = String(m).replace(/\D/g, "");
   return d.length === 10;
@@ -128,6 +154,7 @@ export const createProductOrder = async (req, res) => {
         unitPrice,
         quantity: qty,
         lineSubtotal,
+        // Recorded for audit only — the order total uses the flat charge below.
         deliveryChargePerUnit,
         // Assigned after the loop: only the line carrying the order's single
         // delivery charge keeps a non-zero value.
@@ -137,22 +164,12 @@ export const createProductOrder = async (req, res) => {
       productSubtotal += lineSubtotal;
     }
 
-    // Delivery is charged once per order (not per line, and not per unit).
-    // The highest delivery charge among the ordered products wins.
-    let deliveryLineIndex = -1;
-    resolvedItems.forEach((item, i) => {
-      if (
-        item.deliveryChargePerUnit > 0 &&
-        (deliveryLineIndex === -1 ||
-          item.deliveryChargePerUnit >
-            resolvedItems[deliveryLineIndex].deliveryChargePerUnit)
-      ) {
-        deliveryLineIndex = i;
-      }
-    });
-    if (deliveryLineIndex >= 0) {
-      deliveryTotal = resolvedItems[deliveryLineIndex].deliveryChargePerUnit;
-      resolvedItems[deliveryLineIndex].lineDeliveryTotal = deliveryTotal;
+    // One flat delivery charge per order — not per line, not per unit, and
+    // independent of each product's own deliveryCharge. Carried on the first
+    // line so sum(lineDeliveryTotal) still reconciles with deliveryTotal.
+    if (resolvedItems.length > 0) {
+      deliveryTotal = getFlatDeliveryCharge();
+      resolvedItems[0].lineDeliveryTotal = deliveryTotal;
     }
 
     productSubtotal = roundMoney(productSubtotal);

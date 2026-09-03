@@ -614,14 +614,10 @@ const ProductCard = ({ product }) => {
           </h3>
         </Link>
 
-        {typeof product.deliveryCharge === 'number' && product.deliveryCharge > 0 ? (
-          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-            <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden />
-            Delivery from ₹{product.deliveryCharge.toLocaleString('en-IN')}
-          </p>
-        ) : (
-          <p className="mt-2 text-xs text-slate-500">Delivery calculated at checkout</p>
-        )}
+        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+          <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden />
+          Flat delivery, charged once per order
+        </p>
 
         <p className="text-sm text-slate-600 mt-2 line-clamp-2 flex-1">{product.description}</p>
 

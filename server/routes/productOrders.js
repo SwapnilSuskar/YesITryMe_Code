@@ -6,9 +6,13 @@ import {
   submitProductOrderPayment,
   getMyProductOrders,
   getMyProductOrderById,
+  getShopConfig,
 } from "../controllers/productOrderController.js";
 
 const router = express.Router();
+
+// Public: cart/checkout read this before login to show a correct estimate.
+router.get("/config", getShopConfig);
 
 router.use(protect);
 

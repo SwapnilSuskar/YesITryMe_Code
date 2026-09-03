@@ -14,6 +14,10 @@ import "react-toastify/dist/ReactToastify.css";
 import api, { API_ENDPOINTS } from "../../config/api";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useCartStore } from "../../store/useCartStore";
+import {
+  computeDeliveryTotal,
+  useFlatDeliveryCharge,
+} from "../../utils/deliveryCharge";
 import WalletTopUpVerificationForm from "../User/WalletTopUpVerificationForm";
 
 const COINS_PER_RUPEE = 100;
@@ -74,17 +78,12 @@ const ProductCheckout = () => {
     [lines]
   );
 
-  // Delivery is charged once per order (not per line, and not per unit).
-  // The highest delivery charge among the products in the cart wins.
+  // One flat charge per order, regardless of product or quantity.
+  // See utils/deliveryCharge.
+  const flatDeliveryCharge = useFlatDeliveryCharge();
   const deliveryTotal = useMemo(
-    () =>
-      roundMoney(
-        lines.reduce(
-          (s, l) => Math.max(s, l.deliveryChargePerUnit || 0),
-          0
-        )
-      ),
-    [lines]
+    () => roundMoney(computeDeliveryTotal(lines, flatDeliveryCharge)),
+    [lines, flatDeliveryCharge]
   );
 
   const maxCoinDiscountRupees = roundMoney(productSubtotal * 0.2);
@@ -211,8 +210,8 @@ const ProductCheckout = () => {
           Checkout
         </h1>
         <p className="text-sm text-gray-600 mb-8">
-          Charges are only product price and delivery (charged once per
-          order). Wallet
+          Charges are only product price and a flat delivery fee (charged once
+          per order, whatever you buy). Wallet
           coins may reduce the total up to 20% of the product subtotal. If you
           owe a balance, payment uses the same Smart Wallet flow as{" "}
           <Link to="/recharge" className="font-semibold text-orange-600 hover:underline">

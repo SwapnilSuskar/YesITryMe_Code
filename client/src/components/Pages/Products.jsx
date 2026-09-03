@@ -1,46 +1,39 @@
 import {
   AlertCircle,
   ArrowRight,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Heart,
   Package,
+  RefreshCw,
   Search,
   ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
   Star,
-  Truck
+  X
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../config/api';
+import DeliveryNote from '../Shop/DeliveryNote';
+import {
+  badge,
+  button,
+  chip,
+  control,
+  focusRing,
+  formatFromPrice,
+  getPricingSummary,
+  resolvePrimaryImage,
+  surface,
+  transitions,
+  type
+} from '../Shop/shopTokens';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
-
-function getPricingSummary(pricing) {
-  if (!Array.isArray(pricing) || pricing.length === 0) {
-    return { min: null, max: null, currency: 'INR', count: 0 };
-  }
-  const prices = pricing.map((p) => p.price).filter((n) => typeof n === 'number');
-  if (prices.length === 0) {
-    return { min: null, max: null, currency: pricing[0]?.currency || 'INR', count: pricing.length };
-  }
-  const currency = pricing.find((p) => p.currency)?.currency || 'INR';
-  return {
-    min: Math.min(...prices),
-    max: Math.max(...prices),
-    currency,
-    count: pricing.length
-  };
-}
-
-function formatPriceSummary({ min, max, currency }) {
-  if (min == null) return 'See options';
-  const sym = currency === 'INR' ? '₹' : `${currency} `;
-  const a = min === max ? `${sym}${min.toLocaleString('en-IN')}` : `${sym}${min.toLocaleString('en-IN')} – ${sym}${max.toLocaleString('en-IN')}`;
-  return `From ${a}`;
-}
 
 const SORT_OPTIONS = [
   { id: 'new', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
@@ -69,6 +62,11 @@ const Products = () => {
     totalItems: 0,
     itemsPerPage: 12
   });
+
+  /* Local UI only: the below-lg filter sheet. Never touches the query. */
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterPanelRef = useRef(null);
+  const filterButtonRef = useRef(null);
 
   const sortConfig = useMemo(() => SORT_OPTIONS.find((o) => o.id === sortId) || SORT_OPTIONS[0], [sortId]);
 
@@ -128,6 +126,33 @@ const Products = () => {
     fetchProducts();
   }, [fetchProducts]);
 
+  const closeFilters = useCallback(() => {
+    setFiltersOpen(false);
+    filterButtonRef.current?.focus();
+  }, []);
+
+  /* Sheet behaviour: Escape closes, body scroll locks, focus moves into panel. */
+  useEffect(() => {
+    if (!filtersOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        closeFilters();
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    filterPanelRef.current?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [filtersOpen, closeFilters]);
+
   const selectCategory = (name) => {
     setSelectedCategory(name);
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
@@ -149,282 +174,326 @@ const Products = () => {
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
   };
 
+  const changeSort = (id) => {
+    setSortId(id);
+    setPagination((prev) => ({ ...prev, currentPage: 1 }));
+  };
+
+  const changePageSize = (size) => {
+    setPagination((prev) => ({ ...prev, itemsPerPage: size, currentPage: 1 }));
+  };
+
+  const toggleFeatured = () => {
+    setFeaturedOnly((v) => !v);
+    setPagination((prev) => ({ ...prev, currentPage: 1 }));
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory('');
+    setSearchInput('');
+    setSearch('');
+    setFeaturedOnly(false);
+    setSortId('new');
+    setPagination((prev) => ({ ...prev, currentPage: 1 }));
+  };
+
   const startIndex =
     pagination.totalItems === 0 ? 0 : (pagination.currentPage - 1) * pagination.itemsPerPage + 1;
   const endIndex = Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems);
 
   if (!user) return <LoginPrompt type="products" />;
 
-  const chipBase =
-    'shrink-0 snap-start px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 active:scale-[0.98]';
-  const chipInactive =
-    'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm';
-  const chipActive = 'border-orange-500 bg-orange-50 text-orange-900 shadow-sm ring-1 ring-orange-500/20';
+  const activeFilterCount =
+    (selectedCategory ? 1 : 0) + (search.trim() ? 1 : 0) + (featuredOnly ? 1 : 0);
+  const truncatedSearch = search.length > 24 ? `${search.slice(0, 24)}…` : search;
+  const categoryOptions = categories.map((category) => ({
+    key: category._id || category.name || category,
+    name: category.name || category
+  }));
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9] pt-16 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-5 lg:px-6">
-        {/* Breadcrumbs */}
-        <nav className="pt-4 pb-2 text-sm text-slate-500" aria-label="Breadcrumb">
-          <ol className="flex flex-wrap items-center gap-1.5">
+    <div className={`${surface.page} pb-16 pt-16`}>
+      <div className={surface.shell}>
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="pb-3 pt-5">
+          <ol className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
             <li>
-              <Link to="/" className="hover:text-orange-600 transition-colors">
+              <Link
+                to="/"
+                className={`rounded font-medium hover:text-brand-secondary ${transitions.fast} ${focusRing}`}
+              >
                 Home
               </Link>
             </li>
-            <li className="text-slate-300" aria-hidden>
+            <li aria-hidden="true" className="text-slate-300">
               /
             </li>
-            <li className="text-slate-800 font-medium" aria-current="page">
+            <li aria-current="page" className="font-semibold text-slate-800">
               Shop
             </li>
           </ol>
         </nav>
 
-        {/* Hero + search */}
-        <section className="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-sm mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/90 via-white to-violet-50/40 pointer-events-none" />
-          <div className="relative px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12 lg:flex lg:items-end lg:justify-between gap-8">
-            <div className="max-w-xl">
-              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-700/90 mb-3">
-                <ShoppingBag className="w-3.5 h-3.5" />
-                Store
-              </p>
-              <h1 className="text-3xl sm:text-4xl lg:text-[2.35rem] font-bold text-slate-900 tracking-tight leading-tight">
-                Discover products &amp; plans
-              </h1>
-              <p className="mt-3 text-slate-600 text-sm sm:text-base leading-relaxed">
-                Browse by category, compare options, and open any item for full details and checkout.
-              </p>
-            </div>
-            <form
-              onSubmit={applySearch}
-              className="mt-6 lg:mt-0 w-full lg:max-w-md flex flex-col sm:flex-row gap-2 shrink-0"
-            >
-              <label className="sr-only" htmlFor="shop-search">
-                Search products
-              </label>
-              <div className="relative flex-1">
-                <Search
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
-                  aria-hidden
-                />
-                <input
-                  id="shop-search"
-                  type="search"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search by name or description…"
-                  className="w-full pl-10 pr-3 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder:text-slate-400 shadow-inner focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-        </section>
+        {/* Header */}
+        <header className="mb-6 max-w-2xl">
+          <p className={`${type.eyebrow} flex items-center gap-2`}>
+            <ShoppingBag className="h-3.5 w-3.5 text-brand-primary" aria-hidden="true" />
+            Store
+          </p>
+          <h1 className={`${type.h1} mt-2`}>Shop all products</h1>
+          <p className={`${type.body} mt-2`}>
+            Browse by category, compare packages, and open any item for full details and checkout.
+          </p>
+        </header>
 
-        {/* Filters row: categories + sort + featured */}
-        <div className="flex flex-col lg:flex-row lg:items-start gap-4 mb-6">
-          {categories.length > 0 && (
-            <div className="flex-1 min-w-0 rounded-2xl bg-white border border-slate-200/80 p-4 shadow-sm">
-              <div className="mb-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Category</span>
-              </div>
-
-              {/* Mobile / tablet: single full-width picker (no horizontal chip strip) */}
-              <div className="lg:hidden">
-                <label htmlFor="shop-category" className="sr-only">
-                  Filter by category
+        {/* Sticky filter bar */}
+        <div className={`${surface.stickyTop} mb-4`}>
+          <div className={`${surface.card} p-3 sm:p-4`}>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <form onSubmit={applySearch} role="search" className="min-w-0 flex-1">
+                <label htmlFor="shop-search" className="sr-only">
+                  Search products
                 </label>
                 <div className="relative">
-                  <select
-                    id="shop-category"
-                    value={selectedCategory}
-                    onChange={(e) => selectCategory(e.target.value)}
-                    className="appearance-none w-full pl-3.5 pr-10 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 cursor-pointer"
+                  <Search
+                    className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id="shop-search"
+                    type="search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Search products"
+                    className={`${control.input} pl-10 pr-14 sm:pr-24`}
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Search products"
+                    className={`absolute right-1.5 top-1/2 inline-flex h-8 -translate-y-1/2 items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 ${transitions.base} ${focusRing}`}
                   >
-                    <option value="">All products</option>
-                    {categories.map((category) => {
-                      const name = category.name || category;
-                      return (
-                        <option key={category._id || name} value={name}>
-                          {name}
-                        </option>
-                      );
-                    })}
+                    <Search className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" />
+                    <span className="hidden sm:inline">Search</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Desktop inline controls */}
+              <div className="hidden shrink-0 items-center gap-2 lg:flex">
+                <button
+                  type="button"
+                  onClick={toggleFeatured}
+                  aria-pressed={featuredOnly}
+                  className={`${chip.base} ${featuredOnly ? chip.on : chip.off}`}
+                >
+                  <Sparkles
+                    className={`h-4 w-4 ${featuredOnly ? 'text-white' : 'text-brand-primary'}`}
+                    aria-hidden="true"
+                  />
+                  Featured
+                </button>
+
+                <div className="relative">
+                  <label htmlFor="shop-sort" className="sr-only">
+                    Sort products
+                  </label>
+                  <select
+                    id="shop-sort"
+                    value={sortId}
+                    onChange={(e) => changeSort(e.target.value)}
+                    className={`${control.select} w-[190px] cursor-pointer`}
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <ChevronDown className={control.selectCaret} aria-hidden="true" />
+                </div>
+
+                <div className="relative">
+                  <label htmlFor="shop-per-page" className="sr-only">
+                    Products per page
+                  </label>
+                  <select
+                    id="shop-per-page"
+                    value={pagination.itemsPerPage}
+                    onChange={(e) => changePageSize(Number(e.target.value))}
+                    className={`${control.select} w-[104px] cursor-pointer`}
+                  >
+                    {PAGE_SIZES.map((n) => (
+                      <option key={n} value={n}>
+                        {n} / page
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className={control.selectCaret} aria-hidden="true" />
                 </div>
               </div>
 
-              {/* Desktop: chip row */}
+              {/* Mobile / tablet trigger */}
+              <button
+                ref={filterButtonRef}
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+                aria-label={
+                  activeFilterCount > 0
+                    ? `Filters and sorting, ${activeFilterCount} active`
+                    : 'Filters and sorting'
+                }
+                className={`${button.outline} shrink-0 px-3 lg:hidden`}
+              >
+                <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-brand-primary px-1.5 text-[11px] font-semibold text-white"
+                  >
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Desktop category pills */}
+            {categoryOptions.length > 0 && (
               <div
-                className="hidden lg:flex flex-wrap gap-2"
-                role="tablist"
-                aria-label="Product categories"
+                role="group"
+                aria-label="Filter by category"
+                className="mt-3 hidden flex-wrap items-center gap-2 lg:flex"
               >
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={!selectedCategory}
                   onClick={() => selectCategory('')}
-                  className={`${chipBase} ${!selectedCategory ? chipActive : chipInactive}`}
+                  aria-pressed={!selectedCategory}
+                  className={`${chip.base} ${!selectedCategory ? chip.on : chip.off}`}
                 >
                   All products
                 </button>
-                {categories.map((category) => {
-                  const name = category.name || category;
-                  const active = selectedCategory === name;
+                {categoryOptions.map((category) => {
+                  const active = selectedCategory === category.name;
                   return (
                     <button
+                      key={category.key}
                       type="button"
-                      role="tab"
-                      key={category._id || name}
-                      aria-selected={active}
-                      onClick={() => selectCategory(name)}
-                      className={`${chipBase} ${active ? chipActive : chipInactive}`}
+                      onClick={() => selectCategory(category.name)}
+                      aria-pressed={active}
+                      className={`${chip.base} ${active ? chip.on : chip.off}`}
                     >
-                      {name}
+                      {category.name}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3 lg:w-auto shrink-0">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-0.5">Sort</span>
-              <div className="relative">
-                <select
-                  value={sortId}
-                  onChange={(e) => {
-                    setSortId(e.target.value);
-                    setPagination((prev) => ({ ...prev, currentPage: 1 }));
-                  }}
-                  className="appearance-none w-full sm:w-[200px] pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 cursor-pointer"
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
-            </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-0.5">Per page</span>
-              <div className="relative">
-                <select
-                  value={pagination.itemsPerPage}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    setPagination((prev) => ({ ...prev, itemsPerPage: n, currentPage: 1 }));
-                  }}
-                  className="appearance-none w-full sm:w-[100px] pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 cursor-pointer"
-                >
-                  {PAGE_SIZES.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
-            </label>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setFeaturedOnly((v) => !v);
-                setPagination((prev) => ({ ...prev, currentPage: 1 }));
-              }}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium border transition-colors ${featuredOnly
-                ? 'border-amber-400 bg-amber-50 text-amber-900 ring-1 ring-amber-400/30'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-sm'
-                }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Featured only
-            </button>
-            {search ? (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="text-sm text-orange-600 hover:text-orange-700 font-medium underline-offset-2 hover:underline"
-              >
-                Clear search &quot;{search.length > 24 ? `${search.slice(0, 24)}…` : search}&quot;
+        {/* Active filter summary */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <p aria-live="polite" className="text-sm tabular-nums text-slate-600">
+            {loading ? (
+              ''
+            ) : pagination.totalItems === 0 ? (
+              'No products found'
+            ) : (
+              <>
+                Showing{' '}
+                <span className="font-semibold text-slate-900">
+                  {startIndex}–{endIndex}
+                </span>{' '}
+                of <span className="font-semibold text-slate-900">{pagination.totalItems}</span>{' '}
+                products
+              </>
+            )}
+          </p>
+
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {search.trim() && (
+                <FilterPill
+                  label={`Search: “${truncatedSearch}”`}
+                  removeLabel={`Clear search ${search}`}
+                  onRemove={clearSearch}
+                />
+              )}
+              {selectedCategory && (
+                <FilterPill
+                  label={selectedCategory}
+                  removeLabel={`Clear category filter ${selectedCategory}`}
+                  onRemove={() => selectCategory('')}
+                />
+              )}
+              {featuredOnly && (
+                <FilterPill
+                  label="Featured only"
+                  removeLabel="Clear featured only filter"
+                  onRemove={toggleFeatured}
+                />
+              )}
+              <button type="button" onClick={clearAllFilters} className={`${button.ghost} px-2 py-1`}>
+                Clear all
               </button>
-            ) : null}
-          </div>
-          {!loading && pagination.totalItems > 0 && (
-            <p className="text-sm text-slate-600 tabular-nums">
-              Showing{' '}
-              <span className="font-semibold text-slate-900">
-                {startIndex}–{endIndex}
-              </span>{' '}
-              of <span className="font-semibold text-slate-900">{pagination.totalItems}</span>
-            </p>
+            </div>
           )}
         </div>
 
         {categories.length === 0 && !loading && (
-          <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <div className={`${surface.inset} mb-5 px-4 py-3 text-sm text-slate-600`}>
             Categories are not set up yet — showing all available products.
           </div>
         )}
 
-        {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 mb-6 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            {error}
-          </div>
-        )}
-
         {loading ? (
-          <ProductGridSkeleton count={Math.min(pagination.itemsPerPage, 12)} />
+          <>
+            <p className="sr-only" role="status">
+              Loading products
+            </p>
+            <ProductGridSkeleton count={Math.min(pagination.itemsPerPage, 12)} />
+          </>
+        ) : error ? (
+          <div className={`${surface.card} px-6 py-12 text-center`}>
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <AlertCircle className="h-7 w-7" aria-hidden="true" />
+            </span>
+            <h2 className={type.h2}>We couldn’t load the shop</h2>
+            <p className={`${type.body} mx-auto mt-2 max-w-md`}>{error}</p>
+            <button
+              type="button"
+              onClick={() => fetchProducts()}
+              className={`${button.dark} mx-auto mt-6`}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Try again
+            </button>
+          </div>
+        ) : products.length === 0 ? (
+          <div className={`${surface.card} px-6 py-14 text-center`}>
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <Package className="h-7 w-7" aria-hidden="true" />
+            </span>
+            <h2 className={type.h2}>No products match your filters</h2>
+            <p className={`${type.body} mx-auto mt-2 max-w-md`}>
+              Try a different category or search term — or clear everything and start again.
+            </p>
+            <button type="button" onClick={clearAllFilters} className={`${button.dark} mx-auto mt-6`}>
+              Clear all filters
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
               {products.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
 
-            {products.length === 0 && !loading && (
-              <div className="text-center py-16 px-4 rounded-2xl border border-dashed border-slate-200 bg-white">
-                <Package className="w-14 h-14 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No products match</h3>
-                <p className="text-slate-600 text-sm max-w-md mx-auto mb-6">
-                  Try another category, turn off filters, or clear your search.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    selectCategory('');
-                    clearSearch();
-                    setFeaturedOnly(false);
-                  }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-                >
-                  Reset filters
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            {pagination.totalPages > 1 && products.length > 0 && (
+            {pagination.totalPages > 1 && (
               <PaginationBar
                 currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
@@ -434,9 +503,173 @@ const Products = () => {
           </>
         )}
       </div>
+
+      {/* Mobile filter sheet */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            onClick={closeFilters}
+            className="absolute inset-0 h-full w-full cursor-default bg-slate-900/50"
+          />
+          <div
+            ref={filterPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filter and sort products"
+            tabIndex={-1}
+            className="relative flex max-h-[85vh] w-full flex-col rounded-t-2xl bg-white shadow-[0_-12px_40px_-12px_rgba(15,23,42,0.35)] focus:outline-none"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <h2 className={type.h2}>Filters &amp; sorting</h2>
+              <button
+                type="button"
+                onClick={closeFilters}
+                aria-label="Close filters"
+                className={`${button.icon} h-9 w-9`}
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+              <section>
+                <h3 className={type.eyebrow}>Category</h3>
+                <div role="group" aria-label="Filter by category" className="mt-2 space-y-1.5">
+                  <SheetOption
+                    label="All products"
+                    selected={!selectedCategory}
+                    onSelect={() => selectCategory('')}
+                  />
+                  {categoryOptions.map((category) => (
+                    <SheetOption
+                      key={category.key}
+                      label={category.name}
+                      selected={selectedCategory === category.name}
+                      onSelect={() => selectCategory(category.name)}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-6">
+                <h3 className={type.eyebrow}>Sort by</h3>
+                <div role="group" aria-label="Sort products" className="mt-2 space-y-1.5">
+                  {SORT_OPTIONS.map((opt) => (
+                    <SheetOption
+                      key={opt.id}
+                      label={opt.label}
+                      selected={sortId === opt.id}
+                      onSelect={() => changeSort(opt.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-6">
+                <h3 className={type.eyebrow}>Products per page</h3>
+                <div
+                  role="group"
+                  aria-label="Products per page"
+                  className="mt-2 flex flex-wrap items-center gap-2"
+                >
+                  {PAGE_SIZES.map((n) => {
+                    const active = pagination.itemsPerPage === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => changePageSize(n)}
+                        aria-pressed={active}
+                        className={`${chip.base} ${active ? chip.on : chip.off}`}
+                      >
+                        {n} per page
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="mt-6">
+                <h3 className={type.eyebrow}>Highlights</h3>
+                <button
+                  type="button"
+                  onClick={toggleFeatured}
+                  aria-pressed={featuredOnly}
+                  className={`mt-2 flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left text-sm font-medium ${transitions.base} ${focusRing} ${
+                    featuredOnly
+                      ? 'border-brand-primary bg-brand-primary/5 text-slate-900'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-brand-primary" aria-hidden="true" />
+                    Featured products only
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 ${transitions.base} ${
+                      featuredOnly ? 'bg-brand-primary' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`h-5 w-5 rounded-full bg-white shadow-sm ${transitions.base} ${
+                        featuredOnly ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </span>
+                </button>
+              </section>
+            </div>
+
+            <div className="sticky bottom-0 flex items-center gap-3 border-t border-slate-200 bg-white px-4 py-3">
+              <button type="button" onClick={clearAllFilters} className={`${button.outline} flex-1`}>
+                Clear all
+              </button>
+              <button type="button" onClick={closeFilters} className={`${button.primary} flex-1 py-2.5`}>
+                Show results
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+function FilterPill({ label, removeLabel, onRemove }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      aria-label={removeLabel}
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 ${transitions.base} ${focusRing}`}
+    >
+      <span className="truncate">{label}</span>
+      <X className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+    </button>
+  );
+}
+
+function SheetOption({ label, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium ${transitions.base} ${focusRing} ${
+        selected
+          ? 'border-brand-primary bg-brand-primary/5 text-slate-900'
+          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+      }`}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      {selected && <Check className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />}
+    </button>
+  );
+}
 
 function PaginationBar({ currentPage, totalPages, onPageChange }) {
   const pages = useMemo(() => {
@@ -455,27 +688,27 @@ function PaginationBar({ currentPage, totalPages, onPageChange }) {
 
   return (
     <nav
-      className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 pt-8 border-t border-slate-200"
       aria-label="Pagination"
+      className="mt-10 flex flex-col items-center justify-center gap-4 border-t border-slate-200 pt-8 sm:flex-row"
     >
-      <p className="text-sm text-slate-500 order-2 sm:order-1">
+      <p className={`${type.muted} order-2 tabular-nums sm:order-1`}>
         Page {currentPage} of {totalPages}
       </p>
-      <div className="inline-flex flex-wrap items-center justify-center gap-1 order-1 sm:order-2">
+      <div className="order-1 flex flex-wrap items-center justify-center gap-1 sm:order-2">
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          className={`${button.outline} px-3`}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           Previous
         </button>
 
-        <div className="hidden sm:flex items-center gap-1 px-1">
+        <div className="hidden items-center gap-1 px-1 sm:flex">
           {pages.map((item, idx) =>
             item === '…' ? (
-              <span key={`e-${idx}`} className="px-2 text-slate-400 text-sm select-none">
+              <span key={`e-${idx}`} className="select-none px-2 text-sm text-slate-400">
                 …
               </span>
             ) : (
@@ -483,8 +716,13 @@ function PaginationBar({ currentPage, totalPages, onPageChange }) {
                 key={item}
                 type="button"
                 onClick={() => onPageChange(item)}
-                className={`min-w-[2.5rem] h-10 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${item === currentPage ? 'bg-slate-900 text-white shadow' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
+                aria-current={item === currentPage ? 'page' : undefined}
+                aria-label={`Go to page ${item}`}
+                className={`h-10 min-w-[2.5rem] rounded-xl px-2 text-sm font-semibold tabular-nums ${transitions.base} ${focusRing} ${
+                  item === currentPage
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
               >
                 {item}
               </button>
@@ -496,10 +734,10 @@ function PaginationBar({ currentPage, totalPages, onPageChange }) {
           type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          className={`${button.outline} px-3`}
         >
           Next
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </nav>
@@ -508,21 +746,23 @@ function PaginationBar({ currentPage, totalPages, onPageChange }) {
 
 function ProductGridSkeleton({ count }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6">
+    <div
+      aria-hidden="true"
+      className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4"
+    >
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm animate-pulse"
+          className={`${surface.card} overflow-hidden animate-pulse motion-reduce:animate-none`}
         >
           <div className="aspect-[4/5] bg-slate-200" />
-          <div className="p-4 space-y-3">
-            <div className="h-4 bg-slate-200 rounded w-3/4" />
-            <div className="h-3 bg-slate-100 rounded w-full" />
-            <div className="h-3 bg-slate-100 rounded w-5/6" />
-            <div className="flex justify-between pt-2">
-              <div className="h-6 bg-slate-200 rounded w-24" />
-              <div className="h-8 bg-slate-200 rounded-lg w-28" />
-            </div>
+          <div className="space-y-3 p-4">
+            <div className="h-5 w-20 rounded-full bg-slate-100" />
+            <div className="h-4 w-3/4 rounded bg-slate-200" />
+            <div className="h-3 w-full rounded bg-slate-100" />
+            <div className="h-3 w-5/6 rounded bg-slate-100" />
+            <div className="h-6 w-24 rounded bg-slate-200" />
+            <div className="h-10 w-full rounded-xl bg-slate-100" />
           </div>
         </div>
       ))}
@@ -535,105 +775,99 @@ const ProductCard = ({ product }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const pricing = getPricingSummary(product.pricing);
-  const priceLabel = formatPriceSummary(pricing);
+  const priceParts = formatFromPrice(pricing);
   const categoryName = product.category?.name || product.category || 'General';
+  const primaryImage = resolvePrimaryImage(product.images);
 
   const isNew =
     product.createdAt &&
     Date.now() - new Date(product.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000;
 
   return (
-    <article className="group flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-lg hover:border-slate-300/80 transition-all duration-300 overflow-hidden h-full">
-      <div className="relative aspect-[4/5] bg-slate-100 overflow-hidden">
-        <Link to={`/products/${product._id}`} className="absolute inset-0 block" tabIndex={-1}>
-          <span className="sr-only">View {product.title}</span>
-        </Link>
-        {product.images && product.images.length > 0 && !imageError ? (
+    <article
+      className={`group relative flex h-full flex-col overflow-hidden ${surface.card} ${surface.cardHover} ${transitions.base}`}
+    >
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
+        {primaryImage?.url && !imageError ? (
           <img
-            src={product.images.find((img) => img.isPrimary)?.url || product.images[0].url}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out"
+            src={primaryImage.url}
+            alt={product.title}
+            loading="lazy"
+            decoding="async"
             onError={() => setImageError(true)}
+            className={`h-full w-full object-cover group-hover:scale-105 ${transitions.zoom}`}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50">
-            <Package className="w-14 h-14 text-slate-300" />
+          <div className="flex h-full w-full items-center justify-center bg-slate-100">
+            <Package className="h-12 w-12 text-slate-300" aria-hidden="true" />
+            <span className="sr-only">No image available</span>
           </div>
         )}
 
-        <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start gap-2 pointer-events-none">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
           <div className="flex flex-wrap gap-1.5">
             {product.featured && (
-              <span className="pointer-events-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide bg-amber-500 text-white shadow-sm">
-                <Star className="w-3 h-3 fill-white" />
+              <span className={badge.featured}>
+                <Star className="h-3 w-3 fill-current" aria-hidden="true" />
                 Featured
               </span>
             )}
-            {isNew && !product.featured && (
-              <span className="px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide bg-emerald-600 text-white shadow-sm">
-                New
-              </span>
-            )}
+            {isNew && !product.featured && <span className={badge.fresh}>New</span>}
           </div>
+
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsWishlisted(!isWishlisted);
-            }}
-            className={`pointer-events-auto p-2 rounded-full shadow-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${isWishlisted
-              ? 'bg-red-500 border-red-600 text-white'
-              : 'bg-white/95 border-slate-200/80 text-slate-600 hover:text-red-500 hover:border-red-200'
-              }`}
+            onClick={() => setIsWishlisted(!isWishlisted)}
+            aria-pressed={isWishlisted}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            className={`pointer-events-auto relative z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-sm ${transitions.base} ${focusRing} ${
+              isWishlisted
+                ? 'border-brand-primary bg-brand-primary text-white'
+                : 'border-slate-200 bg-white/95 text-slate-600 hover:border-brand-primary/40 hover:text-brand-primary'
+            }`}
           >
-            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+            <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} aria-hidden="true" />
           </button>
         </div>
-
-        {/* Quick overlay CTA on hover — desktop */}
-        <Link
-          to={`/products/${product._id}`}
-          className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden sm:block bg-gradient-to-t from-black/70 via-black/40 to-transparent pt-12"
-        >
-          <span className="flex w-full items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-semibold shadow-lg hover:bg-slate-50 transition-colors">
-            View product
-            <ArrowRight className="w-4 h-4" />
-          </span>
-        </Link>
       </div>
 
-      <div className="flex flex-col flex-1 p-4 pt-3.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1 line-clamp-1">
-          {categoryName}
-        </p>
-        <Link to={`/products/${product._id}`} className="block group/title">
-          <h3 className="text-base font-semibold text-slate-900 leading-snug line-clamp-2 group-hover/title:text-orange-700 transition-colors">
-            {product.title}
-          </h3>
-        </Link>
+      <div className="flex flex-1 flex-col p-4">
+        <span className={`${badge.neutral} max-w-full`}>
+          <span className="truncate">{categoryName}</span>
+        </span>
 
-        <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
-          <Truck className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden />
-          Flat delivery, charged once per order
-        </p>
-
-        <p className="text-sm text-slate-600 mt-2 line-clamp-2 flex-1">{product.description}</p>
-
-        <div className="mt-4 pt-3 border-t border-slate-100 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs text-slate-500 mb-0.5">Price</p>
-            <p className="text-lg font-bold text-slate-900 tabular-nums">{priceLabel}</p>
-            {pricing.count > 1 && (
-              <p className="text-[11px] text-slate-500 mt-0.5">{pricing.count} options</p>
-            )}
-          </div>
+        <h3 className={`${type.h3} mt-2 line-clamp-2`}>
           <Link
             to={`/products/${product._id}`}
-            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+            className={`rounded after:absolute after:inset-0 after:content-[''] group-hover:text-brand-secondary ${transitions.fast} ${focusRing}`}
           >
-            Details
+            {product.title}
+          </Link>
+        </h3>
+
+        {product.description && (
+          <p className={`${type.body} mt-1.5 line-clamp-2`}>{product.description}</p>
+        )}
+
+        <div className="mt-auto pt-4">
+          <div className="flex items-baseline gap-1.5">
+            {priceParts.prefix && (
+              <span className="text-xs font-medium text-slate-500">{priceParts.prefix}</span>
+            )}
+            <span className={`${type.price} text-xl`}>{priceParts.primary}</span>
+          </div>
+          {priceParts.secondary && (
+            <p className={`${type.muted} mt-0.5`}>{priceParts.secondary}</p>
+          )}
+
+          <DeliveryNote className="mt-2 text-xs text-slate-500" />
+
+          <Link
+            to={`/products/${product._id}`}
+            className={`${button.outline} relative z-10 mt-3 w-full group-hover:border-brand-primary group-hover:text-brand-secondary`}
+          >
+            View details
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
       </div>

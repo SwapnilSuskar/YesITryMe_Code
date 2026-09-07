@@ -16,7 +16,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import api from '../../config/api';
-import { scaleDistributionPoolToLevels } from '../../utils/commissionDistributionPreview';
+import {
+  buildShopDistributionPreview,
+  groupShopDistributionForDisplay,
+  shopPoolForLine
+} from '../../utils/commissionDistributionPreview';
 
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
@@ -43,7 +47,7 @@ const ProductManager = () => {
     featured: false,
     deliveryCharge: 0,
     distributionEnabled: false,
-    distributionRupeesPerUnit: 0
+    distributionPercent: 5
   });
 
   // Filters
@@ -143,15 +147,15 @@ const ProductManager = () => {
         String(Math.max(0, parseFloat(formData.deliveryCharge) || 0))
       );
 
-      const distRupees = Math.max(
-        0,
-        parseFloat(formData.distributionRupeesPerUnit) || 0
+      const distPercent = Math.min(
+        100,
+        Math.max(0, parseFloat(formData.distributionPercent) || 0)
       );
-      const distOn = Boolean(formData.distributionEnabled) && distRupees > 0;
+      const distOn = Boolean(formData.distributionEnabled) && distPercent > 0;
       formDataToSend.append('distributionEnabled', distOn ? 'true' : 'false');
       formDataToSend.append(
-        'distributionRupeesPerUnit',
-        distOn ? String(distRupees) : '0'
+        'distributionPercent',
+        distOn ? String(distPercent) : '0'
       );
 
       // Filter out empty pricing options and tags before sending
@@ -225,7 +229,7 @@ const ProductManager = () => {
       featured: product.featured,
       deliveryCharge: product.deliveryCharge ?? 0,
       distributionEnabled: Boolean(product.distributionEnabled),
-      distributionRupeesPerUnit: product.distributionRupeesPerUnit ?? 0
+      distributionPercent: product.distributionPercent ?? 5
     });
     setShowForm(true);
   };
@@ -242,7 +246,7 @@ const ProductManager = () => {
       featured: false,
       deliveryCharge: 0,
       distributionEnabled: false,
-      distributionRupeesPerUnit: 0
+      distributionPercent: 5
     });
     setSelectedFiles([]);
     if (fileInputRef.current) {
@@ -484,10 +488,10 @@ const ProductCard = ({ product, onEdit, onDelete, viewMode }) => {
                       Featured
                     </span>
                   )}
-                  {product.distributionEnabled && product.distributionRupeesPerUnit > 0 && (
+                  {product.distributionEnabled && product.distributionPercent > 0 && (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 flex items-center gap-1">
                       <Layers className="w-3 h-3" />
-                      ₹{product.distributionRupeesPerUnit}/u
+                      {product.distributionPercent}% pool
                     </span>
                   )}
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -549,13 +553,13 @@ const ProductCard = ({ product, onEdit, onDelete, viewMode }) => {
         )}
 
         <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[85%]">
-          {product.distributionEnabled && product.distributionRupeesPerUnit > 0 && (
+          {product.distributionEnabled && product.distributionPercent > 0 && (
             <span
               className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-600 text-white flex items-center gap-1"
-              title="120-level wallet distribution (per unit)"
+              title="Shop distribution pool, as a % of what the customer pays"
             >
               <Layers className="w-3 h-3" />
-              ₹{product.distributionRupeesPerUnit}/u
+              {product.distributionPercent}% pool
             </span>
           )}
           {product.featured && (
@@ -1018,9 +1022,9 @@ const ProductForm = ({
             <div className="flex items-start gap-3 mb-3">
               <Layers className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-bold text-gray-800">Commission distribution (120 levels)</h3>
+                <h3 className="text-sm font-bold text-gray-800">Shop distribution</h3>
                 <p className="text-xs text-gray-600 mt-1">
-                  After admin confirms payment, the buyer&apos;s upline earns rupee-wallet commissions using the same ratios as super packages (levels 1–120). Enter the total commission pool in ₹ <strong>per unit</strong> sold; the line pool is that amount × quantity (delivery is not part of the pool).
+                  After admin confirms payment, a pool worth this <strong>percentage of what the customer pays</strong> is split: <strong>50% back to the buyer</strong>, 20% to their sponsor, 10% to level 2, and 20% shared across levels 3–119. Delivery is not part of the pool.
                 </p>
               </div>
             </div>
@@ -1040,55 +1044,68 @@ const ProductForm = ({
                 <span className="text-sm font-medium text-gray-800">Enable distribution</span>
               </label>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-gray-700 whitespace-nowrap">₹ per unit (pool)</span>
+                <span className="text-sm text-gray-700 whitespace-nowrap">% of price (pool)</span>
                 <input
                   type="number"
                   min={0}
-                  step={0.01}
+                  max={100}
+                  step={0.1}
                   disabled={!formData.distributionEnabled}
-                  value={formData.distributionRupeesPerUnit}
+                  value={formData.distributionPercent}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      distributionRupeesPerUnit: Math.max(
-                        0,
-                        parseFloat(e.target.value) || 0
+                      distributionPercent: Math.min(
+                        100,
+                        Math.max(0, parseFloat(e.target.value) || 0)
                       )
                     }))
                   }
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                 />
+                <span className="text-sm text-gray-500">%</span>
               </div>
             </div>
             {(() => {
-              const rupees = formData.distributionEnabled
-                ? Math.max(0, parseFloat(formData.distributionRupeesPerUnit) || 0)
+              const percent = formData.distributionEnabled
+                ? Math.max(0, parseFloat(formData.distributionPercent) || 0)
                 : 0;
-              const poolOne = Math.round(rupees * 100) / 100;
-              const poolThree = Math.round(rupees * 3 * 100) / 100;
-              const rows = scaleDistributionPoolToLevels(poolOne);
-              if (!formData.distributionEnabled || rupees <= 0 || rows.length === 0) {
+              // Preview against the cheapest package, since that is the figure
+              // an admin is most likely checking against.
+              const prices = (formData.pricing || [])
+                .map((p) => parseFloat(p.price))
+                .filter((n) => Number.isFinite(n) && n > 0);
+              const samplePrice = prices.length ? Math.min(...prices) : 0;
+
+              if (!formData.distributionEnabled || percent <= 0) {
                 return (
                   <p className="text-xs text-gray-500">
-                    Example: ₹500 per unit → ₹500 pool for qty 1, ₹1500 for qty 3 (split across 120 levels).
+                    Example: 5% on a ₹1,000 order → ₹50 pool → ₹25 back to the buyer, ₹10 to their sponsor, ₹5 to level 2, ₹10 across levels 3–119.
                   </p>
                 );
               }
-              const l1 = rows[0]?.amount ?? 0;
-              const l2to5 = rows.slice(1, 5).reduce((s, r) => s + r.amount, 0);
-              const l6to20 = rows.slice(5, 20).reduce((s, r) => s + r.amount, 0);
-              const l21to120 = rows.slice(20).reduce((s, r) => s + r.amount, 0);
-              const total = rows.reduce((s, r) => s + r.amount, 0);
+              if (samplePrice <= 0) {
+                return (
+                  <p className="text-xs text-gray-500">
+                    Add a package price above to preview the {percent}% split.
+                  </p>
+                );
+              }
+
+              const pool = shopPoolForLine(samplePrice, percent);
+              const split = buildShopDistributionPreview(pool);
+              const rows = groupShopDistributionForDisplay(split);
               return (
                 <div className="text-xs text-gray-700 space-y-1 bg-white/80 rounded-lg p-3 border border-emerald-100">
                   <p className="font-semibold text-emerald-800">
-                    Preview: qty 1 pool ₹{poolOne.toFixed(2)}
-                    {poolThree > poolOne ? ` · qty 3 pool ₹${poolThree.toFixed(2)}` : ''}
+                    Preview on ₹{samplePrice.toLocaleString('en-IN')} · {percent}% pool = ₹{pool.toFixed(2)}
                   </p>
                   <p>
-                    Level 1: ₹{l1.toFixed(2)} · L2–5: ₹{l2to5.toFixed(2)} · L6–20: ₹{l6to20.toFixed(2)} · L21–120: ₹{l21to120.toFixed(2)}
+                    {rows.map((r) => `${r.label} ${r.percentageLabel}: ₹${r.amount.toFixed(2)}`).join(' · ')}
                   </p>
-                  <p className="text-gray-500">Per-unit split total: ₹{total.toFixed(2)} credited on verification (scales with quantity)</p>
+                  <p className="text-gray-500">
+                    Total ₹{split.total.toFixed(2)} credited on verification. Scales with quantity and with each package&apos;s own price.
+                  </p>
                 </div>
               );
             })()}

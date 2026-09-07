@@ -70,11 +70,28 @@ const productSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  /** When enabled, confirmed orders distribute this rupee pool per unit sold (× quantity) across 120 upline levels. */
+  /**
+   * When enabled, a confirmed order distributes a pool worth
+   * `distributionPercent`% of each line subtotal — 50% back to the buyer,
+   * 20% to their sponsor, 10% to level 2, and 20% shared across levels 3–119.
+   * See utils/shopDistribution.js.
+   */
   distributionEnabled: {
     type: Boolean,
     default: false
   },
+  /** Pool as a percentage of what the customer paid for the line. */
+  distributionPercent: {
+    type: Number,
+    default: 5,
+    min: 0,
+    max: 100
+  },
+  /**
+   * Superseded by `distributionPercent`. Kept so historical products keep the
+   * figure they were configured with; nothing reads it for new distributions.
+   * @deprecated
+   */
   distributionRupeesPerUnit: {
     type: Number,
     default: 0,

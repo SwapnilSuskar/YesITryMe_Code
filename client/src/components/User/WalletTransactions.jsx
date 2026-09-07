@@ -74,7 +74,7 @@ const WalletTransactions = () => {
                 const allTransactions = response.data.data.transactions || [];
                 // Filter out recharge transactions from credited tab
                 const creditedTransactions = allTransactions.filter(t =>
-                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal'
+                    t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal' || t.type === 'shop_cashback'
                 );
 
                 setAllCreditedTransactions(creditedTransactions);
@@ -618,6 +618,7 @@ const WalletTransactions = () => {
             case 'commission': return <ArrowUpCircle className="text-green-600" size={16} />;
             case 'withdrawal': return <ArrowDownCircle className="text-red-600" size={16} />;
             case 'refund': return <ArrowUpCircle className="text-blue-600" size={16} />;
+            case 'shop_cashback': return <ShoppingCart className="text-emerald-600" size={16} />;
             case 'bonus': return <CheckCircle className="text-purple-600" size={16} />;
             case 'leadership': return <Crown className="text-purple-600" size={16} />;
             case 'royalty': return <Star className="text-orange-600" size={16} />;
@@ -648,6 +649,7 @@ const WalletTransactions = () => {
             case 'commission': return 'text-green-700';
             case 'withdrawal': return 'text-red-700';
             case 'refund': return 'text-blue-700';
+            case 'shop_cashback': return 'text-emerald-700';
             case 'bonus': return 'text-purple-700';
             case 'payout_received': return 'text-green-700';
             case 'fund_credit': return 'text-blue-700';
@@ -677,6 +679,7 @@ const WalletTransactions = () => {
             case 'recharge_payment': return 'bg-orange-50 border-orange-200';
             case 'recharge_refund': return 'bg-orange-50 border-orange-200';
             case 'refund': return 'bg-blue-50 border-blue-200';
+            case 'shop_cashback': return 'bg-emerald-50 border-emerald-200';
             case 'bonus': return 'bg-purple-50 border-purple-200';
             case 'payout_received': return 'bg-green-50 border-green-200';
             case 'fund_credit': return 'bg-blue-50 border-blue-200';

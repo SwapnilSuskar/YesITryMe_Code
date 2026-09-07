@@ -2,6 +2,7 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { DEFAULT_DISTRIBUTION_PERCENT } from "../utils/shopDistribution.js";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -95,7 +96,7 @@ export const createProduct = async (req, res) => {
       featured = false,
       deliveryCharge: rawDelivery,
       distributionEnabled: rawDistributionEnabled,
-      distributionRupeesPerUnit: rawDistributionRupees,
+      distributionPercent: rawDistributionPercent,
     } = req.body;
 
     const deliveryCharge = Math.max(
@@ -105,21 +106,25 @@ export const createProduct = async (req, res) => {
       ) || 0
     );
 
-    const distRupeesRaw = parseFloat(
-      typeof rawDistributionRupees === "string"
-        ? rawDistributionRupees
-        : rawDistributionRupees ?? 0
+    const distPercentRaw = parseFloat(
+      typeof rawDistributionPercent === "string"
+        ? rawDistributionPercent
+        : rawDistributionPercent ?? DEFAULT_DISTRIBUTION_PERCENT
     );
-    const distributionRupeesPerUnit = Math.max(
-      0,
-      Number.isFinite(distRupeesRaw) ? distRupeesRaw : 0
+    const distributionPercent = Math.min(
+      100,
+      Math.max(
+        0,
+        Number.isFinite(distPercentRaw)
+          ? distPercentRaw
+          : DEFAULT_DISTRIBUTION_PERCENT
+      )
     );
     const wantsDistribution =
       rawDistributionEnabled === true ||
       rawDistributionEnabled === "true" ||
       String(rawDistributionEnabled).toLowerCase() === "true";
-    const distributionEnabled =
-      wantsDistribution && distributionRupeesPerUnit > 0;
+    const distributionEnabled = wantsDistribution && distributionPercent > 0;
 
     // Validate required fields
     if (!title || !description || !category) {
@@ -222,9 +227,7 @@ export const createProduct = async (req, res) => {
       featured,
       deliveryCharge,
       distributionEnabled,
-      distributionRupeesPerUnit: distributionEnabled
-        ? distributionRupeesPerUnit
-        : 0,
+      distributionPercent: distributionEnabled ? distributionPercent : 0,
       tags: parsedTags || [],
       specifications: parsedSpecifications || {},
       createdBy: req.user.id,
@@ -500,14 +503,17 @@ export const updateProduct = async (req, res) => {
     }
 
     if (
-      updateData.distributionRupeesPerUnit !== undefined &&
-      updateData.distributionRupeesPerUnit !== null
+      updateData.distributionPercent !== undefined &&
+      updateData.distributionPercent !== null
     ) {
-      const r = parseFloat(updateData.distributionRupeesPerUnit) || 0;
-      updateData.distributionRupeesPerUnit = Math.max(0, r);
+      const p = parseFloat(updateData.distributionPercent);
+      updateData.distributionPercent = Math.min(
+        100,
+        Math.max(0, Number.isFinite(p) ? p : 0)
+      );
       if (
         updateData.distributionEnabled === undefined &&
-        updateData.distributionRupeesPerUnit <= 0
+        updateData.distributionPercent <= 0
       ) {
         updateData.distributionEnabled = false;
       }
@@ -517,10 +523,10 @@ export const updateProduct = async (req, res) => {
         updateData.distributionEnabled === true ||
         updateData.distributionEnabled === "true" ||
         String(updateData.distributionEnabled).toLowerCase() === "true";
-      const rupees = updateData.distributionRupeesPerUnit ?? 0;
-      updateData.distributionEnabled = wants && rupees > 0;
+      const percent = updateData.distributionPercent ?? 0;
+      updateData.distributionEnabled = wants && percent > 0;
       if (!updateData.distributionEnabled) {
-        updateData.distributionRupeesPerUnit = 0;
+        updateData.distributionPercent = 0;
       }
     }
 

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward', 'wallet_topup', 'wallet_transfer', 'recharge_payment', 'recharge_refund'],
+    enum: ['commission', 'withdrawal', 'refund', 'bonus', 'fund_credit', 'special_income_credit', 'payout_received', 'leadership', 'royalty', 'reward', 'wallet_topup', 'wallet_transfer', 'recharge_payment', 'recharge_refund', 'shop_cashback'],
     required: true
   },
   amount: {
@@ -27,9 +27,10 @@ const transactionSchema = new mongoose.Schema({
     required: false
   },
   level: {
+    /** 0 marks a buyer's own shop cashback; 1–120 are upline commissions. */
     type: Number,
     required: false,
-    min: 1,
+    min: 0,
     max: 120
   },
   status: {

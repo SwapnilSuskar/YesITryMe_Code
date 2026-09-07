@@ -27,8 +27,10 @@ import api from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
 import {
-  groupDistributionForDisplay,
-  scaleDistributionPoolToLevels,
+  DEFAULT_DISTRIBUTION_PERCENT,
+  buildShopDistributionPreview,
+  groupShopDistributionForDisplay,
+  shopPoolForLine,
 } from '../../utils/commissionDistributionPreview';
 import { useFlatDeliveryCharge } from '../../utils/deliveryCharge';
 import DeliveryNote from '../Shop/DeliveryNote';
@@ -328,17 +330,27 @@ const ProductDetail = () => {
   const displayPrice = selectedPrice != null ? selectedPrice : summary.min;
   const subtotal = displayPrice != null ? displayPrice * quantity : null;
 
-  const nDist = Number(product.distributionRupeesPerUnit);
+  // Reward pool is a percentage of what this package actually costs, so it
+  // moves with the selected package and the quantity.
+  const rawDistPercent = Number(product.distributionPercent);
+  const distributionPercent = product.distributionEnabled
+    ? (Number.isFinite(rawDistPercent) && rawDistPercent > 0
+        ? rawDistPercent
+        : DEFAULT_DISTRIBUTION_PERCENT)
+    : 0;
   const distributionPoolPerUnit =
-    product.distributionEnabled && Number.isFinite(nDist) && nDist > 0
-      ? nDist
+    distributionPercent > 0 && displayPrice != null
+      ? shopPoolForLine(displayPrice, distributionPercent)
       : 0;
-  const distributionDisplayRows =
-    distributionPoolPerUnit <= 0
-      ? []
-      : groupDistributionForDisplay(
-          scaleDistributionPoolToLevels(distributionPoolPerUnit)
-        );
+  const distributionPoolTotal =
+    distributionPercent > 0 && subtotal != null
+      ? shopPoolForLine(subtotal, distributionPercent)
+      : 0;
+  const distributionSplit =
+    distributionPoolTotal > 0 ? buildShopDistributionPreview(distributionPoolTotal) : null;
+  const distributionDisplayRows = distributionSplit
+    ? groupShopDistributionForDisplay(distributionSplit)
+    : [];
 
   const specEntries =
     product.specifications && typeof product.specifications === 'object'
@@ -543,7 +555,7 @@ const ProductDetail = () => {
             )}
 
             {/* Commission distribution preview */}
-            {distributionPoolPerUnit > 0 && distributionDisplayRows.length > 0 && (
+            {distributionPoolTotal > 0 && distributionDisplayRows.length > 0 && (
               <section className={`${surface.card} p-5 sm:p-6`} aria-labelledby="distribution-heading">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-secondary">
@@ -551,46 +563,52 @@ const ProductDetail = () => {
                   </span>
                   <div className="min-w-0">
                     <h2 id="distribution-heading" className={type.h2}>
-                      Commission distribution
+                      Reward distribution
                     </h2>
-                    <p className={`${type.muted} mt-0.5`}>Across 120 levels</p>
+                    <p className={`${type.muted} mt-0.5`}>
+                      Half comes back to you
+                    </p>
                   </div>
                 </div>
 
                 <p className={`${type.body} mt-4`}>
                   When your order is <strong className="font-semibold text-slate-900">paid and
-                  confirmed</strong>,{' '}
+                  confirmed</strong>, {distributionPercent}% of what you pay &mdash;{' '}
                   <strong className="font-semibold text-slate-900">
-                    {formatMoney(distributionPoolPerUnit, 'INR', 2)} per unit
+                    {formatMoney(distributionPoolTotal, 'INR', 2)}
                   </strong>{' '}
-                  funds this reward pool. Delivery charges are separate.
+                  &mdash; funds this reward pool, and{' '}
+                  <strong className="font-semibold text-slate-900">
+                    {formatMoney(distributionSplit.self.amount, 'INR', 2)} of it lands in your own
+                    wallet
+                  </strong>. Delivery charges are separate.
                 </p>
 
                 {quantity > 1 && (
                   <p className={`${surface.inset} mt-3 px-3.5 py-2.5 text-sm text-slate-700`}>
-                    For {quantity} units that is{' '}
+                    That is{' '}
                     <strong className="font-semibold tabular-nums text-slate-900">
-                      {formatMoney(distributionPoolPerUnit * quantity, 'INR', 2)}
+                      {formatMoney(distributionPoolPerUnit, 'INR', 2)}
                     </strong>{' '}
-                    in total.
+                    per unit, across {quantity} units.
                   </p>
                 )}
 
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <caption className="sr-only">
-                      Reward pool split by level, per unit purchased
+                      Reward pool split, for this order
                     </caption>
                     <thead>
                       <tr className="border-b border-slate-200">
                         <th scope="col" className={`${type.eyebrow} py-2 pr-4 text-left`}>
-                          Level
+                          Goes to
                         </th>
                         <th scope="col" className={`${type.eyebrow} py-2 pr-4 text-left`}>
                           Share
                         </th>
                         <th scope="col" className={`${type.eyebrow} py-2 text-right`}>
-                          Per unit
+                          Amount
                         </th>
                       </tr>
                     </thead>
@@ -615,10 +633,10 @@ const ProductDetail = () => {
                     <tfoot>
                       <tr>
                         <th scope="row" colSpan={2} className="py-3 pr-4 text-left font-semibold text-slate-900">
-                          Total pool (per unit)
+                          Total pool
                         </th>
                         <td className="py-3 text-right font-bold tabular-nums text-brand-secondary">
-                          {formatMoney(distributionPoolPerUnit, 'INR', 2)}
+                          {formatMoney(distributionPoolTotal, 'INR', 2)}
                         </td>
                       </tr>
                     </tfoot>

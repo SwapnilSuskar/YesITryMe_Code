@@ -3,13 +3,30 @@ import Product from "../models/Product.js";
 import Wallet from "../models/Wallet.js";
 import referralService from "./referralService.js";
 import notificationService from "./notificationService.js";
-import { scaleCommissionStructureToPool } from "../utils/scaleStandardCommissionPool.js";
+import {
+  DEFAULT_DISTRIBUTION_PERCENT,
+  buildShopDistribution,
+  shopPoolForLine,
+} from "../utils/shopDistribution.js";
 
 const roundMoney = (n) => Math.round(Number(n) * 100) / 100;
 
 /**
- * Credit rupee wallets (same model as super packages) when a product order is confirmed.
- * Uses each product's distribution % of line subtotal as the pool; splits across 120 levels.
+ * Credit rupee wallets when a product order is confirmed.
+ *
+ * The pool for each line is `product.distributionPercent`% of that line's
+ * subtotal (default 5%). It is then split:
+ *
+ *   the buyer      50%
+ *   level 1        20%
+ *   level 2        10%
+ *   levels 3–119   20%, shared equally
+ *
+ * This is the shop's own structure and has nothing to do with super packages,
+ * which still use `scaleStandardCommissionPool.js`. See utils/shopDistribution.js.
+ *
+ * Levels with no sponsor (most of them — nobody has a 119-deep upline) fall
+ * through to the admin bucket, exactly as before.
  *
  * @param {import("mongoose").Document} orderDoc - ProductOrder mongoose document
  * @returns {Promise<void>}
@@ -31,19 +48,69 @@ export async function distributeProductOrderWalletCommissions(orderDoc) {
 
   for (const item of orderDoc.items || []) {
     const product = await Product.findById(item.productId);
-    if (!product?.distributionEnabled || !(product.distributionRupeesPerUnit > 0)) {
-      continue;
-    }
+    if (!product?.distributionEnabled) continue;
 
-    const perUnit = roundMoney(Number(product.distributionRupeesPerUnit) || 0);
-    const qty = Math.max(0, parseInt(item.quantity, 10) || 0);
-    const pool = roundMoney(perUnit * qty);
+    // Products created before the percentage field existed fall back to the
+    // default rather than silently paying nothing.
+    const rawPercent = Number(product.distributionPercent);
+    const percent = Number.isFinite(rawPercent) && rawPercent > 0
+      ? rawPercent
+      : DEFAULT_DISTRIBUTION_PERCENT;
+
+    const lineSubtotal = roundMoney(Number(item.lineSubtotal) || 0);
+    const pool = shopPoolForLine(lineSubtotal, percent);
     if (pool < 0.01) continue;
 
-    const structure = scaleCommissionStructureToPool(pool);
+    const split = buildShopDistribution(pool);
     const packageLabel = `${product.title} — ${item.packageName}`;
 
-    for (const commissionLevel of structure) {
+    /* ------------------------- the buyer's own 50% ------------------------ */
+    if (split.self.amount >= 0.001) {
+      const amt = split.self.amount;
+      let buyerWallet = await Wallet.findOne({ userId: orderDoc.userId });
+      if (!buyerWallet) {
+        buyerWallet = new Wallet({
+          userId: orderDoc.userId,
+          balance: 0,
+          totalEarned: 0,
+        });
+      }
+
+      buyerWallet.balance = roundMoney(buyerWallet.balance + amt);
+      buyerWallet.totalEarned = roundMoney(buyerWallet.totalEarned + amt);
+      buyerWallet.transactions.push({
+        type: "shop_cashback",
+        amount: amt,
+        description: `Your ${percent}% shop reward on order ${orderDoc.orderNumber} (${packageLabel})`,
+        packageName: packageLabel,
+        purchaserId: orderDoc.userId,
+        purchaserName,
+        level: 0,
+        status: "completed",
+      });
+
+      await buyerWallet.save();
+
+      commissionDistributions.push({
+        productId: product._id,
+        productTitle: product.title,
+        packageName: item.packageName,
+        lineSubtotal: item.lineSubtotal,
+        distributionPool: pool,
+        level: 0,
+        sponsorId: orderDoc.userId,
+        sponsorName: `${purchaserName} (buyer)`,
+        percentage: split.self.percentage,
+        amount: amt,
+        status: "distributed",
+        distributedAt: new Date(),
+      });
+
+      totalCommissionDistributed = roundMoney(totalCommissionDistributed + amt);
+    }
+
+    /* --------------------------- levels 1 to 119 -------------------------- */
+    for (const commissionLevel of split.levels) {
       const amt = commissionLevel.amount;
       if (amt < 0.001) continue;
 

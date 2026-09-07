@@ -72,7 +72,8 @@ const productOrderSchema = new mongoose.Schema(
           packageName: { type: String, default: "" },
           lineSubtotal: { type: Number, default: 0 },
           distributionPool: { type: Number, default: 0 },
-          level: { type: Number, min: 1, max: 120 },
+          /** 0 = the buyer's own 50% share; 1–119 = the upline. */
+          level: { type: Number, min: 0, max: 120 },
           sponsorId: { type: String, default: "" },
           sponsorName: { type: String, default: "" },
           percentage: { type: Number, default: 0 },

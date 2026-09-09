@@ -60,19 +60,19 @@ const packages = [
   {
     name: "Daimond",
     price: 2999,
-    description: "Daimond package with direct Level 1 income ₹2000",
+    description: "Daimond package with direct Level 1 income ₹2500",
     isActive: true,
     commissionStructure: [
-      { level: 1, percentage: 67, amount: 2000 }
+      { level: 1, percentage: 83, amount: 2500 }
     ]
   },
   {
     name: "Super Daimond",
     price: 4999,
-    description: "Super Daimond package with direct Level 1 income ₹4000",
+    description: "Super Daimond package with direct Level 1 income ₹4500",
     isActive: true,
     commissionStructure: [
-      { level: 1, percentage: 80, amount: 4000 }
+      { level: 1, percentage: 90, amount: 4500 }
     ]
   },
   {

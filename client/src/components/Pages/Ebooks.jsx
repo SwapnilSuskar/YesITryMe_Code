@@ -5,160 +5,109 @@ import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
 
-// Static ebook folder data based on Google Drive structure
+const businessBooks = {
+    id: 'business-books',
+    name: 'Business Books',
+    description: 'Comprehensive collection of business and entrepreneurship books',
+    icon: '💼',
+    color: 'bg-blue-500',
+    bookCount: 25,
+    driveUrl: 'https://drive.google.com/drive/folders/1QHTcqrrOBKclS8NcOa-_A4HhWuNxYrfT'
+};
+const stockMarketBooks = {
+    id: 'stock-market-books',
+    name: 'Stock Market Books',
+    description: 'Expert guides on trading, investing, and market analysis',
+    icon: '📈',
+    color: 'bg-green-500',
+    bookCount: 15,
+    driveUrl: 'https://drive.google.com/drive/folders/1rd3dyX9cbC9qJj4L2HHuDFkkm0XWSnXM'
+};
+const motivationalBooks = {
+    id: 'motivational-books',
+    name: 'Motivational Books',
+    description: 'Inspirational and self-improvement literature',
+    icon: '🚀',
+    color: 'bg-purple-500',
+    bookCount: 10,
+    driveUrl: 'https://drive.google.com/drive/folders/1e6ovsgJwHlEFMvXg06fS6mU1_4zLxp44'
+};
+const parentingBooks = {
+    id: 'parenting-books',
+    name: 'Parenting Books',
+    description: 'Essential guides for effective parenting',
+    icon: '👨‍👩‍👧‍👦',
+    color: 'bg-pink-500',
+    bookCount: 20,
+    driveUrl: 'https://drive.google.com/drive/folders/1q1cmaqjuBjopXek2LUKC547QYwAWxW3L'
+};
+const spiritualBooks = {
+    id: 'spiritual-books',
+    name: 'Spiritual Books',
+    description: 'Books on spirituality and personal growth',
+    icon: '🧘',
+    color: 'bg-indigo-500',
+    bookCount: 15,
+    driveUrl: 'https://drive.google.com/drive/folders/1Eu35RhG7ckwtxwscrASPAFctlo-snD27'
+};
+const otherUsefulBooks = {
+    id: 'other-useful-books',
+    name: 'Other Useful Books',
+    description: 'Additional valuable resources and guides',
+    icon: '📚',
+    color: 'bg-yellow-500',
+    bookCount: 30,
+    driveUrl: 'https://drive.google.com/drive/folders/1TM3VtbCSVDMiE8jEKb0ho0BDl171Xsr1'
+};
+
+const primeFolders = [businessBooks, stockMarketBooks, motivationalBooks];
+const superPrimeFolders = [...primeFolders, parentingBooks, spiritualBooks];
+const eliteFolders = [...superPrimeFolders, otherUsefulBooks];
+const boosterFolders = [businessBooks, stockMarketBooks];
+
+// Static ebook folder data based on Google Drive structure.
+// Diamond/Daimond names are stored both ways in the database.
 const ebookFolders = {
-    'Prime Package': [
-        {
-            id: 'business-books',
-            name: 'Business Books',
-            description: 'Comprehensive collection of business and entrepreneurship books',
-            icon: '💼',
-            color: 'bg-blue-500',
-            bookCount: 25,
-            driveUrl: 'https://drive.google.com/drive/folders/1QHTcqrrOBKclS8NcOa-_A4HhWuNxYrfT'
-        },
-        {
-            id: 'stock-market-books',
-            name: 'Stock Market Books',
-            description: 'Expert guides on trading, investing, and market analysis',
-            icon: '📈',
-            color: 'bg-green-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1rd3dyX9cbC9qJj4L2HHuDFkkm0XWSnXM'
-        },
-        {
-            id: 'motivational-books',
-            name: 'Motivational Books',
-            description: 'Inspirational and self-improvement literature',
-            icon: '🚀',
-            color: 'bg-purple-500',
-            bookCount: 10,
-            driveUrl: 'https://drive.google.com/drive/folders/1e6ovsgJwHlEFMvXg06fS6mU1_4zLxp44'
-        }
-    ],
-    'Super Prime Package': [
-        {
-            id: 'business-books',
-            name: 'Business Books',
-            description: 'Comprehensive collection of business and entrepreneurship books',
-            icon: '💼',
-            color: 'bg-blue-500',
-            bookCount: 25,
-            driveUrl: 'https://drive.google.com/drive/folders/1QHTcqrrOBKclS8NcOa-_A4HhWuNxYrfT'
-        },
-        {
-            id: 'stock-market-books',
-            name: 'Stock Market Books',
-            description: 'Expert guides on trading, investing, and market analysis',
-            icon: '📈',
-            color: 'bg-green-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1rd3dyX9cbC9qJj4L2HHuDFkkm0XWSnXM'
-        },
-        {
-            id: 'motivational-books',
-            name: 'Motivational Books',
-            description: 'Inspirational and self-improvement literature',
-            icon: '🚀',
-            color: 'bg-purple-500',
-            bookCount: 10,
-            driveUrl: 'https://drive.google.com/drive/folders/1e6ovsgJwHlEFMvXg06fS6mU1_4zLxp44'
-        },
-        {
-            id: 'parenting-books',
-            name: 'Parenting Books',
-            description: 'Essential guides for effective parenting',
-            icon: '👨‍👩‍👧‍👦',
-            color: 'bg-pink-500',
-            bookCount: 20,
-            driveUrl: 'https://drive.google.com/drive/folders/1q1cmaqjuBjopXek2LUKC547QYwAWxW3L'
-        },
-        {
-            id: 'spiritual-books',
-            name: 'Spiritual Books',
-            description: 'Books on spirituality and personal growth',
-            icon: '🧘',
-            color: 'bg-indigo-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1Eu35RhG7ckwtxwscrASPAFctlo-snD27'
-        }
-    ],
-    'Elite Package': [
-        {
-            id: 'business-books',
-            name: 'Business Books',
-            description: 'Comprehensive collection of business and entrepreneurship books',
-            icon: '💼',
-            color: 'bg-blue-500',
-            bookCount: 25,
-            driveUrl: 'https://drive.google.com/drive/folders/1QHTcqrrOBKclS8NcOa-_A4HhWuNxYrfT'
-        },
-        {
-            id: 'stock-market-books',
-            name: 'Stock Market Books',
-            description: 'Expert guides on trading, investing, and market analysis',
-            icon: '📈',
-            color: 'bg-green-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1rd3dyX9cbC9qJj4L2HHuDFkkm0XWSnXM'
-        },
-        {
-            id: 'motivational-books',
-            name: 'Motivational Books',
-            description: 'Inspirational and self-improvement literature',
-            icon: '🚀',
-            color: 'bg-purple-500',
-            bookCount: 10,
-            driveUrl: 'https://drive.google.com/drive/folders/1e6ovsgJwHlEFMvXg06fS6mU1_4zLxp44'
-        },
-        {
-            id: 'parenting-books',
-            name: 'Parenting Books',
-            description: 'Essential guides for effective parenting',
-            icon: '👨‍👩‍👧‍👦',
-            color: 'bg-pink-500',
-            bookCount: 20,
-            driveUrl: 'https://drive.google.com/drive/folders/1q1cmaqjuBjopXek2LUKC547QYwAWxW3L'
-        },
-        {
-            id: 'spiritual-books',
-            name: 'Spiritual Books',
-            description: 'Books on spirituality and personal growth',
-            icon: '🧘',
-            color: 'bg-indigo-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1Eu35RhG7ckwtxwscrASPAFctlo-snD27'
-        },
-        {
-            id: 'other-useful-books',
-            name: 'Other Useful Books',
-            description: 'Additional valuable resources and guides',
-            icon: '📚',
-            color: 'bg-yellow-500',
-            bookCount: 30,
-            driveUrl: 'https://drive.google.com/drive/folders/1TM3VtbCSVDMiE8jEKb0ho0BDl171Xsr1'
-        }
-    ],
-    'Booster Package': [
-        {
-            id: 'business-books',
-            name: 'Business Books',
-            description: 'Comprehensive collection of business and entrepreneurship books',
-            icon: '💼',
-            color: 'bg-blue-500',
-            bookCount: 25,
-            driveUrl: 'https://drive.google.com/drive/folders/1QHTcqrrOBKclS8NcOa-_A4HhWuNxYrfT'
-        },
-        {
-            id: 'stock-market-books',
-            name: 'Stock Market Books',
-            description: 'Expert guides on trading, investing, and market analysis',
-            icon: '📈',
-            color: 'bg-green-500',
-            bookCount: 15,
-            driveUrl: 'https://drive.google.com/drive/folders/1rd3dyX9cbC9qJj4L2HHuDFkkm0XWSnXM'
-        }
-    ]
+    'Prime Package': primeFolders,
+    'Super Prime Package': superPrimeFolders,
+    'Elite Package': eliteFolders,
+    'Booster Package': boosterFolders,
+    'Daimond': eliteFolders,
+    'Diamond': eliteFolders,
+    'Diamond Package': eliteFolders,
+    'Super Daimond': eliteFolders,
+    'Super Diamond': eliteFolders,
+    'Super Diamond Package': eliteFolders
+};
+
+const normalizePackageName = (name = '') =>
+    name.toLowerCase().trim().replace(/daimond/g, 'diamond');
+
+const getFoldersForPackageName = (packageName) => {
+    if (!packageName) return [];
+    if (ebookFolders[packageName]) return ebookFolders[packageName];
+
+    const normalized = normalizePackageName(packageName);
+    const matchedKey = Object.keys(ebookFolders).find(
+        (key) => normalizePackageName(key) === normalized
+    );
+    if (matchedKey) return ebookFolders[matchedKey];
+
+    if (normalized.includes('super diamond')) return eliteFolders;
+    if (normalized.includes('diamond')) return eliteFolders;
+    if (normalized.includes('elite')) return eliteFolders;
+    if (normalized.includes('super prime')) return superPrimeFolders;
+    if (normalized.includes('prime')) return primeFolders;
+    if (normalized.includes('booster')) return boosterFolders;
+
+    return [];
+};
+
+const idsMatch = (left, right) => {
+    if (left == null || right == null) return false;
+    const leftId = typeof left === 'object' ? left._id || left.id : left;
+    const rightId = typeof right === 'object' ? right._id || right.id : right;
+    return String(leftId) === String(rightId);
 };
 
 const Ebooks = () => {
@@ -201,23 +150,18 @@ const Ebooks = () => {
     // Get approved packages that user has purchased - using same logic as Package component
     const getApprovedPackages = () => {
         const approvedPackages = [];
-        // Use the same logic as getPackagePurchaseCount from Package component
         const getPackagePurchaseCount = (packageId) => {
-            // Count verified payment verifications for this package
             const verifiedPayments = paymentVerifications.filter(verification =>
-                verification.packageId === packageId && verification.status === 'verified'
+                idsMatch(verification.packageId, packageId) && verification.status === 'verified'
             );
 
-            // Also count active purchase records (fallback)
             const activePurchases = userPurchases.filter(purchase =>
-                purchase.packageId === packageId && purchase.status === 'active'
+                idsMatch(purchase.packageId, packageId) && purchase.status === 'active'
             );
 
-            // Return the higher count between verified payments and active purchases
             return Math.max(verifiedPayments.length, activePurchases.length);
         };
 
-        // Check each package to see if user has purchased it
         packages.forEach(pkg => {
             const purchaseCount = getPackagePurchaseCount(pkg._id);
             if (purchaseCount > 0) {
@@ -225,8 +169,19 @@ const Ebooks = () => {
             }
         });
 
-        const uniquePackages = [...new Set(approvedPackages)];
-        return uniquePackages;
+        paymentVerifications.forEach(verification => {
+            if (verification.status === 'verified' && verification.packageName) {
+                approvedPackages.push(verification.packageName);
+            }
+        });
+
+        userPurchases.forEach(purchase => {
+            if (purchase.status === 'active' && purchase.packageName) {
+                approvedPackages.push(purchase.packageName);
+            }
+        });
+
+        return [...new Set(approvedPackages)];
     };
 
     // Get available ebook folders based on purchased packages
@@ -234,28 +189,11 @@ const Ebooks = () => {
         const approvedPackages = getApprovedPackages();
         const availableFolders = [];
         approvedPackages.forEach(packageName => {
-            // Try exact match first
-            if (ebookFolders[packageName]) {
-                ebookFolders[packageName].forEach(folder => {
-                    if (!availableFolders.find(f => f.id === folder.id)) {
-                        availableFolders.push(folder);
-                    }
-                });
-            } else {
-                // Try case-insensitive match
-                const packageKey = Object.keys(ebookFolders).find(key =>
-                    key.toLowerCase() === packageName.toLowerCase()
-                );
-
-                if (packageKey) {
-                    ebookFolders[packageKey].forEach(folder => {
-                        if (!availableFolders.find(f => f.id === folder.id)) {
-                            availableFolders.push(folder);
-                        }
-                    });
-                } else {
+            getFoldersForPackageName(packageName).forEach(folder => {
+                if (!availableFolders.find(f => f.id === folder.id)) {
+                    availableFolders.push(folder);
                 }
-            }
+            });
         });
 
         return availableFolders;

@@ -1,8 +1,15 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
 import "dotenv/config";
 
 let isConnected = false;
 let connectionPromise = null;
+
+// Public resolvers, used only when Node cannot resolve the Atlas SRV record itself
+const FALLBACK_DNS_SERVERS = ["8.8.8.8", "1.1.1.1"];
+
+const isSrvLookupError = (error) =>
+  error?.syscall === "querySrv" || /querySrv/.test(error?.message || "");
 
 const connectDB = async () => {
   // If already connected, return existing connection
@@ -28,15 +35,30 @@ const connectDB = async () => {
 
       console.log("🔌 Attempting to connect to MongoDB...");
 
-      const conn = await mongoose.connect(mongoUri, {
-        // Serverless-friendly options
-        maxPoolSize: 1, // Reduce pool size for serverless
-        serverSelectionTimeoutMS: 10000, // Increased timeout
-        socketTimeoutMS: 45000, // Timeout for socket operations
-        bufferCommands: true, // Enable buffering for serverless
-        retryWrites: true,
-        w: "majority",
-      });
+      const connect = () =>
+        mongoose.connect(mongoUri, {
+          // Serverless-friendly options
+          maxPoolSize: 1, // Reduce pool size for serverless
+          serverSelectionTimeoutMS: 10000, // Increased timeout
+          socketTimeoutMS: 45000, // Timeout for socket operations
+          bufferCommands: true, // Enable buffering for serverless
+          retryWrites: true,
+          w: "majority",
+        });
+
+      let conn;
+      try {
+        conn = await connect();
+      } catch (error) {
+        if (!isSrvLookupError(error)) throw error;
+
+        // Node sometimes misreads the system DNS servers (seen on Windows: falls back to 127.0.0.1)
+        console.warn(
+          `⚠️ SRV lookup failed (${error.message}). Retrying with public DNS...`
+        );
+        dns.setServers(FALLBACK_DNS_SERVERS);
+        conn = await connect();
+      }
 
       isConnected = true;
       console.log(`✅ MongoDB Connected Successfully: ${conn.connection.host}`);

@@ -66,6 +66,9 @@ const Navbar = () => {
     setTimeout(() => logout(), 0);
   };
 
+  // User dropdown body: capped to the viewport so the item list scrolls and Logout stays visible
+  const dropdownBodyClasses = "relative z-10 flex flex-col overflow-hidden rounded-2xl max-h-[calc(100vh-5rem)] supports-[height:100dvh]:max-h-[calc(100dvh-5rem)]";
+
   // Helper function to render navigation items
   const renderNavItem = (item, isMobile = false) => {
     const IconComponent = item.icon;
@@ -167,26 +170,32 @@ const Navbar = () => {
                   <div className="absolute right-0 mt-2 w-48 bg-white/95 border border-orange-100 rounded-2xl shadow-2xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 origin-top-right backdrop-blur-xl scale-95 group-hover:scale-100">
                     {/* Arrow */}
                     <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-t border-l border-orange-100 rotate-45 z-0"></div>
-                    <div className="relative z-10 py-2 px-2 flex flex-col gap-1">
-                      {user.role === "admin" && (
-                        <Link
-                          to="/admin"
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                        >
-                          <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
-                          Admin Dashboard
-                        </Link>
-                      )}
+                    <div className={dropdownBodyClasses}>
+                      {/* Scrollable items */}
+                      <div className="flex-1 min-h-0 overflow-y-auto py-2 px-2 flex flex-col gap-1">
+                        {user.role === "admin" && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
+                            Admin Dashboard
+                          </Link>
+                        )}
 
-                      {/* Mapped Navigation Items */}
-                      {authenticatedNavItems.map((item) => renderNavItem(item))}
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LogOut className="w-4 h-4 text-[#FF4E00]" />
-                        Logout
-                      </button>
+                        {/* Mapped Navigation Items */}
+                        {authenticatedNavItems.map((item) => renderNavItem(item))}
+                      </div>
+                      {/* Logout pinned below the scroll area */}
+                      <div className="border-t border-orange-100 p-2">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
+                        >
+                          <LogOut className="w-4 h-4 text-[#FF4E00]" />
+                          Logout
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -242,27 +251,32 @@ const Navbar = () => {
                   `}>
                     {/* Arrow */}
                     <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-t border-l border-orange-100 rotate-45 z-0"></div>
-                    <div className="relative z-10 py-2 px-2 flex flex-col gap-1">
-                      {user.role === "admin" && (
+                    <div className={dropdownBodyClasses}>
+                      {/* Scrollable items */}
+                      <div className="flex-1 min-h-0 overflow-y-auto py-2 px-2 flex flex-col gap-1">
+                        {user.role === "admin" && (
+                          <button
+                            onClick={() => { setIsMobileDropdownOpen(false); navigate("/admin"); }}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
+                            Admin Dashboard
+                          </button>
+                        )}
+
+                        {/* Mapped Navigation Items */}
+                        {authenticatedNavItems.map((item) => renderNavItem(item, true))}
+                      </div>
+                      {/* Logout pinned below the scroll area */}
+                      <div className="border-t border-orange-100 p-2">
                         <button
-                          onClick={() => { setIsMobileDropdownOpen(false); navigate("/admin"); }}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
+                          onClick={() => { setIsMobileDropdownOpen(false); handleLogout(); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
                         >
-                          <LayoutDashboard className="w-4 h-4 text-[#FF4E00]" />
-                          Admin Dashboard
+                          <LogOut className="w-4 h-4 text-[#FF4E00]" />
+                          Logout
                         </button>
-                      )}
-
-                      {/* Mapped Navigation Items */}
-                      {authenticatedNavItems.map((item) => renderNavItem(item, true))}
-
-                      <button
-                        onClick={() => { setIsMobileDropdownOpen(false); handleLogout(); }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-orange-50 hover:text-[#FF4E00] font-semibold transition"
-                      >
-                        <LogOut className="w-4 h-4 text-[#FF4E00]" />
-                        Logout
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>

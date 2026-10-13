@@ -10,23 +10,33 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 // Level 1 direct income raised: Daimond 2000 -> 2500, Super Daimond 4000 -> 4500
+// Level 2 (200) and Level 3 (100) added to both packages
 const updates = [
   {
     name: "Daimond",
     description: "Daimond package with direct Level 1 income \u20B92500",
-    commissionStructure: [{ level: 1, percentage: 83, amount: 2500 }]
+    commissionStructure: [
+      { level: 1, percentage: 83, amount: 2500 },
+      { level: 2, percentage: 7, amount: 200 },
+      { level: 3, percentage: 3, amount: 100 }
+    ]
   },
   {
     name: "Super Daimond",
     description: "Super Daimond package with direct Level 1 income \u20B94500",
-    commissionStructure: [{ level: 1, percentage: 90, amount: 4500 }]
+    commissionStructure: [
+      { level: 1, percentage: 90, amount: 4500 },
+      { level: 2, percentage: 4, amount: 200 },
+      { level: 3, percentage: 2, amount: 100 }
+    ]
   }
 ];
 
 const summarise = (pkg) => {
-  const l1 = (pkg.commissionStructure || []).find((c) => c.level === 1);
-  const total = (pkg.commissionStructure || []).reduce((s, c) => s + c.amount, 0);
-  return `price=₹${pkg.price}  L1=₹${l1 ? l1.amount : 0} (${l1 ? l1.percentage : 0}%)  totalPool=₹${total}`;
+  const structure = pkg.commissionStructure || [];
+  const levels = structure.map((c) => `L${c.level}=${c.amount} (${c.percentage}%)`).join("  ");
+  const total = structure.reduce((s, c) => s + c.amount, 0);
+  return `price=₹${pkg.price}  ${levels || "no levels"}  totalPool=₹${total}`;
 };
 
 async function updateDaimondCommission() {

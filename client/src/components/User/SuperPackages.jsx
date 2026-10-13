@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Crown, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
+import { CheckCircle, Clock, Crown, Gem, Package as PackageIcon, ShoppingCart, Star, TrendingUp, Users, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -7,49 +7,54 @@ import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
 import SuperPackagePaymentVerificationForm from '../User/SuperPackagePaymentVerificationForm';
 
+// Card widths shared by real cards and shimmers so the grid doesn't jump on load
+const CARD_WIDTH = 'w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)]';
+
+// Indian digit grouping (1,499 / 1,00,000); falls back to the raw value if it isn't numeric
+const formatINR = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString('en-IN') : value;
+};
+
 // Shimmer component for package cards
 const PackageShimmer = () => (
-  <div className="relative bg-white rounded-2xl shadow-xl border-2 border-gray-100 animate-pulse">
-    <div className="absolute -top-4 left-0 right-0 flex justify-center items-center gap-2 px-4">
-      <div className="w-32 h-8 bg-gray-200 rounded-full"></div>
-    </div>
-    <div className="p-8">
-      <div className="text-center mb-6">
-        <div className="w-48 h-8 bg-gray-200 rounded mb-4 mx-auto"></div>
-        <div className="w-32 h-12 bg-gray-200 rounded mb-4 mx-auto"></div>
-        <div className="w-full h-4 bg-gray-200 rounded"></div>
-        <div className="mt-3 p-2 bg-gray-100 border border-gray-200 rounded-lg">
-          <div className="w-32 h-4 bg-gray-200 rounded mx-auto"></div>
-          <div className="w-24 h-3 bg-gray-200 rounded mx-auto mt-1"></div>
-        </div>
+  <div className={`${CARD_WIDTH} flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-7 animate-pulse`}>
+    {/* Icon + name + badge */}
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+        <div className="w-28 h-5 bg-gray-200 rounded"></div>
       </div>
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
-          <div className="w-40 h-5 bg-gray-200 rounded"></div>
-        </div>
-        <div className="space-y-2">
-          {[...Array(4)].map((_, idx) => (
-            <div key={idx} className="flex justify-between items-center text-sm">
-              <div className="w-20 h-4 bg-gray-200 rounded"></div>
-              <div className="w-16 h-4 bg-gray-200 rounded"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="w-full h-14 bg-gray-200 rounded-xl"></div>
+      <div className="w-16 h-5 bg-gray-100 rounded-full"></div>
     </div>
+    {/* Price */}
+    <div className="w-28 h-10 bg-gray-200 rounded mt-5"></div>
+    {/* Description */}
+    <div className="w-full h-4 bg-gray-100 rounded mt-4"></div>
+    <div className="w-2/3 h-4 bg-gray-100 rounded mt-2"></div>
+    {/* Commission levels */}
+    <div className="mt-6 rounded-xl bg-gray-50 p-4 space-y-3">
+      <div className="w-32 h-3 bg-gray-200 rounded"></div>
+      {[...Array(4)].map((_, idx) => (
+        <div key={idx} className="flex justify-between items-center">
+          <div className="w-20 h-4 bg-gray-200 rounded"></div>
+          <div className="w-14 h-4 bg-gray-200 rounded"></div>
+        </div>
+      ))}
+    </div>
+    {/* Button */}
+    <div className="w-full h-12 bg-gray-200 rounded-xl mt-6"></div>
   </div>
 );
 
 const getPackageIcon = (name) => {
   const lowerName = name.toLowerCase();
-  if (lowerName.includes('booster')) return <Zap className="h-8 w-8 text-orange-500" />;
-  if (lowerName.includes('bronze')) return <PackageIcon className="h-8 w-8 text-amber-600" />;
-  if (lowerName.includes('silver')) return <Star className="h-8 w-8 text-gray-500" />;
-  if (lowerName.includes('gold')) return <Crown className="h-8 w-8 text-yellow-500" />;
-  if (lowerName.includes('diamond')) return <span className="h-8 w-8 ">💎</span>;
-  return <PackageIcon className="h-8 w-8 text-gray-600" />;
+  if (lowerName.includes('booster')) return <Zap className="h-5 w-5 text-orange-500" />;
+  if (lowerName.includes('bronze')) return <PackageIcon className="h-5 w-5 text-amber-600" />;
+  if (lowerName.includes('silver')) return <Star className="h-5 w-5 text-gray-500" />;
+  if (lowerName.includes('gold')) return <Crown className="h-5 w-5 text-yellow-500" />;
+  if (lowerName.includes('diamond')) return <Gem className="h-5 w-5 text-sky-500" />;
+  return <PackageIcon className="h-5 w-5 text-gray-600" />;
 };
 
 const getPackageColor = (name) => {
@@ -229,17 +234,17 @@ const SuperPackages = () => {
 
   if (loading) {
     return (
-      <section className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-800 mb-4">
-              Choose Your <span className="text-orange-600">Super Package</span>
+      <section className="min-h-screen bg-gradient-to-b from-orange-50/60 to-white py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-3">
+              Choose Your <span className="text-brand-primary">Super Package</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
               Select the perfect super package for your digital journey. Each purchase supports our multi-level referral system.
             </p>
           </div>
-          <div className="grid lg:grid-cols-3 gap-8 mb-16">
+          <div className="flex flex-wrap justify-center gap-6 mb-14">
             {[...Array(3)].map((_, index) => (
               <PackageShimmer key={index} />
             ))}
@@ -250,98 +255,119 @@ const SuperPackages = () => {
   }
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-20">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-gray-800 mb-4">
-            Choose Your <span className="text-orange-600">Super Package</span>
+    <section className="min-h-screen bg-gradient-to-b from-orange-50/60 to-white py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-3">
+            Choose Your <span className="text-brand-primary">Super Package</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
             Select the perfect super package for your digital journey. Each purchase supports our multi-level referral system.
           </p>
         </div>
-        <div className="grid lg:grid-cols-3 gap-8 mb-16">
+        <div className="flex flex-wrap justify-center gap-6 mb-14">
           {superPackages.map((pkg, index) => {
             const commissionStructure = groupCommissionStructure(pkg.commissionStructure);
             const isBooster = pkg.name.toLowerCase().includes('booster');
             const purchaseCount = getSuperPackagePurchaseCount(pkg._id);
             const purchaseDetails = getSuperPackagePurchaseDetails(pkg._id);
             const hasPending = hasPendingPayment(pkg._id);
+            const isOwned = purchaseCount > 0;
             return (
-              <div key={pkg._id} className={`relative bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 ${purchaseCount > 0 ? 'border-green-500' : hasPending ? 'border-yellow-500' : 'border-gray-100'}`}>
-                {/* Badge Container */}
-                <div className="absolute -top-4 left-0 right-0 flex justify-center items-center gap-2 px-4">
-                  {isBooster && (
-                    <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
-                      NO DISTRIBUTION
-                    </span>
-                  )}
-                  {purchaseCount > 0 && (
-                    <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
-                      <CheckCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                      PURCHASED {purchaseCount > 1 ? `(${purchaseCount}x)` : ''}
-                    </span>
-                  )}
-                  {hasPending && purchaseCount === 0 && (
-                    <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
-                      <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
-                      PENDING
-                    </span>
+              <div
+                key={pkg._id}
+                className={`${CARD_WIDTH} relative flex flex-col bg-white rounded-2xl border p-6 sm:p-7 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl ${isOwned
+                  ? 'border-green-300'
+                  : hasPending
+                    ? 'border-amber-300'
+                    : 'border-gray-200'
+                  }`}
+              >
+                {/* Icon + name + status badges */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      {getPackageIcon(pkg.name)}
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {isBooster && (
+                      <span className="bg-orange-50 text-brand-deep px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                        No Distribution
+                      </span>
+                    )}
+                    {isOwned && (
+                      <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                        <CheckCircle size={12} />
+                        Purchased {purchaseCount > 1 ? `(${purchaseCount}x)` : ''}
+                      </span>
+                    )}
+                    {hasPending && !isOwned && (
+                      <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                        <Clock size={12} />
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 text-4xl font-bold tracking-tight text-gray-900">
+                  ₹{formatINR(pkg.price)}
+                </div>
+                {pkg.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-500">{pkg.description}</p>
+                )}
+
+                <div className="mt-6 rounded-xl bg-gray-50 p-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 flex items-center">
+                    <TrendingUp className="w-4 h-4 mr-1.5 text-brand-primary" />
+                    Commission Structure
+                  </h4>
+                  {isBooster ? (
+                    <div className="text-gray-500 text-sm">No commission distribution for this package.</div>
+                  ) : (
+                    <div className="divide-y divide-gray-200/70">
+                      {commissionStructure.map((commission, idx) => (
+                        <div key={idx} className="flex justify-between items-center py-2 text-sm">
+                          <span className="text-gray-600">Level {commission.level}</span>
+                          <span className="font-semibold text-gray-900 tabular-nums">₹{formatINR(commission.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <div className="p-8">
-                  <div className="text-center mb-6">
-                    <h3 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                      {getPackageIcon(pkg.name)}
-                      {pkg.name}
-                    </h3>
-                    <div className="text-5xl font-bold text-orange-600 mb-2">₹{pkg.price}</div>
-                    <p className="text-gray-600">{pkg.description}</p>
-                    {purchaseCount > 0 && (
-                      <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-green-700 text-sm font-medium">
-                          ✅ You own this package {purchaseCount > 1 ? `(${purchaseCount} times)` : ''}
+
+                {/* Pinned to the bottom so buttons line up across cards */}
+                <div className="mt-auto pt-6">
+                  {isOwned && (
+                    <div className="mb-3 px-3 py-2 bg-green-50 rounded-lg">
+                      <p className="text-green-700 text-sm font-medium">
+                        You own this package {purchaseCount > 1 ? `(${purchaseCount} times)` : ''}
+                      </p>
+                      {purchaseDetails.lastPurchaseDate && (
+                        <p className="text-green-600 text-xs mt-0.5">
+                          Last purchased on {purchaseDetails.lastPurchaseDate.toLocaleDateString()}
                         </p>
-                        {purchaseDetails.lastPurchaseDate && (
-                          <p className="text-green-600 text-xs mt-1">
-                            Last purchased on {purchaseDetails.lastPurchaseDate.toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {hasPending && purchaseCount === 0 && (
-                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-yellow-700 text-sm font-medium">⏳ Payment verification pending</p>
-                        <p className="text-yellow-600 text-xs mt-1">
-                          Your payment is being reviewed by admin
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-8">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2 text-orange-500" />
-                      Commission Structure
-                    </h4>
-                    {isBooster ? (
-                      <div className="text-gray-500 text-sm">No commission distribution for this package.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {commissionStructure.map((commission, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Level {commission.level}:</span>
-                            <span className="font-semibold text-green-600">₹{commission.amount}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
+                  {hasPending && !isOwned && (
+                    <div className="mb-3 px-3 py-2 bg-amber-50 rounded-lg">
+                      <p className="text-amber-700 text-sm font-medium">Payment verification pending</p>
+                      <p className="text-amber-600 text-xs mt-0.5">
+                        Your payment is being reviewed by admin
+                      </p>
+                    </div>
+                  )}
                   <button
                     onClick={() => handlePurchase(pkg)}
                     disabled={hasPending}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center ${hasPending
-                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white cursor-not-allowed'
-                      : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105'
+                    className={`w-full py-3 px-5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 ${hasPending
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200 cursor-not-allowed'
+                      : isOwned
+                        ? 'bg-white text-brand-deep border border-brand-primary/40 hover:bg-orange-50 active:scale-[0.98]'
+                        : 'bg-brand-deep hover:bg-brand-deeper text-white shadow-sm hover:shadow-md active:scale-[0.98]'
                       }`}
                   >
                     {hasPending ? (
@@ -352,7 +378,7 @@ const SuperPackages = () => {
                     ) : (
                       <>
                         <ShoppingCart className="w-5 h-5 mr-2" />
-                        {purchaseCount > 0 ? `Buy Again (${purchaseCount} owned)` : 'Purchase Now'}
+                        {isOwned ? `Buy Again (${purchaseCount} owned)` : 'Purchase Now'}
                       </>
                     )}
                   </button>

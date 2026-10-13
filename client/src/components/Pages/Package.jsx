@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, Clock, ShoppingCart, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Clock, ShoppingCart, Star, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import api, { API_ENDPOINTS } from '../../config/api';
@@ -6,68 +6,57 @@ import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
 import PaymentVerificationForm from '../User/PaymentVerificationForm';
 
+// Card widths shared by real cards and shimmers so the grid doesn't jump on load
+const CARD_WIDTH = 'w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)]';
+
+// Indian digit grouping (1,499 / 1,00,000); falls back to the raw value if it isn't numeric
+const formatINR = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString('en-IN') : value;
+};
+
 // Shimmer component for package cards
 const PackageShimmer = () => (
-  <div className="relative bg-white rounded-2xl shadow-xl border-2 border-gray-100 animate-pulse">
-    {/* Badge Shimmer - matches the badge container positioning */}
-    <div className="absolute -top-4 left-0 right-0 flex justify-center items-center gap-2 px-4">
-      <div className="w-32 h-8 bg-gray-200 rounded-full"></div>
+  <div className={`${CARD_WIDTH} flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-7 animate-pulse`}>
+    {/* Name + badge */}
+    <div className="flex items-center justify-between gap-3">
+      <div className="w-36 h-5 bg-gray-200 rounded"></div>
+      <div className="w-16 h-5 bg-gray-100 rounded-full"></div>
+    </div>
+    {/* Price */}
+    <div className="w-28 h-10 bg-gray-200 rounded mt-5"></div>
+    {/* Description */}
+    <div className="w-full h-4 bg-gray-100 rounded mt-4"></div>
+    <div className="w-2/3 h-4 bg-gray-100 rounded mt-2"></div>
+
+    {/* Commission levels */}
+    <div className="mt-6 rounded-xl bg-gray-50 p-4 space-y-3">
+      <div className="w-32 h-3 bg-gray-200 rounded"></div>
+      {[...Array(4)].map((_, idx) => (
+        <div key={idx} className="flex justify-between items-center">
+          <div className="w-20 h-4 bg-gray-200 rounded"></div>
+          <div className="w-14 h-4 bg-gray-200 rounded"></div>
+        </div>
+      ))}
     </div>
 
-    <div className="p-8">
-      {/* Header Shimmer - matches the text-center layout */}
-      <div className="text-center mb-6">
-        {/* Package name shimmer */}
-        <div className="w-48 h-8 bg-gray-200 rounded mb-4 mx-auto"></div>
-        {/* Price shimmer - larger for the big price display */}
-        <div className="w-32 h-12 bg-gray-200 rounded mb-4 mx-auto"></div>
-        {/* Description shimmer */}
-        <div className="w-full h-4 bg-gray-200 rounded"></div>
-        {/* Purchase status shimmer (if purchased) */}
-        <div className="mt-3 p-2 bg-gray-100 border border-gray-200 rounded-lg">
-          <div className="w-32 h-4 bg-gray-200 rounded mx-auto"></div>
-          <div className="w-24 h-3 bg-gray-200 rounded mx-auto mt-1"></div>
-        </div>
-      </div>
-
-      {/* Commission Structure Shimmer - matches the exact layout */}
-      <div className="mb-8">
-        {/* Commission Structure title with icon */}
-        <div className="flex items-center mb-4">
-          <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
-          <div className="w-40 h-5 bg-gray-200 rounded"></div>
-        </div>
-        {/* Commission levels */}
-        <div className="space-y-2">
-          {[...Array(4)].map((_, idx) => (
-            <div key={idx} className="flex justify-between items-center text-sm">
-              <div className="w-20 h-4 bg-gray-200 rounded"></div>
-              <div className="w-16 h-4 bg-gray-200 rounded"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Button Shimmer - matches the gradient button */}
-      <div className="w-full h-14 bg-gray-200 rounded-xl"></div>
-    </div>
+    {/* Button */}
+    <div className="w-full h-12 bg-gray-200 rounded-xl mt-6"></div>
   </div>
 );
 
-// Shimmer for commission system info - matches the exact styling
+// Shimmer for commission system info
 const CommissionSystemShimmer = () => (
-  <div className="bg-white rounded-2xl shadow-lg p-8 border border-orange-100 animate-pulse">
-    {/* Title with emoji */}
-    <div className="w-64 h-8 bg-gray-200 rounded mb-6 mx-auto"></div>
+  <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 animate-pulse">
+    <div className="w-64 h-6 bg-gray-200 rounded mb-6"></div>
     <div className="grid md:grid-cols-3 gap-6">
       {[...Array(3)].map((_, idx) => (
-        <div key={idx} className="text-center">
-          {/* Icon placeholder */}
-          <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3"></div>
-          {/* Feature title */}
-          <div className="w-32 h-5 bg-gray-200 rounded mb-2 mx-auto"></div>
-          {/* Feature description */}
-          <div className="w-full h-4 bg-gray-200 rounded"></div>
+        <div key={idx} className="flex gap-4">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl flex-shrink-0"></div>
+          <div className="flex-1">
+            <div className="w-32 h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="w-full h-4 bg-gray-100 rounded"></div>
+          </div>
         </div>
       ))}
     </div>
@@ -268,18 +257,18 @@ const Package = () => {
 
   if (loading) {
     return (
-      <section id="package" className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-800 mb-4">
-              Choose Your <span className="text-orange-600">Package</span>
+      <section id="package" className="min-h-screen bg-gradient-to-b from-orange-50/60 to-white py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-3">
+              Choose Your <span className="text-brand-primary">Package</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
               Select the perfect package for your digital skills journey. Each purchase supports our multi-level referral system.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 mb-16">
+          <div className="flex flex-wrap justify-center gap-6 mb-14">
             {[...Array(3)].map((_, index) => (
               <PackageShimmer key={index} />
             ))}
@@ -293,38 +282,38 @@ const Package = () => {
 
 
   return (
-    <section id="package" className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-20">
-      <div className="max-w-7xl mx-auto px-4">
+    <section id="package" className="min-h-screen bg-gradient-to-b from-orange-50/60 to-white py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Product Info Banner - Show only when coming from product detail */}
         {productInfo && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-orange-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-10">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-4 min-w-0">
                 <Link
                   to={`/products/${productInfo._id}`}
-                  className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors"
+                  className="flex items-center gap-2 text-sm font-medium text-brand-deep hover:text-brand-deeper transition-colors"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4" />
                   Back to Product
                 </Link>
-                <div className="h-8 w-px bg-gray-300"></div>
-                <div className="flex items-center gap-3">
+                <div className="hidden sm:block h-8 w-px bg-gray-200"></div>
+                <div className="flex items-center gap-3 min-w-0">
                   {productInfo.images && productInfo.images.length > 0 && (
                     <img
                       src={productInfo.images.find(img => img.isPrimary)?.url || productInfo.images[0].url}
                       alt={productInfo.title}
-                      className="w-12 h-12 rounded-lg object-cover"
+                      className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
                     />
                   )}
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{productInfo.title}</h3>
-                    <p className="text-sm text-gray-600">{productInfo.category}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{productInfo.title}</h3>
+                    <p className="text-sm text-gray-500 truncate">{productInfo.category}</p>
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-600">Selected Package:</div>
-                <div className="font-semibold text-orange-600">
+              <div className="sm:text-right">
+                <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Selected Package</div>
+                <div className="font-semibold text-brand-deep">
                   {productInfo.selectedPricing?.packageName || 'Choose a package'}
                 </div>
               </div>
@@ -332,11 +321,11 @@ const Package = () => {
           </div>
         )}
 
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-gray-800 mb-4">
-            {productInfo ? 'Choose Package to Access' : 'Choose Your'} <span className="text-orange-600">Package</span>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-3">
+            {productInfo ? 'Choose Package to Access' : 'Choose Your'} <span className="text-brand-primary">Package</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
             {productInfo
               ? `Select a package to access "${productInfo.title}" and start earning commissions through our multi-level referral system.`
               : 'Select the perfect package for your digital skills journey. Each purchase supports our multi-level referral system.'
@@ -344,98 +333,123 @@ const Package = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-16">
+        <div className="flex flex-wrap justify-center gap-6 mb-14">
           {packages.map((pkg, index) => {
             const commissionStructure = getCommissionStructure(pkg);
             const isPopular = pkg.name === 'Super Prime Package' || pkg.name === 'Super Daimond' || pkg.name === 'Daimond';
             const purchaseCount = getPackagePurchaseCount(pkg._id);
             const purchaseDetails = getPackagePurchaseDetails(pkg._id);
             const hasPending = hasPendingPayment(pkg._id);
+            const benefits = getPackageBenefits(pkg.name);
+            const isOwned = purchaseCount > 0;
 
             return (
-              <div key={pkg._id} className={`relative bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 ${isPopular ? 'border-orange-500 scale-105' : 'border-gray-100'} ${purchaseCount > 0 ? 'border-green-500' : hasPending ? 'border-yellow-500' : ''}`}>
-                {/* Badge Container */}
-                <div className="absolute -top-4 left-0 right-0 flex justify-center items-center gap-2 px-4">
-                  {isPopular && (
-                    <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
-                      MOST POPULAR
-                    </span>
-                  )}
-                  {purchaseCount > 0 && (
-                    <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
-                      <CheckCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                      PURCHASED {purchaseCount > 1 ? `(${purchaseCount}x)` : ''}
-                    </span>
-                  )}
-                  {hasPending && purchaseCount === 0 && (
-                    <span className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1 whitespace-nowrap">
-                      <Clock size={12} className="sm:w-3.5 sm:h-3.5" />
-                      PENDING
-                    </span>
-                  )}
-                </div>
-                <div className="p-8">
-                  <div className="text-center mb-6">
-                    <h3 className="text-3xl font-bold text-gray-800 mb-2">{pkg.name}</h3>
-                    <div className="text-5xl font-bold text-orange-600 mb-2">₹{pkg.price}</div>
-                    <p className="text-gray-600">{pkg.description}</p>
-                    {/* Package-specific benefits */}
-                    {(() => {
-                      const benefits = getPackageBenefits(pkg.name);
-                      return benefits.length > 0 ? (
-                        <div className="mt-4 text-left max-w-md mx-auto">
-                          <h5 className="text-sm font-semibold text-gray-800 mb-2">Benefits included:</h5>
-                          <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                            {benefits.map((b, i) => (
-                              <li key={i}>{b}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null;
-                    })()}
-                    {purchaseCount > 0 && (
-                      <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-green-700 text-sm font-medium">
-                          ✅ You own this package {purchaseCount > 1 ? `(${purchaseCount} times)` : ''}
-                        </p>
-                        {purchaseDetails.lastPurchaseDate && (
-                          <p className="text-green-600 text-xs mt-1">
-                            Last purchased on {purchaseDetails.lastPurchaseDate.toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
+              <div
+                key={pkg._id}
+                className={`${CARD_WIDTH} relative flex flex-col bg-white rounded-2xl border p-6 sm:p-7 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl ${isOwned
+                  ? 'border-green-300 shadow-sm'
+                  : hasPending
+                    ? 'border-amber-300 shadow-sm'
+                    : isPopular
+                      ? 'border-brand-primary/40 shadow-md'
+                      : 'border-gray-200 shadow-sm'
+                  }`}
+              >
+                {/* Name + status badges */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {isPopular && (
+                      <span className="bg-orange-50 text-brand-deep px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                        Most Popular
+                      </span>
                     )}
-                    {hasPending && purchaseCount === 0 && (
-                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-yellow-700 text-sm font-medium">⏳ Payment verification pending</p>
-                        <p className="text-yellow-600 text-xs mt-1">
-                          Your payment is being reviewed by admin
-                        </p>
-                      </div>
+                    {isOwned && (
+                      <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                        <CheckCircle size={12} />
+                        Purchased {purchaseCount > 1 ? `(${purchaseCount}x)` : ''}
+                      </span>
+                    )}
+                    {hasPending && !isOwned && (
+                      <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 whitespace-nowrap">
+                        <Clock size={12} />
+                        Pending
+                      </span>
                     )}
                   </div>
-                  <div className="mb-8">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2 text-orange-500" />
+                </div>
+
+                <div className="mt-4 text-4xl font-bold tracking-tight text-gray-900">
+                  ₹{formatINR(pkg.price)}
+                </div>
+                {pkg.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-500">{pkg.description}</p>
+                )}
+
+                {/* Package-specific benefits */}
+                {benefits.length > 0 && (
+                  <div className="mt-5">
+                    <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Benefits included</h5>
+                    <ul className="space-y-2">
+                      {benefits.map((b, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                          <Check className="w-4 h-4 mt-0.5 text-brand-primary flex-shrink-0" />
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {commissionStructure.length > 0 && (
+                  <div className="mt-6 rounded-xl bg-gray-50 p-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 flex items-center">
+                      <TrendingUp className="w-4 h-4 mr-1.5 text-brand-primary" />
                       Commission Structure
                     </h4>
-                    <div className="space-y-2">
+                    <div className="divide-y divide-gray-200/70">
                       {commissionStructure.map((commission, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600">Level {commission.level}:</span>
-                          <span className="font-semibold text-green-600">₹{commission.amount}</span>
+                        <div key={idx} className="flex justify-between items-center py-2 text-sm">
+                          <span className="text-gray-600">Level {commission.level}</span>
+                          <span className="font-semibold text-gray-900 tabular-nums">₹{formatINR(commission.amount)}</span>
                         </div>
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Pinned to the bottom so buttons line up across cards */}
+                <div className="mt-auto pt-6">
+                  {isOwned && (
+                    <div className="mb-3 px-3 py-2 bg-green-50 rounded-lg">
+                      <p className="text-green-700 text-sm font-medium">
+                        You own this package {purchaseCount > 1 ? `(${purchaseCount} times)` : ''}
+                      </p>
+                      {purchaseDetails.lastPurchaseDate && (
+                        <p className="text-green-600 text-xs mt-0.5">
+                          Last purchased on {purchaseDetails.lastPurchaseDate.toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {hasPending && !isOwned && (
+                    <div className="mb-3 px-3 py-2 bg-amber-50 rounded-lg">
+                      <p className="text-amber-700 text-sm font-medium">Payment verification pending</p>
+                      <p className="text-amber-600 text-xs mt-0.5">
+                        Your payment is being reviewed by admin
+                      </p>
+                    </div>
+                  )}
                   <button
                     onClick={() => handlePurchase(pkg._id, pkg.name)}
                     disabled={purchasing === pkg.name || hasPending}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center ${purchasing === pkg.name
-                      ? 'bg-gray-400 cursor-not-allowed'
+                    className={`w-full py-3 px-5 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 ${purchasing === pkg.name
+                      ? 'bg-gray-300 text-white cursor-not-allowed'
                       : hasPending
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white cursor-not-allowed'
-                        : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white hover:scale-105'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200 cursor-not-allowed'
+                        : isOwned
+                          ? 'bg-white text-brand-deep border border-brand-primary/40 hover:bg-orange-50 active:scale-[0.98]'
+                          : 'bg-brand-deep hover:bg-brand-deeper text-white shadow-sm hover:shadow-md active:scale-[0.98]'
                       }`}
                   >
                     {purchasing === pkg.name ? (
@@ -451,7 +465,7 @@ const Package = () => {
                     ) : (
                       <>
                         <ShoppingCart className="w-5 h-5 mr-2" />
-                        {purchaseCount > 0 ? `Buy Again (${purchaseCount} owned)` : 'Purchase Now'}
+                        {isOwned ? `Buy Again (${purchaseCount} owned)` : 'Purchase Now'}
                       </>
                     )}
                   </button>
@@ -462,25 +476,37 @@ const Package = () => {
         </div>
 
         {/* Commission System Info */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-orange-100">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-            🎯 Multi-Level Referral Commission System
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Multi-Level Referral Commission System
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <Users className="w-12 h-12 text-orange-500 mx-auto mb-3" />
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">120 Levels Deep</h4>
-              <p className="text-gray-600">Our genealogy tree supports up to 120 levels of referrals</p>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-brand-primary" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">120 Levels Deep</h4>
+                <p className="text-sm text-gray-500">Our genealogy tree supports up to 120 levels of referrals</p>
+              </div>
             </div>
-            <div className="text-center">
-              <TrendingUp className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Automatic Distribution</h4>
-              <p className="text-gray-600">Commissions are automatically distributed to all sponsors</p>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 text-brand-primary" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">Automatic Distribution</h4>
+                <p className="text-sm text-gray-500">Commissions are automatically distributed to all sponsors</p>
+              </div>
             </div>
-            <div className="text-center">
-              <Star className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Real-time Tracking</h4>
-              <p className="text-gray-600">Track all your earnings and transactions in real-time</p>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5 text-brand-primary" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">Real-time Tracking</h4>
+                <p className="text-sm text-gray-500">Track all your earnings and transactions in real-time</p>
+              </div>
             </div>
           </div>
         </div>
@@ -562,4 +588,4 @@ const Package = () => {
   );
 };
 
-export default Package; 
+export default Package;

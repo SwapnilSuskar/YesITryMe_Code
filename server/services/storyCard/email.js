@@ -214,7 +214,7 @@ ${detailRows}
 <tr><td class="px sp" style="padding:0 36px 32px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#1A0508" style="background-color:#1A0508;background-image:linear-gradient(150deg,#4A0710 0%,#1A0508 60%);border-radius:22px;">
 <tr><td align="center" class="ipx" style="padding:26px 24px 6px;font-family:${FONT};font-size:22px;line-height:28px;font-weight:800;color:#FFFFFF;">Share your success &#128640;</td></tr>
-<tr><td align="center" class="ipx" style="padding:4px 24px 18px;font-family:${FONT};font-size:14px;line-height:22px;color:#F1DCD4;"><strong style="color:#FFFFFF;">Post your success card on WhatsApp Status or Instagram Story</strong> with the caption below &mdash; friends who join ${rawCode ? "with your code" : "through your link"} become part of your team.</td></tr>
+<tr><td align="center" class="ipx" style="padding:4px 24px 18px;font-family:${FONT};font-size:14px;line-height:22px;color:#F1DCD4;"><strong style="color:#FFFFFF;">Post your success card on WhatsApp Status or Instagram Story</strong> with the caption below &mdash; ${rawCode ? "friends who join with your code become part of your team." : "and invite your friends to start earning with YesITryMe."}</td></tr>
 ${codeBox}
 <tr><td class="ipx" style="padding:0 24px 6px;font-family:${FONT};font-size:10px;line-height:14px;font-weight:700;color:#FFB38A;letter-spacing:2px;">YOUR CAPTION &middot; COPY &amp; PASTE</td></tr>
 <tr><td class="ipx" style="padding:0 24px 20px;">

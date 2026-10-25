@@ -23,7 +23,7 @@ import { formatRupees } from "./storyCard/svgText.js";
 //                                       receipt emails need. Falls back to EMAIL_USER.
 //   EARNING_EMAILS_OUTSIDE_REQUEST=true also send from scripts / background jobs
 //                                       (off by default so maintenance scripts stay silent)
-//   PUBLIC_SITE_URL=https://www.yesitryme.com   used for referral links
+//   PUBLIC_SITE_URL=https://www.yesitryme.com   website link shown in the emails
 
 const SITE_URL = (process.env.PUBLIC_SITE_URL || "https://www.yesitryme.com").replace(/\/+$/, "");
 const SITE_LABEL = SITE_URL.replace(/^https?:\/\//, "");
@@ -126,11 +126,6 @@ const shortName = (name) => {
 const fullName = (user) =>
   [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "YesITryMe Member";
 
-const referralLinkFor = (user) =>
-  user.referralCode
-    ? `${SITE_URL}/?referrer_code=${encodeURIComponent(user.referralCode)}`
-    : SITE_URL;
-
 // ---------- transporter + Gmail quota pause ----------
 
 let transporter = null;
@@ -200,8 +195,10 @@ const creditSource = (tx) => {
 const baseData = (user) => ({
   name: fullName(user),
   firstName: user.firstName || fullName(user).split(" ")[0],
-  referralCode: user.referralCode || "",
-  referralLink: referralLinkFor(user),
+  // No referral code anywhere in these emails or images (owner's choice), so
+  // the link is the plain website rather than the user's referral link.
+  referralCode: "",
+  referralLink: SITE_URL,
   website: SITE_LABEL,
 });
 
@@ -288,7 +285,7 @@ const buildEmailText = (data) => {
   );
   if (data.referralCode) lines.push(`Your referral code: ${data.referralCode}`);
   lines.push(
-    `Your referral link: ${data.referralLink}`,
+    `Join YesITryMe: ${data.referralLink}`,
     "",
     "YesITryMe · +91 7066916324 · YesITryMeofficial@gmail.com",
     "You received this email because money moved in your YesITryMe account.",

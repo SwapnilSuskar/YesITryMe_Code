@@ -26,6 +26,7 @@ import categoryRoutes from "./routes/categories.js";
 import videoTasksRoutes from "./routes/videoTasks.js";
 import servicesRoutes from "./routes/services.js";
 import productOrderRoutes from "./routes/productOrders.js";
+import storyCardRoutes from "./routes/storyCard.js";
 import { earningEmailMiddleware } from "./services/earningEmailService.js";
 
 const app = express();
@@ -240,6 +241,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/video-tasks", videoTasksRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/product-orders", productOrderRoutes);
+app.use("/api/story-card", storyCardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

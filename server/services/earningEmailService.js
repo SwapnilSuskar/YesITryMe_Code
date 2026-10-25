@@ -162,13 +162,15 @@ const isQuotaError = (error) =>
 
 const isUnassignedCommission = (tx) => /^unassigned/i.test(String(tx.description || ""));
 
-export const isCreditEmailable = (tx) =>
+// Income a user can make a share image for (any amount from ₹1; no email minimum).
+export const isIncomeTransaction = (tx) =>
   !!tx &&
   CREDIT_TYPES.has(tx.type) &&
   (tx.status || "completed") === "completed" &&
-  Number(tx.amount) > 0 &&
-  Number(tx.amount) >= minCreditAmount() &&
+  Number(tx.amount) >= 1 &&
   !isUnassignedCommission(tx);
+
+export const isCreditEmailable = (tx) => isIncomeTransaction(tx) && Number(tx.amount) >= minCreditAmount();
 
 // ---------- email content ----------
 
@@ -293,6 +295,15 @@ const buildEmailText = (data) => {
   return lines.join("\n");
 };
 
+// Story image (JPEG Buffer). It is posted publicly, so it gets only the public fields.
+export const renderStoryImage = (data) => {
+  const { kind, amount, name, firstName, sourceLabel, date, referralCode, referralLink, website } = data;
+  return renderCard({ kind, amount, name, firstName, sourceLabel, date, referralCode, referralLink, website });
+};
+
+export const storyFileName = (kind) =>
+  kind === "withdrawal" ? "YesITryMe-Withdrawal-Story.jpg" : "YesITryMe-Earning-Story.jpg";
+
 // Renders the story image and sends the email. Never throws.
 export const sendEarningEmail = async (data, email, { subjectPrefix = "" } = {}) => {
   try {
@@ -301,10 +312,9 @@ export const sendEarningEmail = async (data, email, { subjectPrefix = "" } = {})
       console.warn(`⏸️ Earning email to ${email} skipped: Gmail daily limit reached earlier today`);
       return false;
     }
-    // The story image is posted publicly: give it only the public fields.
-    const { kind, amount, name, firstName, sourceLabel, date, referralCode, referralLink, website } = data;
-    const card = await renderCard({ kind, amount, name, firstName, sourceLabel, date, referralCode, referralLink, website });
-    const fileName = kind === "withdrawal" ? "YesITryMe-Withdrawal-Story.jpg" : "YesITryMe-Earning-Story.jpg";
+    const { kind, amount } = data;
+    const card = await renderStoryImage(data);
+    const fileName = storyFileName(kind);
 
     await getTransporter().sendMail({
       from: `"YesITryMe" <${senderUser()}>`,

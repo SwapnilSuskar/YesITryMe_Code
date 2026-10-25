@@ -13,6 +13,19 @@ export const otpLimiter = rateLimit({
 }); 
 
 
+// Share images take ~0.5s of CPU each; stop one account from hammering the endpoint
+export const storyCardRateLimit = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 40,
+  message: {
+    success: false,
+    message: 'Too many images created. Please try again in a few minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.user ? req.user.userId : ipKeyGenerator(req)),
+});
+
 // Rate limiting for withdrawal requests
 export const withdrawalRateLimit = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes

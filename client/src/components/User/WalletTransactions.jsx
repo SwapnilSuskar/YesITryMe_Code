@@ -1,15 +1,91 @@
-import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BatteryCharging, BookOpen, CheckCircle, Coins, Crown, Gift, IndianRupee, ShoppingCart, Star, Wallet, Smartphone } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertCircle, ArrowDownCircle, ArrowUpCircle, BatteryCharging, BookOpen, CheckCircle, Coins, Crown, Gift, IndianRupee, ShoppingCart, Star, Wallet, Smartphone, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import api, { API_ENDPOINTS } from '../../config/api';
 import { useAuthStore } from '../../store/useAuthStore';
 import LoginPrompt from '../UI/LoginPrompt';
 import { getRechargeHistory } from '../../services/rechargeService';
+import StoryCardModal from './StoryCardModal';
+
+// Rows that get a "Share" button (story image for WhatsApp Status / Instagram Story):
+// income, plus "payout received" which gets the withdrawal image
+const STORY_INCOME_TYPES = ['commission', 'bonus', 'leadership', 'royalty', 'reward', 'fund_credit', 'shop_cashback', 'special_income_credit', 'payout_received'];
+const SITE_URL = 'https://www.yesitryme.com';
+const isRealId = (id) => /^[a-f0-9]{24}$/i.test(String(id || ''));
+const canShareTransaction = (t) =>
+    isRealId(t._id) &&
+    STORY_INCOME_TYPES.includes(t.type) &&
+    (t.status || 'completed') === 'completed' &&
+    Number(t.amount) >= 1 &&
+    !/^unassigned/i.test(t.description || '');
+const formatShareAmount = (n) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+const ShareButton = ({ onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#FF4E00] px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#E04400] active:scale-95 transition"
+        title="Create an image for your WhatsApp Status / Instagram Story"
+    >
+        <Share2 size={14} /> Share
+    </button>
+);
 
 /** Same as rest of app: 100 coins = ₹1 */
 const COINS_PER_RUPEE = 100;
 const coinsToRupeesValue = (coins) => (Math.abs(Number(coins)) || 0) / COINS_PER_RUPEE;
 const formatRupeesFromCoins = (coins) =>
     coinsToRupeesValue(coins).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ---- safe formatting (bad or missing values never crash the page) ----
+const toNumber = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
+// 1250000 -> "₹12,50,000", -200 -> "−₹200", 100.5 -> "₹100.5"
+const inr = (v) => {
+    const n = toNumber(v);
+    return `${n < 0 ? '−' : ''}₹${Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+};
+const statusLabel = (s) => {
+    const text = String(s || 'completed');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+};
+// "••••1234" so full account numbers don't sit on screen
+const maskAccount = (acc) => {
+    const s = String(acc || '').replace(/\s+/g, '');
+    return s.length > 4 ? `••••${s.slice(-4)}` : s;
+};
+const ITEMS_PER_PAGE = 10;
+// Clamps a page number into 1..totalPages and returns that page's slice
+const paginate = (rows, page) => {
+    const totalPages = Math.max(1, Math.ceil(rows.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return { rows: rows.slice(start, start + ITEMS_PER_PAGE), page: safePage, totalPages };
+};
+// Wallet income that counts toward "Total Earned". Fund credits that carry a
+// fundType go into the separate Funds balance, not the wallet, so they're left out.
+const EARNING_TYPES = ['commission', 'bonus', 'leadership', 'royalty', 'reward', 'shop_cashback', 'fund_credit'];
+const isCompleted = (t) => String(t.status || 'completed').toLowerCase() === 'completed';
+const countsAsEarning = (t) => isCompleted(t) && EARNING_TYPES.includes(t.type) && !t.fundType && toNumber(t.amount) > 0;
+// Money that left the wallet: payouts and admin deductions (stored negative),
+// minus payouts that were reversed (refund rows with a PAYOUT_REVERSAL_ reference)
+const withdrawnAmount = (t) => {
+    if (!isCompleted(t)) return 0;
+    if (t.type === 'withdrawal') return Math.abs(toNumber(t.amount));
+    if (t.type === 'refund' && /^PAYOUT_REVERSAL_/.test(t.reference || '')) return -Math.abs(toNumber(t.amount));
+    return 0;
+};
+const LOAD_SECTIONS = {
+    summary: 'wallet summary',
+    credited: 'credited amounts',
+    payouts: 'payout history',
+    coins: 'coin transactions',
+    funds: 'funds',
+    special: 'special income',
+    recharges: 'recharges',
+    topups: 'wallet top-ups',
+};
 
 const WalletTransactions = () => {
     const { user } = useAuthStore();
@@ -32,22 +108,47 @@ const WalletTransactions = () => {
     const [rechargeTransactions, setRechargeTransactions] = useState([]);
     const [rechargeWalletTransactions, setRechargeWalletTransactions] = useState([]);
     const [rechargePage, setRechargePage] = useState(1);
-    const [rechargeTotalPages, setRechargeTotalPages] = useState(1);
     const [allCreditedTransactions, setAllCreditedTransactions] = useState([]);
+    const [allPayouts, setAllPayouts] = useState([]);
+    const [loadErrors, setLoadErrors] = useState([]);
+    const markLoadError = (section, failed) =>
+        setLoadErrors((prev) => (failed ? [...new Set([...prev, section])] : prev.filter((s) => s !== section)));
+    const [storyCard, setStoryCard] = useState(null);
+    const closeStoryCard = useCallback(() => setStoryCard(null), []);
 
+    const openTransactionCard = (t) => {
+        const isPayout = t.type === 'payout_received';
+        // type/amount/at let the server find old transactions saved without a fixed id
+        const params = new URLSearchParams({ type: t.type, amount: String(t.amount) });
+        const at = new Date(t.createdAt);
+        if (t.createdAt && !Number.isNaN(at.getTime())) params.set('at', at.toISOString());
+        const amount = formatShareAmount(t.amount);
+        setStoryCard({
+            url: `${API_ENDPOINTS.storyCard.transaction(t._id)}?${params}`,
+            fileName: `YesITryMe-${isPayout ? 'Withdrawal' : 'Earning'}-${Math.round(Number(t.amount) || 0)}.jpg`,
+            caption: isPayout
+                ? `Got ₹${amount} in my bank from YesITryMe! ✅ Join me 👉 ${SITE_URL}`
+                : `Earned ₹${amount} on YesITryMe! 🎉 Join me 👉 ${SITE_URL}`,
+        });
+    };
+
+    const loadAll = () => {
+        setError('');
+        fetchWalletData();
+        fetchPayoutHistory(1);
+        fetchWalletTransactions(1);
+        fetchCoinTransactions(1);
+        fetchUserFunds();
+        fetchSpecialIncome();
+        fetchRechargeHistory();
+        fetchRechargeWalletData();
+    };
+
+    // Reload only when the logged-in account changes, not on every user-object update
     useEffect(() => {
-        if (user) {
-            fetchWalletData();
-            fetchPayoutHistory(1);
-            fetchWalletTransactions(1);
-            fetchCoinTransactions(1);
-            fetchUserFunds();
-            fetchSpecialIncome();
-            fetchRechargeHistory(1);
-            fetchRechargeWalletData();
-        }
+        if (user?.userId) loadAll();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    }, [user?.userId]);
 
     const fetchWalletData = async () => {
         try {
@@ -56,13 +157,24 @@ const WalletTransactions = () => {
             const response = await api.get(API_ENDPOINTS.packages.commissionSummary);
             if (response.data.success) {
                 setWalletData(response.data.data);
+                setError('');
             }
+            markLoadError('summary', false);
         } catch (error) {
             console.error('Error fetching wallet data:', error);
             setError('Failed to fetch wallet data');
+            markLoadError('summary', true);
         } finally {
             setLoading(false);
         }
+    };
+
+    // Credited tab: all rows are fetched once; pages are sliced here
+    const showCreditedPage = (rows, page) => {
+        const p = paginate(rows, page);
+        setWalletTransactions(p.rows);
+        setCreditedTotalPages(p.totalPages);
+        setCreditedPage(p.page);
     };
 
     const fetchWalletTransactions = async (page = 1) => {
@@ -71,40 +183,33 @@ const WalletTransactions = () => {
             const response = await api.get(`${API_ENDPOINTS.packages.transactions}?limit=1000`);
 
             if (response.data.success) {
-                const allTransactions = response.data.data.transactions || [];
+                const allTransactions = response.data.data?.transactions || [];
                 // Filter out recharge transactions from credited tab
                 const creditedTransactions = allTransactions.filter(t =>
                     t.type === 'commission' || t.type === 'bonus' || t.type === 'leadership' || t.type === 'royalty' || t.type === 'reward' || t.type === 'refund' || t.type === 'payout_received' || t.type === 'fund_credit' || t.type === 'withdrawal' || t.type === 'shop_cashback'
                 );
 
                 setAllCreditedTransactions(creditedTransactions);
-
-                // Client-side pagination
-                const itemsPerPage = 10;
-                const totalPages = Math.ceil(creditedTransactions.length / itemsPerPage);
-                const startIndex = (page - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const paginatedTransactions = creditedTransactions.slice(startIndex, endIndex);
-
-                setWalletTransactions(paginatedTransactions);
-                setCreditedTotalPages(totalPages);
-                setCreditedPage(page);
+                showCreditedPage(creditedTransactions, page);
             }
+            markLoadError('credited', false);
         } catch (error) {
             console.error('Error fetching wallet transactions:', error);
+            markLoadError('credited', true);
         }
     };
 
     const fetchRechargeWalletData = async () => {
         try {
-            const response = await api.get(`${API_ENDPOINTS.recharge.walletTransactions}?limit=500`);
+            // The server returns at most 200 rows per request
+            const response = await api.get(`${API_ENDPOINTS.recharge.walletTransactions}?limit=200`);
             if (response.data.success) {
                 setRechargeWalletTransactions(response.data.transactions || []);
-                setRechargeTotalPages(response.data.totalPages || 1);
-                setRechargePage(response.data.page || 1);
             }
+            markLoadError('topups', false);
         } catch (error) {
             console.error('Error fetching recharge wallet transactions:', error);
+            markLoadError('topups', true);
         }
     };
 
@@ -119,7 +224,7 @@ const WalletTransactions = () => {
             // Fetch all coin transactions
             const transactionsResponse = await api.get(`${API_ENDPOINTS.coins.transactions}?limit=1000`);
             if (transactionsResponse.data.success) {
-                const allTransactions = transactionsResponse.data.data.transactions || [];
+                const allTransactions = transactionsResponse.data.data?.transactions || [];
                 // Include both earning and withdrawal transactions in pagination
                 const allCoinTransactions = allTransactions.filter(t =>
                     t.type === 'view' ||
@@ -131,47 +236,45 @@ const WalletTransactions = () => {
                     t.type === 'referral_bonus' ||
                     t.type === 'recharge_bonus' ||
                     t.type === 'withdrawal' ||
-                    t.type === 'product_order'
+                    t.type === 'product_order' ||
+                    t.type === 'admin_adjust' // refunds of rejected withdrawals, admin corrections
                 );
 
                 // Sort by date (newest first)
                 allCoinTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                // Client-side pagination
-                const itemsPerPage = 10;
-                const totalPages = Math.ceil(allCoinTransactions.length / itemsPerPage);
-                const startIndex = (page - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const paginatedTransactions = allCoinTransactions.slice(startIndex, endIndex);
-
-                setCoinTransactions(paginatedTransactions);
-                setCoinTotalPages(totalPages);
-                setCoinPage(page);
+                const p = paginate(allCoinTransactions, page);
+                setCoinTransactions(p.rows);
+                setCoinTotalPages(p.totalPages);
+                setCoinPage(p.page);
             }
+            markLoadError('coins', false);
         } catch (error) {
             console.error('Error fetching coin transactions:', error);
+            markLoadError('coins', true);
         }
+    };
+
+    // Payout tab: all payouts are fetched once (cards need all of them); pages are sliced here
+    const showPayoutPage = (payouts, page) => {
+        const p = paginate(payouts, page);
+        setPayoutHistory(p.rows);
+        setPayoutTotalPages(p.totalPages);
+        setPayoutPage(p.page);
     };
 
     const fetchPayoutHistory = async (page = 1) => {
         try {
-            const response = await api.get(API_ENDPOINTS.payout.history);
+            const response = await api.get(`${API_ENDPOINTS.payout.history}?limit=500`);
             if (response.data.success) {
-                const allPayouts = response.data.payouts || [];
-
-                // Client-side pagination
-                const itemsPerPage = 10;
-                const totalPages = Math.ceil(allPayouts.length / itemsPerPage);
-                const startIndex = (page - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const paginatedPayouts = allPayouts.slice(startIndex, endIndex);
-
-                setPayoutHistory(paginatedPayouts);
-                setPayoutTotalPages(totalPages);
-                setPayoutPage(page);
+                const payouts = response.data.payouts || [];
+                setAllPayouts(payouts);
+                showPayoutPage(payouts, page);
             }
+            markLoadError('payouts', false);
         } catch (error) {
             console.error('Error fetching payout history:', error);
+            markLoadError('payouts', true);
         }
     };
 
@@ -190,8 +293,11 @@ const WalletTransactions = () => {
             };
 
             setUserFunds(fundsData);
+            markLoadError('funds', false);
         } catch (error) {
             console.error('Error fetching user funds:', error);
+            // 404 just means no funds yet
+            markLoadError('funds', error.response?.status !== 404);
             setUserFunds({
                 mobileFund: 0,
                 laptopFund: 0,
@@ -215,8 +321,11 @@ const WalletTransactions = () => {
             };
 
             setSpecialIncome(specialIncomeData);
+            markLoadError('special', false);
         } catch (error) {
             console.error('Error fetching special income:', error);
+            // 404 just means no special income yet
+            markLoadError('special', error.response?.status !== 404);
             setSpecialIncome({
                 leaderShipFund: 0,
                 royaltyIncome: 0,
@@ -225,11 +334,12 @@ const WalletTransactions = () => {
         }
     };
 
-    const fetchRechargeHistory = async (page = 1) => {
+    // Loads all recharges at once; the tab merges them with wallet top-ups and pages them here
+    const fetchRechargeHistory = async () => {
         try {
-            const response = await getRechargeHistory(page, 10, 'all');
+            const response = await getRechargeHistory(1, 500, 'all');
             if (response.success) {
-                const recharges = response.data.recharges || [];
+                const recharges = response.data?.recharges || [];
                 const normalized = recharges.map((recharge) => {
                     const autoResolved =
                         recharge.rechargeCompletedAt && recharge.status === 'success';
@@ -258,12 +368,12 @@ const WalletTransactions = () => {
                 });
 
                 setRechargeTransactions(normalized);
-                setRechargeTotalPages(response.data.totalPages || 1);
-                setRechargePage(page);
             }
+            markLoadError('recharges', false);
         } catch (error) {
             console.error('Error fetching recharge history:', error);
             setRechargeTransactions([]);
+            markLoadError('recharges', true);
         }
     };
 
@@ -500,11 +610,13 @@ const WalletTransactions = () => {
     }
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-IN');
+        const d = new Date(dateString);
+        return dateString && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-IN') : '—';
     };
 
     const formatDateTime = (dateString) => {
-        return new Date(dateString).toLocaleString('en-IN');
+        const d = new Date(dateString);
+        return dateString && !Number.isNaN(d.getTime()) ? d.toLocaleString('en-IN') : '—';
     };
 
     const PaginationComponent = ({ currentPage, totalPages, onPageChange, colorClass = 'blue' }) => {
@@ -727,7 +839,7 @@ const WalletTransactions = () => {
                 description: `Mobile Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'mobileFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'Mobile Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -741,7 +853,7 @@ const WalletTransactions = () => {
                 description: `Laptop Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'laptopFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'Laptop Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -755,7 +867,7 @@ const WalletTransactions = () => {
                 description: `Bike Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'bikeFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'Bike Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -769,7 +881,7 @@ const WalletTransactions = () => {
                 description: `Car Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'carFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'Car Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -783,7 +895,7 @@ const WalletTransactions = () => {
                 description: `House Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'houseFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'House Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -797,7 +909,7 @@ const WalletTransactions = () => {
                 description: `Travel Fund credit added by admin`,
                 status: 'completed',
                 fundType: 'travelFund',
-                createdAt: new Date(),
+                createdAt: userFunds.lastUpdated || userFunds.updatedAt || null, // balance, not a single credit
                 packageName: 'Travel Fund',
                 purchaserName: 'Admin',
                 level: 'Fund'
@@ -815,7 +927,7 @@ const WalletTransactions = () => {
                 description: `Leadership Fund credit added by admin`,
                 status: 'completed',
                 incomeType: 'leaderShipFund',
-                createdAt: new Date(),
+                createdAt: specialIncome.updatedAt || null, // balance, not a single credit
                 packageName: 'Leadership Fund',
                 purchaserName: 'Admin',
                 level: 'Special Income'
@@ -829,7 +941,7 @@ const WalletTransactions = () => {
                 description: `Royalty Income credit added by admin`,
                 status: 'completed',
                 incomeType: 'royaltyIncome',
-                createdAt: new Date(),
+                createdAt: specialIncome.updatedAt || null, // balance, not a single credit
                 packageName: 'Royalty Income',
                 purchaserName: 'Admin',
                 level: 'Special Income'
@@ -843,7 +955,7 @@ const WalletTransactions = () => {
                 description: `Reward Income credit added by admin`,
                 status: 'completed',
                 incomeType: 'rewardIncome',
-                createdAt: new Date(),
+                createdAt: specialIncome.updatedAt || null, // balance, not a single credit
                 packageName: 'Reward Income',
                 purchaserName: 'Admin',
                 level: 'Special Income'
@@ -851,15 +963,15 @@ const WalletTransactions = () => {
         }
     }
 
-    // Calculate total earned from commission transactions (this should NOT be affected by withdrawals)
-    const totalEarned = (allCreditedTransactions.length ? allCreditedTransactions : creditedTransactions)
-        .filter(t => (t.status || '').toLowerCase() === 'completed')
-        .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    // Total Earned: wallet income only (not withdrawals, payouts received, refunds or Funds credits)
+    const creditedRowsForTotals = allCreditedTransactions.length ? allCreditedTransactions : creditedTransactions;
+    const totalEarned = creditedRowsForTotals
+        .filter(countsAsEarning)
+        .reduce((sum, t) => sum + toNumber(t.amount), 0);
 
-    // Calculate total withdrawn from payout history (only approved and completed payouts)
-    const totalWithdrawn = payoutHistory
-        .filter(p => p.status === 'approved' || p.status === 'completed')
-        .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    // Total Withdrawn: money that left the wallet, minus reversed payouts.
+    // From wallet rows, so it covers every page and leaves out Funds / special-income payouts.
+    const totalWithdrawn = Math.max(0, creditedRowsForTotals.reduce((sum, t) => sum + withdrawnAmount(t), 0));
 
 
 
@@ -914,6 +1026,23 @@ const WalletTransactions = () => {
                     </button>
                 </div>
                 <div className="z-10 relative">
+                    {loadErrors.length > 0 && (
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle size={18} />
+                                <span>
+                                    Couldn't load {loadErrors.map((s) => LOAD_SECTIONS[s] || s).join(', ')}. Amounts shown may be incomplete.
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={loadAll}
+                                className="rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                            >
+                                Try again
+                            </button>
+                        </div>
+                    )}
                     {tab === 'credited' ? (
                         <>
                             {/* Summary Cards */}
@@ -923,7 +1052,7 @@ const WalletTransactions = () => {
                                         <ArrowUpCircle className="text-blue-500" size={32} />
                                         <div>
                                             <div className="text-xs text-blue-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Available Balance</div>
-                                            <div className="text-2xl font-extrabold text-blue-700">₹{walletData?.balance?.toLocaleString() || '0'}</div>
+                                            <div className="text-2xl font-extrabold text-blue-700">{inr(walletData?.balance)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -932,7 +1061,7 @@ const WalletTransactions = () => {
                                         <ArrowDownCircle className="text-red-500" size={32} />
                                         <div>
                                             <div className="text-xs text-red-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Withdrawn</div>
-                                            <div className="text-2xl font-extrabold text-red-700">₹{totalWithdrawn.toLocaleString()}</div>
+                                            <div className="text-2xl font-extrabold text-red-700">{inr(totalWithdrawn)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -941,7 +1070,7 @@ const WalletTransactions = () => {
                                         <ArrowUpCircle className="text-green-500" size={32} />
                                         <div>
                                             <div className="text-xs text-green-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Earned</div>
-                                            <div className="text-2xl font-extrabold text-green-700">₹{totalEarned.toLocaleString()}</div>
+                                            <div className="text-2xl font-extrabold text-green-700">{inr(totalEarned)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -970,7 +1099,7 @@ const WalletTransactions = () => {
                                                         {getTransactionTypeIcon(transaction.type)}
                                                         <div>
                                                             <div className={`font-semibold text-lg ${getTransactionTypeColor(transaction.type)}`}>
-                                                                ₹{transaction.amount.toLocaleString()}
+                                                                {inr(transaction.amount)}
                                                             </div>
                                                             <div className="text-sm text-gray-600">{transaction.description}</div>
                                                             {transaction.packageName && (
@@ -979,12 +1108,12 @@ const WalletTransactions = () => {
                                                             {transaction.purchaserName && (
                                                                 <div className="text-xs text-gray-500">From: {transaction.purchaserName}</div>
                                                             )}
-                                                            {transaction.level && (
+                                                            {transaction.level ? (
                                                                 <div className="text-xs text-gray-500">Level: {transaction.level}</div>
-                                                            )}
+                                                            ) : null}
                                                             {transaction.type === 'commission' && (
                                                                 <div className="text-xs text-blue-600 font-semibold">
-                                                                    💰 Commission from Level {transaction.level}
+                                                                    {transaction.level ? `💰 Commission from Level ${transaction.level}` : '💰 Commission'}
                                                                 </div>
                                                             )}
                                                             {transaction.type === 'bonus' && (
@@ -1017,7 +1146,7 @@ const WalletTransactions = () => {
                                                                     💰 Admin Added Money
                                                                 </div>
                                                             )}
-                                                            {transaction.incomeType && (
+                                                            {(transaction.incomeType === 'active' || transaction.incomeType === 'passive') && (
                                                                 <div className={`inline-block text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${transaction.incomeType === 'active'
                                                                     ? 'bg-green-100 text-green-800'
                                                                     : 'bg-blue-100 text-blue-800'
@@ -1030,8 +1159,13 @@ const WalletTransactions = () => {
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
                                                         <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
-                                                            {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                                            {statusLabel(transaction.status)}
                                                         </div>
+                                                        {canShareTransaction(transaction) && (
+                                                            <div>
+                                                                <ShareButton onClick={() => openTransactionCard(transaction)} />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1044,7 +1178,7 @@ const WalletTransactions = () => {
                             <PaginationComponent
                                 currentPage={creditedPage}
                                 totalPages={creditedTotalPages}
-                                onPageChange={fetchWalletTransactions}
+                                onPageChange={(page) => showCreditedPage(allCreditedTransactions, page)}
                                 colorClass="blue"
                             />
                         </>
@@ -1131,7 +1265,7 @@ const WalletTransactions = () => {
                                                                     </>
                                                                 ) : transaction.type === 'withdrawal'
                                                                     ? `${Math.abs(transaction.amount).toLocaleString()} coins`
-                                                                    : `${transaction.amount.toLocaleString()} coins`
+                                                                    : `${toNumber(transaction.amount).toLocaleString('en-IN')} coins`
                                                                 }
                                                             </div>
                                                             <div className="text-sm font-semibold text-gray-800 mt-0.5 flex items-center gap-1">
@@ -1269,7 +1403,7 @@ const WalletTransactions = () => {
                                         <Wallet className="text-purple-500" size={32} />
                                         <div>
                                             <div className="text-xs text-purple-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Funds</div>
-                                            <div className="text-2xl font-extrabold text-purple-700">₹{userFunds?.totalFunds?.toLocaleString() || '0'}</div>
+                                            <div className="text-2xl font-extrabold text-purple-700">{inr(userFunds?.totalFunds)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1279,7 +1413,7 @@ const WalletTransactions = () => {
                                         <Star className="text-blue-500" size={32} />
                                         <div>
                                             <div className="text-xs text-blue-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Special Income</div>
-                                            <div className="text-2xl font-extrabold text-blue-700">₹{((specialIncome?.leaderShipFund || 0) + (specialIncome?.royaltyIncome || 0) + (specialIncome?.rewardIncome || 0)).toLocaleString()}</div>
+                                            <div className="text-2xl font-extrabold text-blue-700">{inr(toNumber(specialIncome?.leaderShipFund) + toNumber(specialIncome?.royaltyIncome) + toNumber(specialIncome?.rewardIncome))}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1288,7 +1422,7 @@ const WalletTransactions = () => {
                                         <ArrowUpCircle className="text-green-500" size={32} />
                                         <div>
                                             <div className="text-xs text-green-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Available</div>
-                                            <div className="text-2xl font-extrabold text-green-700">₹{((userFunds?.totalFunds || 0) + (specialIncome?.leaderShipFund || 0) + (specialIncome?.royaltyIncome || 0) + (specialIncome?.rewardIncome || 0)).toLocaleString()}</div>
+                                            <div className="text-2xl font-extrabold text-green-700">{inr(toNumber(userFunds?.totalFunds) + toNumber(specialIncome?.leaderShipFund) + toNumber(specialIncome?.royaltyIncome) + toNumber(specialIncome?.rewardIncome))}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1309,7 +1443,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">📱</div>
                                                         <div className="text-sm text-blue-600 font-medium">Mobile Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.mobileFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.mobileFund)}</div>
                                                 </div>
                                             )}
                                             {userFunds.laptopFund > 0 && (
@@ -1318,7 +1452,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">💻</div>
                                                         <div className="text-sm text-blue-600 font-medium">Laptop Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.laptopFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.laptopFund)}</div>
                                                 </div>
                                             )}
                                             {userFunds.bikeFund > 0 && (
@@ -1327,7 +1461,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">🏍️</div>
                                                         <div className="text-sm text-blue-600 font-medium">Bike Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.bikeFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.bikeFund)}</div>
                                                 </div>
                                             )}
                                             {userFunds.carFund > 0 && (
@@ -1336,7 +1470,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">🚗</div>
                                                         <div className="text-sm text-blue-600 font-medium">Car Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.carFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.carFund)}</div>
                                                 </div>
                                             )}
                                             {userFunds.houseFund > 0 && (
@@ -1345,7 +1479,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">🏠</div>
                                                         <div className="text-sm text-blue-600 font-medium">House Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.houseFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.houseFund)}</div>
                                                 </div>
                                             )}
                                             {userFunds.travelFund > 0 && (
@@ -1354,7 +1488,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">✈️</div>
                                                         <div className="text-sm text-blue-600 font-medium">Travel Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-blue-700">₹{userFunds.travelFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-blue-700">{inr(userFunds?.travelFund)}</div>
                                                 </div>
                                             )}
                                         </div>
@@ -1375,7 +1509,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">👑</div>
                                                         <div className="text-sm text-purple-600 font-medium">Leadership Fund</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-purple-700">₹{specialIncome.leaderShipFund.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-purple-700">{inr(specialIncome?.leaderShipFund)}</div>
                                                 </div>
                                             )}
                                             {specialIncome.royaltyIncome > 0 && (
@@ -1384,7 +1518,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">⭐</div>
                                                         <div className="text-sm text-purple-600 font-medium">Royalty Income</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-purple-700">₹{specialIncome.royaltyIncome.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-purple-700">{inr(specialIncome?.royaltyIncome)}</div>
                                                 </div>
                                             )}
                                             {specialIncome.rewardIncome > 0 && (
@@ -1393,7 +1527,7 @@ const WalletTransactions = () => {
                                                         <div className="text-2xl">🎯</div>
                                                         <div className="text-sm text-purple-600 font-medium">Reward Income</div>
                                                     </div>
-                                                    <div className="text-xl font-bold text-purple-700">₹{specialIncome.rewardIncome.toLocaleString()}</div>
+                                                    <div className="text-xl font-bold text-purple-700">{inr(specialIncome?.rewardIncome)}</div>
                                                 </div>
                                             )}
                                         </div>
@@ -1423,7 +1557,7 @@ const WalletTransactions = () => {
                                                             {getTransactionTypeIcon(transaction.type)}
                                                             <div>
                                                                 <div className={`font-semibold text-lg ${getTransactionTypeColor(transaction.type)}`}>
-                                                                    ₹{transaction.amount.toLocaleString()}
+                                                                    {inr(transaction.amount)}
                                                                 </div>
                                                                 <div className="text-sm text-gray-600">{transaction.description}</div>
                                                                 {transaction.packageName && (
@@ -1432,9 +1566,9 @@ const WalletTransactions = () => {
                                                                 {transaction.purchaserName && (
                                                                     <div className="text-xs text-gray-500">From: {transaction.purchaserName}</div>
                                                                 )}
-                                                                {transaction.level && (
+                                                                {transaction.level ? (
                                                                     <div className="text-xs text-gray-500">Level: {transaction.level}</div>
-                                                                )}
+                                                                ) : null}
                                                                 {transaction.type === 'fund_credit' && (
                                                                     <div className="text-xs text-blue-600 font-semibold">
                                                                         💰 Fund Credit Added From YesITryMe
@@ -1450,7 +1584,7 @@ const WalletTransactions = () => {
                                                         <div className="text-right">
                                                             <div className="text-sm text-gray-600">{formatDateTime(transaction.createdAt)}</div>
                                                             <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(transaction.status)}`}>
-                                                                {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                                                {statusLabel(transaction.status)}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1548,10 +1682,7 @@ const WalletTransactions = () => {
                                         );
                                     }
                                     // Apply pagination
-                                    const itemsPerPage = 10;
-                                    const startIndex = (rechargePage - 1) * itemsPerPage;
-                                    const endIndex = startIndex + itemsPerPage;
-                                    const paginatedTransactions = allTransactions.slice(startIndex, endIndex);
+                                    const { rows: paginatedTransactions } = paginate(allTransactions, rechargePage);
                                     return (
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full text-sm">
@@ -1737,13 +1868,7 @@ const WalletTransactions = () => {
                                     <PaginationComponent
                                         currentPage={rechargePage}
                                         totalPages={totalPages || 1}
-                                        onPageChange={(page) => {
-                                            setRechargePage(page);
-                                            // Also fetch new history page if needed
-                                            if (page <= rechargeTotalPages) {
-                                                fetchRechargeHistory(page);
-                                            }
-                                        }}
+                                        onPageChange={(page) => setRechargePage(Math.min(Math.max(1, page), totalPages || 1))}
                                         colorClass="orange"
                                     />
                                 );
@@ -1758,7 +1883,7 @@ const WalletTransactions = () => {
                                         <ArrowDownCircle className="text-green-500" size={32} />
                                         <div>
                                             <div className="text-xs text-green-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Requests</div>
-                                            <div className="text-2xl font-extrabold text-green-700">{payoutHistory.filter(p => p.status !== 'rejected').length}</div>
+                                            <div className="text-2xl font-extrabold text-green-700">{allPayouts.filter(p => p.status !== 'rejected').length}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1768,7 +1893,7 @@ const WalletTransactions = () => {
                                         <ArrowUpCircle className="text-blue-500" size={32} />
                                         <div>
                                             <div className="text-xs text-blue-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Total Requested</div>
-                                            <div className="text-2xl font-extrabold text-blue-700">₹{payoutHistory.filter(p => p.status !== 'rejected').reduce((sum, payout) => sum + payout.amount, 0).toLocaleString()}</div>
+                                            <div className="text-2xl font-extrabold text-blue-700">{inr(allPayouts.filter(p => p.status !== 'rejected').reduce((sum, payout) => sum + toNumber(payout.amount), 0))}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1778,7 +1903,7 @@ const WalletTransactions = () => {
                                         <CheckCircle className="text-purple-500" size={32} />
                                         <div>
                                             <div className="text-xs text-purple-700 font-semibold flex items-center gap-1"><IndianRupee size={16} /> Net Received</div>
-                                            <div className="text-2xl font-extrabold text-purple-700 ">₹{payoutHistory.filter(p => p.status === 'approved' || p.status === 'completed').reduce((sum, payout) => sum + (payout.netAmount || payout.amount * 0.88), 0).toFixed(2)}</div>
+                                            <div className="text-2xl font-extrabold text-purple-700 ">{inr(allPayouts.filter(p => p.status === 'approved' || p.status === 'completed').reduce((sum, payout) => sum + toNumber(payout.netAmount ?? payout.amount), 0))}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1800,7 +1925,7 @@ const WalletTransactions = () => {
                                                         {getTransactionTypeIcon('withdrawal')}
                                                         <div>
                                                             <div className={`font-semibold text-lg ${getTransactionTypeColor('withdrawal')}`}>
-                                                                ₹{payout.amount.toLocaleString()}
+                                                                {inr(payout.amount)}
                                                             </div>
                                                             <div className="text-sm text-gray-600">Withdrawal Request</div>
                                                             {/* Status-specific helper line */}
@@ -1821,21 +1946,21 @@ const WalletTransactions = () => {
                                                             {payout.paymentMethod && (
                                                                 <div className="text-xs text-gray-500">Method: {payout.paymentMethod}</div>
                                                             )}
-                                                            {payout.accountNumber && (
-                                                                <div className="text-xs text-gray-500">Account: {payout.accountNumber}</div>
+                                                            {(payout.paymentDetails?.accountNumber || payout.accountNumber) && (
+                                                                <div className="text-xs text-gray-500">Account: {maskAccount(payout.paymentDetails?.accountNumber || payout.accountNumber)}</div>
                                                             )}
-                                                            {payout.ifscCode && (
-                                                                <div className="text-xs text-gray-500">IFSC: {payout.ifscCode}</div>
+                                                            {(payout.paymentDetails?.ifscCode || payout.ifscCode) && (
+                                                                <div className="text-xs text-gray-500">IFSC: {payout.paymentDetails?.ifscCode || payout.ifscCode}</div>
                                                             )}
-                                                            {payout.upiId && (
-                                                                <div className="text-xs text-gray-500">UPI: {payout.upiId}</div>
+                                                            {(payout.paymentDetails?.upiId || payout.upiId) && (
+                                                                <div className="text-xs text-gray-500">UPI: {payout.paymentDetails?.upiId || payout.upiId}</div>
                                                             )}
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-sm text-gray-600">{formatDateTime(payout.requestDate)}</div>
                                                         <div className={`inline-block text-xs font-semibold mt-1 px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(payout.status)}`}>
-                                                            {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
+                                                            {statusLabel(payout.status)}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1849,7 +1974,7 @@ const WalletTransactions = () => {
                             <PaginationComponent
                                 currentPage={payoutPage}
                                 totalPages={payoutTotalPages}
-                                onPageChange={fetchPayoutHistory}
+                                onPageChange={(page) => showPayoutPage(allPayouts, page)}
                                 colorClass="green"
                             />
                         </>
@@ -1858,6 +1983,7 @@ const WalletTransactions = () => {
                 {/* Glassmorphism effect */}
                 <div className="absolute inset-0 pointer-events-none rounded-3xl bg-gradient-to-br from-blue-100/30 via-white/10 to-green-100/30 blur-xl opacity-60 z-0" />
             </div>
+            <StoryCardModal request={storyCard} onClose={closeStoryCard} />
         </div>
     );
 };

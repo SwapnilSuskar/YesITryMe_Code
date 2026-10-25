@@ -314,10 +314,12 @@ export const requestPayout = async (req, res) => {
 export const getPayoutHistory = async (req, res) => {
   try {
     const { userId } = req.user;
+    // Default stays 10 (dashboard widgets); the wallet page asks for more with ?limit=
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 500);
 
     const payouts = await Payout.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(limit);
 
     res.json({
       success: true,

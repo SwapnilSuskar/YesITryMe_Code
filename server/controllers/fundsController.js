@@ -7,6 +7,11 @@ export const getUserFunds = async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // Users can only see their own funds; admins can see anyone's
+    if (req.user?.role !== "admin" && req.user?.userId !== userId) {
+      return res.status(403).json({ success: false, message: "Not allowed" });
+    }
+
     const user = await User.findOne({ userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });

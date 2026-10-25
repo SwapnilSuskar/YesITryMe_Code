@@ -321,4 +321,8 @@ export const API_ENDPOINTS = {
     reject: (id) => `${API_URL}/api/admin/product-orders/${id}/reject`,
     delete: (id) => `${API_URL}/api/admin/product-orders/${id}`,
   },
+  // Shareable story images for WhatsApp Status / Instagram Story
+  storyCard: {
+    transaction: (txId) => `${API_URL}/api/story-card/transaction/${txId}`,
+  },
 };

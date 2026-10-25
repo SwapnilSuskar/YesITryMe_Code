@@ -5,6 +5,10 @@ import User from "../models/User.js";
 export const getSpecialIncome = async (req, res) => {
   try {
     const { userId } = req.params;
+    // Users can only see their own special income; admins can see anyone's
+    if (req.user?.role !== "admin" && req.user?.userId !== userId) {
+      return res.status(403).json({ success: false, message: "Not allowed" });
+    }
     const income = await SpecialIncome.findOne({ userId });
     res.json({ success: true, data: income });
   } catch (error) {

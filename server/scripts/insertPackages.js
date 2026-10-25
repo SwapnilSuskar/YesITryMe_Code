@@ -80,9 +80,9 @@ const packages = [
     ]
   },
   {
-    name: "Elite Package",
+    name: "Pro Package",
     price: 2999,
-    description: "Buy elite package and get set of 200 ebook with id activation",
+    description: "Buy pro package and get set of 200 ebook with id activation",
     isActive: true,
     commissionStructure: [
       { level: 1, percentage: 50, amount: 1000 },

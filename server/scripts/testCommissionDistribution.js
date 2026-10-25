@@ -17,7 +17,7 @@ const testCommissionDistribution = async () => {
 
     // Test commission structure for different packages
     const testPackages = [
-      { name: "Elite Package", price: 2000 },
+      { name: "Pro Package", price: 2000 },
       { name: "Super Prime Package", price: 1000 },
       { name: "Prime Package", price: 500 }
     ];
@@ -58,7 +58,7 @@ const testCommissionDistribution = async () => {
       if (sponsors.length > 0) {
         console.log('\n💰 Testing Commission Distribution Calculation...');
         
-        const testPackageName = "Elite Package";
+        const testPackageName = "Pro Package";
         const distributions = await referralService.calculateCommissionDistribution(
           testPackageName,
           2000,

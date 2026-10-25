@@ -72,7 +72,7 @@ const createTestReferralChain = async () => {
 
       // Test commission distribution
       console.log('\n💰 Testing commission distribution...');
-      const testPackageName = "Elite Package";
+      const testPackageName = "Pro Package";
       const testPackagePrice = 2000;
       
       const distributions = await referralService.calculateCommissionDistribution(
@@ -163,7 +163,7 @@ const createTestReferralChain = async () => {
     console.log('\n✅ Test referral chain setup completed!');
     console.log('\n📝 Summary:');
     console.log('   - Created 7 test users in a 6-level referral chain');
-    console.log('   - Tested commission distribution for Elite Package');
+    console.log('   - Tested commission distribution for Pro Package');
     console.log('   - Level 6 user should receive ₹20 commission');
     console.log('   - All commissions are distributed without MLM level restrictions');
 

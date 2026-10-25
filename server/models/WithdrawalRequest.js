@@ -41,6 +41,11 @@ const withdrawalRequestSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
     },
+    // Set when the "withdrawal successful" email goes out, so it is sent only once
+    earningEmailSentAt: {
+      type: Date,
+      default: null,
+    },
     rejectionReason: {
       type: String,
     },

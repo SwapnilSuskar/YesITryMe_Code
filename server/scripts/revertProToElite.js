@@ -14,14 +14,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-// Renames "Elite Package" to "Pro Package" in the package itself and in every
+// Undoes renameEliteToPro: renames "Pro Package" back to "Elite Package" in the package itself and in every
 // record that stores the package name. Price and commission are not touched.
 //
-// Dry run (shows counts only):  node scripts/renameEliteToPro.js
-// Apply the rename:             node scripts/renameEliteToPro.js --apply
-const OLD_NAME = "Elite Package";
-const NEW_NAME = "Pro Package";
-const NEW_DESCRIPTION = "Buy pro package and get set of 200 ebook with id activation";
+// Dry run (shows counts only):  node scripts/revertProToElite.js
+// Apply the rename:             node scripts/revertProToElite.js --apply
+const OLD_NAME = "Pro Package";
+const NEW_NAME = "Elite Package";
+const NEW_DESCRIPTION = "Buy elite package and get set of 200 ebook with id activation";
 const apply = process.argv.includes("--apply");
 
 const targets = [
@@ -39,7 +39,7 @@ const targets = [
   { label: "wallet entries", model: Wallet, field: "packageName" }
 ];
 
-async function renameEliteToPro() {
+async function revertProToElite() {
   const MONGO_URI =
     process.env.MONGO_URI_PROD || process.env.MONGO_URI || process.env.MONGODB_URI || "";
 
@@ -93,9 +93,9 @@ async function renameEliteToPro() {
     console.log(apply ? "\nDone." : "\nDry run finished. Re-run with --apply to write these changes.");
     process.exit(0);
   } catch (err) {
-    console.error("Error renaming Elite Package to Pro Package:", err);
+    console.error("Error renaming Pro Package back to Elite Package:", err);
     process.exit(1);
   }
 }
 
-renameEliteToPro();
+revertProToElite();

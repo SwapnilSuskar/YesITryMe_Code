@@ -165,7 +165,8 @@ const AppRouter = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:courseId" element={<CourseDetail />} />
-        <Route path="/packages" element={<Package />} />
+        <Route path="/packages" element={<Package key="standard" />} />
+        <Route path="/pro-packages" element={<Package key="pro" variant="pro" />} />
         <Route path="/ebooks" element={<Ebooks />} />
         <Route path="/super-packages" element={<SuperPackages />} />
         <Route path="/products" element={<Products />} />

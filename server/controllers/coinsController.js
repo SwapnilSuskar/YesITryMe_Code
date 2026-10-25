@@ -1,6 +1,7 @@
 import CoinWallet from "../models/Coin.js";
 import User from "../models/User.js";
 import WithdrawalRequest from "../models/WithdrawalRequest.js";
+import { queueCoinWithdrawalEmail } from "../services/earningEmailService.js";
 
 export const getCoinBalance = async (req, res) => {
   try {
@@ -760,6 +761,9 @@ export const completeWithdrawalRequest = async (req, res) => {
     withdrawalRequest.completedAt = new Date();
     withdrawalRequest.paymentDetails = paymentDetails || {};
     await withdrawalRequest.save();
+
+    // Money is out: email the user (once per request) with a shareable story image
+    await queueCoinWithdrawalEmail(withdrawalRequest);
 
     // Also mark wallet original transaction as completed
     const wallet = await CoinWallet.getOrCreateWallet(withdrawalRequest.userId);

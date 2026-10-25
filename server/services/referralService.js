@@ -636,7 +636,7 @@ class ReferralService {
 
       // Fallback to hardcoded structure if not found in database
       const structures = {
-        "Pro Package": [
+        "Elite Package": [
           { level: 1, percentage: 50, amount: 1000 },
           { level: 2, percentage: 20, amount: 400 },
           { level: 3, percentage: 10, amount: 200 },

@@ -8,6 +8,7 @@ import {
   calculateWithdrawalCharges,
   checkActiveMemberStatus,
 } from "../services/mlmService.js";
+import { queuePayoutEmail } from "../services/earningEmailService.js";
 
 // Check payout eligibility
 export const checkPayoutEligibility = async (req, res) => {
@@ -448,6 +449,7 @@ export const updatePayoutStatus = async (req, res) => {
         message: "Payout request not found",
       });
     }
+    const previousStatus = payout.status;
 
     // If status is being changed to completed or approved, handle the payout
     if (
@@ -773,6 +775,11 @@ export const updatePayoutStatus = async (req, res) => {
     }
 
     await payout.save();
+
+    // Money is out: email the user (once per payout) with a shareable story image
+    if (status === "completed" && previousStatus !== "completed") {
+      await queuePayoutEmail(payout);
+    }
 
     res.json({
       success: true,

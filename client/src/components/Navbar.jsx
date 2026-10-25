@@ -1,4 +1,4 @@
-import { BookOpen, Brain, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging, FileText, Server, ShoppingCart } from 'lucide-react';
+import { BookOpen, Brain, Gem, LayoutDashboard, LinkIcon, LogOut, Menu, Package, ReceiptIndianRupee, User, Users, Wallet, X, YoutubeIcon, Zap, UserCheck, IndianRupee, BatteryCharging, FileText, Server, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from "../assets/Logo.png";
@@ -41,6 +41,7 @@ const Navbar = () => {
     { name: "My Services", path: '/my-services', icon: Server },
     { name: 'My Team', path: '/my-team', icon: Users },
     { name: 'Packages', path: '/packages', icon: BookOpen },
+    { name: 'Pro Package', path: '/pro-packages', icon: Gem },
     { name: 'Super Packages', path: '/super-packages', icon: Zap },
     { name: 'Profile', path: '/profile', icon: User },
     { name: 'KYC', path: '/kyc', icon: LinkIcon },

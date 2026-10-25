@@ -46,6 +46,11 @@ const payoutSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Set when the "withdrawal successful" email goes out, so it is sent only once
+    earningEmailSentAt: {
+      type: Date,
+      default: null,
+    },
     adminNotes: {
       type: String,
       default: "",

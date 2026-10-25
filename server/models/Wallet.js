@@ -132,6 +132,24 @@ walletSchema.index({ 'transactions.type': 1, 'transactions.status': 1 }); // Com
 walletSchema.index({ 'transactions.purchaserId': 1, 'transactions.createdAt': -1 }); // Compound index for user transaction history
 walletSchema.index({ 'transactions.type': 1, 'transactions.createdAt': -1 }); // Compound index for transaction type history
 
+// Credit emails: after a save, hand the transactions that were just added
+// (not yet in the database) to the email service.
+walletSchema.pre('save', function () {
+  this.$locals.newTxForEmail = (this.transactions || []).filter((t) => t.isNew);
+});
+
+walletSchema.post('save', async function () {
+  const fresh = this.$locals.newTxForEmail || [];
+  this.$locals.newTxForEmail = [];
+  if (!fresh.length) return;
+  try {
+    const { queueWalletEmails } = await import('../services/earningEmailService.js');
+    await queueWalletEmails(this, fresh);
+  } catch (error) {
+    console.error('❌ Could not queue wallet emails:', error.message);
+  }
+});
+
 const Wallet = mongoose.model("Wallet", walletSchema);
 
 export default Wallet; 

@@ -26,6 +26,7 @@ import categoryRoutes from "./routes/categories.js";
 import videoTasksRoutes from "./routes/videoTasks.js";
 import servicesRoutes from "./routes/services.js";
 import productOrderRoutes from "./routes/productOrders.js";
+import { earningEmailMiddleware } from "./services/earningEmailService.js";
 
 const app = express();
 
@@ -72,6 +73,9 @@ app.options("/{*splat}", cors(corsOptions), (req, res) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Sends credit/withdrawal emails queued during a request before its response goes out
+app.use(earningEmailMiddleware);
 
 // Development logging
 if (process.env.NODE_ENV === "development") {
